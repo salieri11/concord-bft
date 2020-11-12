@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import types
+import pprint
 import pytest
 import tempfile
 import collections
@@ -16,6 +17,7 @@ from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
 from util import auth, csp, helper, hermes_logging, html, json_helper, node_creator,\
     numbers_strings, generate_grpc_bindings, pipeline
+from util.stats_gatherer import StatsGatherer
 
 import event_recorder
 import util.hermes_logging
@@ -32,6 +34,8 @@ SUPPORT_BUNDLE = "support_bundles.json"
 REPORT = "execution_results.json"
 TESTSTATUS = "test_status.pass"
 
+# Started and terminated by pytest hooks.
+stats_gatherer = None
 
 def pytest_generate_tests(metafunc):
     '''
@@ -152,13 +156,13 @@ def pytest_runtest_makereport(item, call):
     report = outcome.get_result()
     setattr(item, "rep_" + report.when, report)
     if call.when == 'call' or call.when == 'setup':
-        # Mark outcome xfailed if when.call executed and  outcome is skipped 
+        # Mark outcome xfailed if when.call executed and  outcome is skipped
         # and test is marked as xfailed
         if call.when == 'call' and report.outcome == 'skipped' \
             and 'xfail' in list(report.keywords.keys()):
             report.outcome = 'xfailed'
 
-        # Mark outcome xpassed if when.call executed and  outcome is passed 
+        # Mark outcome xpassed if when.call executed and  outcome is passed
         # and test is marked as xfailed
         if call.when == 'call' and report.outcome == 'passed' \
             and 'xfail' in list(report.keywords.keys()):
@@ -341,7 +345,12 @@ def _createResultsDir(module_name, resultsDir):
     logDir = module_name + "_" + \
         strftime("%Y%m%d_%H%M%S", localtime())
     results_dir = os.path.join(parent_results_dir, logDir, TEST_LOGDIR)
+    log.info("Results directory: {}".format(results_dir))
     os.makedirs(results_dir)
+
+    global stats_gatherer
+    stats_gatherer.set_results_file(results_dir)
+
     return results_dir
 
 
@@ -757,3 +766,28 @@ def prepare_report(items, results_dir):
                      result_summary['not-executed'],
                      blue, result_summary['total'], reset))
     return complete_success
+
+
+def start_stats_gatherer(session):
+    '''
+    Start the stats gathering tool.
+    session: Created and passed to us by Pytest.
+    '''
+    global stats_gatherer
+    stats_gatherer = StatsGatherer(replicas_config=session.config.option.replicasConfig,
+                                   interval=10, overwrite=False)
+    stats_gatherer.start()
+
+
+def pytest_sessionstart(session):
+    '''
+    Pytest hook: https://docs.pytest.org/en/stable/reference.html#initialization-hooks
+    '''
+    start_stats_gatherer(session)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    '''
+    Pytest hook: https://docs.pytest.org/en/stable/reference.html#initialization-hooks
+    '''
+    stats_gatherer.request_stop()

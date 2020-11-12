@@ -275,7 +275,7 @@ def call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="
     # Below parameters are default set, if not provided.
     wf_url = wf_url + '&view=METRIC'
     wf_url = wf_url + '&includeObsoleteMetrics=false' + '&sorted=false'
-    wf_url = wf_url + '&cached=true' + '&useRawQK=false'
+    wf_url = wf_url + '&cached=false' + '&useRawQK=false'
     # Strict must be true, otherwise data outside start time and end time range is fetched.
     wf_url = wf_url + '&strict=true'
 
@@ -289,4 +289,23 @@ def call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="
                      "--retry-delay", "0",  # Delay in next retry
                      "--retry-max-time", "60",  # Total time before this call is considered a failure
                      wf_url]
-    return subprocess.check_output(wavefront_cmd).decode('utf8')
+    log.debug("Wavefront command: {}".format(wavefront_cmd))
+
+    result = None
+    attempts = 5
+    while not result:
+      try:
+        result = subprocess.check_output(wavefront_cmd).decode('utf8')
+        json.loads(result)
+      except json.decoder.JSONDecodeError as e:
+        attempts -= 1
+
+        log.info("Non-JSON result from Wavefront: '{}'.  Retrying.".format(result))
+        result = None
+
+        if attempts == 0:
+          raise
+
+        time.sleep(1)
+
+    return result
