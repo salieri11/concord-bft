@@ -158,3 +158,19 @@ get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
 target_include_directories(conc_genconfig PUBLIC ${thresh_include})
 get_property(thresh_srcs TARGET threshsign PROPERTY SOURCES)
 target_sources(conc_genconfig PUBLIC ${thresh_srcs})
+
+
+file(GLOB trs_performance_src "trs_performance/trs_performance.cpp")
+
+add_executable(trs_performance
+  ${trs_performance_src}
+  ${PROTO_SRCS} ${PROTO_HDRS}
+  ${GRPC_SRCS}
+)
+
+target_link_libraries(trs_performance
+  logging
+  concord_utils # for prometheus
+  concord_trs
+  concord_storage # for kvb app filter
+)
