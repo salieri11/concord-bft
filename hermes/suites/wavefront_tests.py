@@ -6,15 +6,11 @@ from suites.case import describe
 from collections import namedtuple
 import pytest
 import time
-import util.daml.daml_helper as daml_helper
-from util import helper, hermes_logging, blockchain_ops, wavefront
-from util.daml.daml_requests import simple_request
+from util import helper, hermes_logging, blockchain_ops, wavefront, daml_regression_helper as dr_helper
 from fixtures.common_fixtures import fxBlockchain, fxProduct
 import json
-from pathlib import Path
-import os
 from subprocess import check_output, CalledProcessError
-from itertools import zip_longest
+from util.daml.daml_requests import simple_request
 
 log = hermes_logging.getMainLogger()
 
@@ -37,9 +33,7 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxBlockchain, fxProduct)
         concord_hosts: Concord (committer) replicas
     '''
     log.info("\n\nBlockchain fixture is {}".format(fxBlockchain))
-    client_hosts, concord_hosts = format_hosts_structure(fxBlockchain.replicas)
-    log.info("\nIn fxLocalSetup fixture, Participants are {}\nCommitters are {}\n".format(
-        client_hosts, concord_hosts))
+    client_hosts, concord_hosts = dr_helper.format_hosts_structure(fxBlockchain.replicas)
 
     local_tuple = LocalSetupFixture(
         client_hosts=client_hosts, concord_hosts=concord_hosts)
@@ -47,80 +41,17 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxBlockchain, fxProduct)
     return local_tuple
 
 
-def format_hosts_structure(all_replicas):
+def make_client_request(client_hosts, counter):
     '''
-    Currently the structure of replicas is different when blockchain is deployed 
-    and when replicasConfig argument is provided.
-    Once the utility functions are corrected to allow only single format, 
-    this function would be removed.
-    '''
-    client_hosts = all_replicas["daml_participant"]
-    concord_hosts = all_replicas["daml_committer"]
-
-    client_hosts_list, concord_hosts_list = [], []
-
-    # Parse through the participants and committers
-    for client_host, concord_host in list(zip_longest(client_hosts, concord_hosts)):
-        # Participant hosts
-        if client_host:
-            if (isinstance(client_host, dict)):
-                client_host = client_host["private_ip"] if client_host[
-                    "private_ip"] is not None else client_host["public_ip"]
-            client_hosts_list.append(client_host)
-
-        # Committer hosts
-        if concord_host:
-            if (isinstance(concord_host, dict)):
-                concord_host = concord_host["private_ip"] \
-                    if concord_host["private_ip"] is not None else concord_host["public_ip"]
-            concord_hosts_list.append(concord_host)
-
-    client_hosts = client_hosts_list if len(client_hosts_list) else client_hosts
-    concord_hosts = concord_hosts_list if len(concord_hosts_list) else concord_hosts
-
-    return client_hosts, concord_hosts
-
-
-def get_port(client_host):
-    client_port = '6861' if client_host == 'localhost' else DAML_LEDGER_API_PORT
-    return client_port
-
-
-def install_sdk_deploy_daml(client_host):
-    '''
-    Function to install DAML SDK and deploy the dar file
-    on the client_host where Ledger API is running.
-    Args:
-        client_host: Host where ledger API is running
-    Returns:
-        None
-    '''
-    home = str(Path.home())
-    daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
-    cmd = [daml_sdk_path, "deploy", "--host",
-           client_host, "--port", get_port(client_host)]
-    party_project_dir = "util/daml/request_tool"
-    success, output = helper.execute_ext_command(
-        cmd, timeout=240, working_dir=party_project_dir, verbose=True)
-    log.info("\nOutput of deploy daml is {}".format(output))
-    if "Party already exists" in output:
-        assert False, "DAML Error: Party already exists."
-    assert success, "DAML Error: Unable to deploy DAML app for one/more parties"
-
-
-def make_client_request(client_hosts):
-    '''
-    Function to perform daml transaction
+    Function to install sdk and perform daml transaction using helper utility
     '''
     for client_host in client_hosts:
         try:
             # Call function to install sdk only first time.
-            install_sdk_deploy_daml(client_host)
-            no_of_txns, wait_time = 1, 0
-            url = 'http://{}:{}'.format(client_host, get_port(client_host))
-            # Create & verify transactions of count no_of_txns
-            assert simple_request(url, no_of_txns, wait_time), \
-                "DAML request submission/verification failed"
+            if counter == 1:
+                dr_helper.install_sdk_deploy_daml(client_host)
+            url = dr_helper.get_daml_url(client_host)
+            assert simple_request(url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG
         except Exception as excp:
             assert False, excp
 
@@ -156,7 +87,7 @@ def test_wavefront_smoke(fxBlockchain):
     try:
         json_output = json.loads(str_output)
     except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
-        log.error("Error is : [{}]".format(e))
+        log.error("Error in Smoke test is : [{}]".format(e))
         assert False, str_output
 
     assert "error" not in json_output.keys(), json_output["message"]
@@ -195,16 +126,11 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     warncolor = "\033[1;33m"
     reset = "\033[0m"
     log.warning("\n\n{}".format(warncolor))
-    log.warning(
-        "{}".format("*"*85))
-    log.warning(
-        "** This test assumes that no other test is running in parallel for given blockchain")
-    log.warning(
-        "** There could be wrong impact on test outcome otherwise")
-    log.warning(
-        "{}{}\n\n".format("*"*85, reset))
-    log.info("Running this test for \nMetric name [{}] and Operation [{}]".format(
-        metric_name, operation))
+    log.warning("{}".format("*"*85))
+    log.warning("** This test assumes that no other test is running in parallel for given blockchain")
+    log.warning("** There could be wrong impact on test outcome otherwise")
+    log.warning("{}{}\n\n".format("*"*85, reset))
+    log.info("\nMetric name [{}] and Operation [{}]".format(metric_name, operation))
 
     blockchain_id = fxBlockchain.blockchainId
     assert blockchain_id, "Blockchain Id not found, can't proceed with this test"
@@ -235,7 +161,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
         assert "errorType" not in output.keys(
         ), "{} - {}".format(output["errorType"], output["errorMessage"])
     except (ValueError, json.decoder.JSONDecodeError, CalledProcessError) as e:
-        log.error("Error is : [{}]".format(e))
+        log.error("Error in metrics test is : [{}]".format(e))
         assert False, str_output
 
     before_data = output["timeseries"][0]["data"]
@@ -247,7 +173,7 @@ def test_wavefront_metrics(fxLocalSetup, fxBlockchain, counter, metric_name, ope
     time.sleep(10)
 
     # Make a client request
-    make_client_request(fxLocalSetup.client_hosts)
+    make_client_request(fxLocalSetup.client_hosts, counter)
 
     time.sleep(30)
     # Check Wavefront after Client request

@@ -4,7 +4,6 @@ from pathlib import Path
 import os
 import sys
 import random
-
 from . import helper, hermes_logging, blockchain_ops, wavefront
 from . import node_interruption_helper as intr_helper
 import multiprocessing
@@ -12,6 +11,7 @@ from asyncio import set_event_loop, new_event_loop, get_event_loop
 from itertools import zip_longest
 from fixtures.common_fixtures import fxBlockchain, fxNodeInterruption, fxProduct
 import time
+import util.daml.daml_helper as daml_helper
 
 # Do not add any import after this
 sys.path.append(os.path.abspath('../daml'))
@@ -25,6 +25,7 @@ COMMITTER_POWER_OFF_ERROR_MSG = "Failed to power off committer node "
 PARTICIPANT_POWER_ON_ERROR_MSG = "Failed to power on participant node "
 PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node "
 CHECKPOINT_ERROR_MESSAGE = "Failed to trigger new checkpoint"
+
 
 def format_hosts_structure(all_replicas):
     '''
@@ -109,13 +110,14 @@ def install_sdk_deploy_daml(client_host):
         None
     '''
     client_port = '6861' if client_host == 'localhost' else DAML_LEDGER_API_PORT
-    home = str(Path.home())
-    daml_sdk_path = os.path.join(home, ".daml", "bin", "daml")
+    daml_sdk_path = daml_helper.install_daml_sdk()
+    log.info("\nDaml sdk path is {}".format(daml_sdk_path))
     cmd = [daml_sdk_path, "deploy", "--host",
            client_host, "--port", client_port]
     party_project_dir = "util/daml/request_tool"
     success, output = helper.execute_ext_command(
         cmd, timeout=180, working_dir=party_project_dir, verbose=True)
+    log.info("\nSuccess and Output are {} and {}".format(success, output))
     if "Party already exists" in output:
         assert False, "DAML Error: Party already exists."
     assert success, "DAML Error: Unable to deploy DAML app for one/more parties"
@@ -360,6 +362,7 @@ def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, inter
     except Exception as excp:
         assert False, excp
 
+
 def trigger_checkpoint(bc_id, client_host):
     '''
     Function to trigger multiple checkpoints by sending daml requests
@@ -410,4 +413,3 @@ def get_last_checkpoint(bc_id):
     else:
         last_checkpoint = -1
     return last_checkpoint
-
