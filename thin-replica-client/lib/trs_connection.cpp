@@ -71,23 +71,16 @@ void TrsConnection::createChannel() {
                      << thin_replica_tls_cert_path << ", server: " << address_);
 
     std::string client_cert, client_key, root_cert;
-    // Use the last char in client_id_, i.e., the numeric identifier to uniquely
-    // identify the certs folder for the client. For e.g., if client_id is
-    // daml_ledger_api1, c0 is the client certs folder Similarly, use the last
-    // char in server name part of the address to uniquely identify the server
-    // cert folder. For e.g., if server name is concord1, s0 is the server certs
-    // folder
+
     std::string client_cert_path =
-        thin_replica_tls_cert_path + "/c" +
-        std::to_string((client_id_.back() - '0') - 1);
-    std::string server_cert_path =
-        thin_replica_tls_cert_path + "/s" +
-        std::to_string(((address_.substr(0, address_.find(":"))).back() - '0') -
-                       1);
+        thin_replica_tls_cert_path + "/" + client_id_;
 
     readCert(client_cert_path + "/client.cert", client_cert);
     readCert(client_cert_path + "/pk.pem", client_key);
-    readCert(server_cert_path + "/server.cert", root_cert);
+
+    // server.cert is a composite cert file i.e., a concatentation of the
+    // certificates of all known servers
+    readCert(client_cert_path + "/server.cert", root_cert);
 
     grpc::SslCredentialsOptions opts = {root_cert, client_key, client_cert};
     channel_ =
