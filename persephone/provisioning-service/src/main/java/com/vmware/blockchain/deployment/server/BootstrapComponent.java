@@ -49,7 +49,7 @@ public class BootstrapComponent {
     @Value("${provisioning.container.registry.username}")
     private String username;
 
-    @Value("${provisioning.container.registry.password}")
+    @Value("${provisioning.container.registry.password:NONE}")
     private String password;
 
     @Value("${provisioning.notary.server.address:https://notary.vdp.vmware.com}")
