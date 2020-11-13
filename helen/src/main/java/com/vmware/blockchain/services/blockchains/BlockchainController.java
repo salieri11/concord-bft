@@ -14,8 +14,11 @@ import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.Bl
 import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
 import java.io.ByteArrayInputStream;
+import java.security.KeyFactory;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,6 +33,7 @@ import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -573,13 +577,20 @@ public class BlockchainController {
                                 // Propagate TLS details if and only if all details are provided
 
                                 String pem = k.getPem();
-                                // Implicitly checks for the Certificate Parsing and Encoding Exceptions
-                                X509Certificate pemCertificate = (X509Certificate) CertificateFactory
-                                        .getInstance("X.509")
-                                        .generateCertificate(new ByteArrayInputStream(pem.getBytes()));
-                                // Throws exception if certificate has expired or not yet valid
-                                pemCertificate.checkValidity();
 
+                                // Validate proper PEM input
+                                String privateKeyPem = pem
+                                        .replace("-----BEGIN PRIVATE KEY-----", "")
+                                        .replaceAll(System.lineSeparator(), "")
+                                        .replace("-----END PRIVATE KEY-----", "");
+
+                                byte[] encoded = Base64.decodeBase64(privateKeyPem);
+
+                                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                                PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+                                RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) keyFactory.generatePrivate(keySpec);
+
+                                // Validate proper CRT input
                                 String crt = k.getCrt();
                                 // Implicitly checks for the Certificate Parsing and Encoding Exceptions
                                 X509Certificate crtCertificate = (X509Certificate) CertificateFactory
