@@ -80,9 +80,6 @@ public class ConsortiumControllerTest {
     @MockBean
     DefaultProfiles defaultProfiles;
 
-    @MockBean
-    UserAuthenticator userAuthenticator;
-
     @Autowired
     Jackson2ObjectMapperBuilder jacksonBuilder;
 

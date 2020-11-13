@@ -20,10 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.NotFoundException;
@@ -33,7 +31,6 @@ import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.blockchains.replicas.Replica;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
-import com.vmware.blockchain.services.concord.ConcordService;
 
 import lombok.Getter;
 
@@ -63,19 +60,13 @@ public class DefaultProfiles {
 
     private AgreementService agreementService;
 
-    private UserService userService;
-
     private OrganizationService organizationService;
 
     private ConsortiumService consortiumService;
 
-    private PasswordEncoder passwordEncoder;
-
     private BlockchainService blockchainService;
 
     private ReplicaService replicaService;
-
-    private ConcordService concordService;
 
     private ServiceContext serviceContext;
 
@@ -94,30 +85,24 @@ public class DefaultProfiles {
 
     @Autowired
     public DefaultProfiles(
-            UserService userService,
             OrganizationService organizationService,
             ConsortiumService consortiumService,
-            PasswordEncoder passwordEncoder,
             BlockchainService blockchainService,
             AgreementService agreementService,
             ServiceContext serviceContext,
             ReplicaService replicaService,
-            ConcordService concordService,
             ConnectionPoolManager connectionPoolManager,
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
             @Value("${ConcordRpcCerts}") String blockchainRpcCerts,
             @Value("${vmbc.default.blockchain:false}") boolean createDefaultBlockchain,
             @Value("${default.profile.org.id:#{null}}") UUID defaultOrgId) {
-        this.userService = userService;
         this.organizationService = organizationService;
         this.consortiumService = consortiumService;
-        this.passwordEncoder = passwordEncoder;
         this.blockchainService = blockchainService;
         this.agreementService = agreementService;
         this.serviceContext = serviceContext;
         this.replicaService = replicaService;
-        this.concordService = concordService;
         this.connectionPoolManager = connectionPoolManager;
         this.blockchainIpList = blockchainIpList;
         this.blockchainRpcUrls = blockchainRpcUrls;
@@ -148,7 +133,6 @@ public class DefaultProfiles {
             // We need an empty blockchain backwards compatibility.  Some old calls are failing without this.
             blockchain = new Blockchain();
         }
-        user = createUserIfNotExist();
         serviceContext.clearServiceContext();
         List<String> nodeInfo = Collections.emptyList();
         if (replicas != null) {
@@ -157,30 +141,8 @@ public class DefaultProfiles {
                     .map(n -> String.format("%s %s %s", n.getHostName(), n.getPrivateIp(), n.getUrl()))
                     .collect(Collectors.toList());
         }
-        logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
-                    consortium.getConsortiumName(), nodeInfo, user.getEmail());
-    }
-
-    private User createUserIfNotExist() {
-        logger.info("Application ready");
-        String email = "admin@blockchain.local";
-        List<User> oUser = userService.list();
-        if (oUser.isEmpty()) {
-            logger.info("Creating Initial User");
-            User u = new User();
-            u.setName("ADMIN");
-            u.setEmail(email);
-            u.setServiceRoles(ImmutableList.of(VmbcRoles.ORG_USER, VmbcRoles.SYSTEM_ADMIN));
-            u.setOrganization(organization.getId());
-            // Note: The order of next 5 statements is very important, The user
-            // object must be saved before it can be added and saved into
-            // consortium & organization objects.
-            u = userService.put(u);
-            logger.info("Admin user created. Username: {}", email);
-            return u;
-        } else {
-            return oUser.get(0);
-        }
+        logger.info("Profiles -- Org {}, Cons: {}, BC: {}", organization.getOrganizationName(),
+                    consortium.getConsortiumName(), nodeInfo);
     }
 
     private Organization createOrgIfNotExist() {

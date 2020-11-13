@@ -7,8 +7,6 @@ package com.vmware.blockchain.services.profiles;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -19,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.AdditionalMatchers;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.cache.Cache;
@@ -27,7 +24,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.common.NotFoundException;
 
 /**
@@ -128,92 +124,4 @@ class ProfilesServiceTest {
         Assertions.assertEquals(USER_ID, user.getId());
     }
 
-    @Test
-    void testLoginGood() {
-        prm.loginUser(existingUser);
-        Assertions.assertNotNull(existingUser.getLastLogin());
-        verify(userService, times(1)).put(any(User.class));
-    }
-
-    @Test
-    void testChangePassword() {
-        prm.changePassword(existingUser, "arglebargle");
-        prm.loginUser(existingUser);
-        // save is called once by the change, and once by login
-        verify(userService, times(2)).put(any(User.class));
-    }
-
-    @Test
-    void testUpdateNoUser() {
-        when(userService.get(USER_ID)).thenThrow(new NotFoundException("not found"));
-        UserPatchRequest msg = new UserPatchRequest();
-        msg.setUserId(USER_ID);
-        Assertions.assertThrows(EntityModificationException.class, () -> {
-            try {
-                prm.updateUser(msg);
-            } catch (EntityModificationException e) {
-                Assertions.assertEquals("No user found with ID " + USER_ID, e.getMessage());
-                Assertions.assertEquals(400, e.getHttpStatus().value());
-                verify(userService, times(0)).put(any());
-                throw e;
-            }
-        });
-    }
-
-    @Test
-    void testUpdateDupEmail() {
-        UserPatchRequest msg = new UserPatchRequest();
-        msg.setUserId(USER_ID);
-        msg.setEmail("test@a.com");
-        Assertions.assertThrows(EntityModificationException.class, () -> {
-            try {
-                prm.updateUser(msg);
-            } catch (EntityModificationException e) {
-                Assertions.assertEquals("Duplicate email address", e.getMessage());
-                Assertions.assertEquals(400, e.getHttpStatus().value());
-                verify(userService, times(0)).put(any());
-                throw e;
-            }
-        });
-    }
-
-    @Test
-    void testUpdateEmailAndRole() {
-        UserPatchRequest msg = new UserPatchRequest();
-        msg.setUserId(USER_ID);
-        msg.setEmail("old-test@a.com");
-        msg.setRole("vmbc-org:admin");
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        prm.updateUser(msg);
-        verify(userService, times(1)).put(captor.capture());
-        // email should have changed, but not first or last name
-        User u = captor.getValue();
-        Assertions.assertEquals("old-test@a.com", u.getEmail());
-        Assertions.assertEquals("Test", u.getFirstName());
-        Assertions.assertEquals("User", u.getLastName());
-        Assertions.assertEquals(VmbcRoles.ORG_ADMIN.getName(), u.getServiceRoles().get(0).getName());
-    }
-
-    @Test
-    void testUpdateBadRole() {
-        UserPatchRequest msg = new UserPatchRequest();
-        msg.setUserId(USER_ID);
-        msg.setRole("invalid_role");
-        Assertions.assertThrows(EntityModificationException.class, () -> {
-            try {
-                prm.updateUser(msg);
-            } catch (EntityModificationException e) {
-                Assertions.assertEquals("Invalid role value: invalid_role", e.getMessage());
-                Assertions.assertEquals(400, e.getHttpStatus().value());
-                verify(userService, times(0)).put(any());
-                throw e;
-            }
-        });
-    }
-
-    @Test
-    void testLoginUser() {
-        prm.loginUser(existingUser);
-        Assertions.assertNotEquals(0, existingUser.getLastLogin());
-    }
 }
