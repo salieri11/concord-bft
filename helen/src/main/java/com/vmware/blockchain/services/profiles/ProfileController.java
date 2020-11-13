@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +45,19 @@ public class ProfileController {
         this.authHelper = authHelper;
     }
 
+
+    /**
+     * Get list of users, optionaly filtered on org and consortium.
+     */
+    @RequestMapping(path = "/api/users", method = RequestMethod.GET)
+    @PreAuthorize("@authHelper.isSystemAdmin()")
+    public ResponseEntity<List<UsersGetResponse>> getUsers() {
+
+        List<UsersGetResponse> result =
+                userSerivce.list().stream().map(prm::getReponse).collect(Collectors.toList());
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 
     /**
      * Get user from ID.
