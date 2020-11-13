@@ -288,6 +288,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                              "Error organizing the configurations for sessions {}" + sessionId, e);
         }
 
+
+
         observer.onNext(sessionId);
         observer.onCompleted();
     }

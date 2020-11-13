@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.server;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +13,7 @@ import javax.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.google.common.base.Strings;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
@@ -237,8 +237,33 @@ public class ConfigurationServiceHelper {
                                                           .setComponent(telegrafConfig)
                                                           .setIdentityFactors(IdentityFactors.newBuilder().build())
                                                           .build());
-                    break;
 
+                    // Check if user has provided certs for the prometheus_client output plugin for HTTPS
+                    properties =  nodeInfo.getProperties();
+                    String prometheusClientKey =
+                            properties.getValuesMap().getOrDefault(NodeProperty.Name.TELEGRAF_TLS_KEY.name(), null);
+                    String prometheusClientCert =
+                            properties.getValuesMap().getOrDefault(NodeProperty.Name.TELEGRAF_TLS_CERT.name(), null);
+
+                    if (StringUtils.hasText(prometheusClientKey) && StringUtils.hasText(prometheusClientCert)) {
+                        log.info("Setting Telegraf configuration components for key and certificate files");
+                        ConfigurationComponent keyComponent = ConfigurationComponent.newBuilder()
+                                .setType(ServiceType.TELEGRAF)
+                                .setComponentUrl(TelegrafConfigUtil.TELEGRAF_PROMETHEUS_CLIENT_KEY_PATH)
+                                .setComponent(prometheusClientKey)
+                                .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                .build();
+                        nodeIsolatedConfiguration.add(keyComponent);
+
+                        ConfigurationComponent certComponent = ConfigurationComponent.newBuilder()
+                                .setType(ServiceType.TELEGRAF)
+                                .setComponentUrl(TelegrafConfigUtil.TELEGRAF_PROMETHEUS_CLIENT_CERT_PATH)
+                                .setComponent(prometheusClientCert)
+                                .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                .build();
+                        nodeIsolatedConfiguration.add(certComponent);
+                    }
+                    break;
                 case LOGGING:
                     LoggingUtil loggingUtil = new LoggingUtil(loggingEnvTemplatePath);
                     nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()

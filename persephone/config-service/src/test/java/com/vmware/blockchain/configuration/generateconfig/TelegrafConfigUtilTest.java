@@ -167,7 +167,9 @@ public class TelegrafConfigUtilTest {
         Properties properties = Properties.newBuilder()
                 .putAllValues(Map.of(
                         NodeProperty.Name.TELEGRAF_USERNAME.toString(), "telegraf",
-                        NodeProperty.Name.TELEGRAF_PASSWORD.toString(), "ahoy hoy!!!")
+                        NodeProperty.Name.TELEGRAF_PASSWORD.toString(), "ahoy hoy!!!",
+                        NodeProperty.Name.TELEGRAF_TLS_KEY.toString(), "BEGIN CERTIFICATE blah blah END CERTFICATE",
+                        NodeProperty.Name.TELEGRAF_TLS_CERT.toString(), "BEGIN CERTIFICATE blah blah END CERTFICATE")
                 )
                 .build();
         List<ServiceType> servicesList = List.of(

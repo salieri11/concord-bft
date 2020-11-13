@@ -229,8 +229,8 @@
         }
       }
     },
-    "telegraf": {
-      "description": "Telegraf metrics pull endpoint properties",
+    "pullMetricsEndpoint": {
+      "description": "Metrics pull endpoint properties",
       "type": "object",
       "properties": {
         "userName": {
@@ -240,7 +240,15 @@
         "password": {
           "description": "The password for the endpoint",
           "type": "string"
-        }
+        },
+        "tlsCertificateData": {
+          "description": "The (optional) public key for the HTTPS endpoint",
+          "type": "string"
+        },
+        "tlsKeyData": {
+          "description": "The (optional) private key for the HTTPS endpoint",
+          "type": "string"
+        },
       },
       "required": ["userName", "password"]
     },
@@ -292,9 +300,9 @@
           },
           "minItems": 1
         },
-        "telegraf": {
-          "description": "Telegraf metrics pull endpoint properties",
-          "$ref": "#/definitions/telegraf"
+        "pullMetricsEndpoint": {
+          "description": "Metrics pull endpoint properties",
+          "$ref": "#/definitions/pullMetricsEndpoint"
         }
       },
       "required": ["name", "vCenter", "network"]
