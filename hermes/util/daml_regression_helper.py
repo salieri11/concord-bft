@@ -137,19 +137,21 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
     Returns:
         True/False based on the action outcome.
     '''
-    node_interruption_details = {
-        intr_helper.NODE_INTERRUPTION_TYPE: interruption_type,
+    scenario_details = {
         intr_helper.NODE_TYPE_TO_INTERRUPT: node_type,
-        intr_helper.SKIP_MASTER_REPLICA: False
+        intr_helper.NODE_INTERRUPTION_DETAILS: [
+            {
+            intr_helper.NODE_INTERRUPTION_TYPE: interruption_type,
+            intr_helper.SKIP_MASTER_REPLICA: False,
+            intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+                }
+            }
+        ]
     }
-    if custom_params is None:
-        node_interruption_details[intr_helper.CUSTOM_INTERRUPTION_PARAMS] = {}
-    else:
-        node_interruption_details[intr_helper.CUSTOM_INTERRUPTION_PARAMS] = \
-            custom_params
+    if custom_params:
+        scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0][intr_helper.CUSTOM_INTERRUPTION_PARAMS] = custom_params
     return intr_helper.perform_interrupt_recovery_operation(
-        fxHermesRunSettings, fxBlockchain, None, node, node_interruption_details, mode)
-
+        fxHermesRunSettings, fxBlockchain, None, node, scenario_details, scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0], mode)
 
 def make_daml_request(reraise, client_host, no_of_txns=1, wait_time=0.3):
     # Default port can be 6865 or 80 (helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT)
