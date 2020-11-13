@@ -503,7 +503,7 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
         dr_helper.power_on_all_participants(
             fxHermesRunSettings, fxLocalSetup.client_hosts)
 
-    time.sleep(60)
+    time.sleep(120)
     # Create & verify transactions after powering on all nodes
     for client_host in fxLocalSetup.client_hosts:
         assert dr_helper.make_daml_request(reraise, client_host), \
