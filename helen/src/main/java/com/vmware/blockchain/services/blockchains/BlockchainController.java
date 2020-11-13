@@ -303,7 +303,7 @@ public class BlockchainController {
 
         clients.stream().forEach(k -> {
             var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
-                                                   k.getGroupId().toString());
+                                                                      k.getGroupId().toString(), k.getDamlDbPassword());
             properties.putValues(DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), k.getPrivateIp());
             nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                               .setType(NodeType.CLIENT)
@@ -379,7 +379,7 @@ public class BlockchainController {
 
         clients.stream().forEach(k -> {
             var properties = clientPropertyBuilder(k.getAuthJwtUrl(), k.getGroupName(),
-                                                   k.getGroupId().toString());
+                                                                      k.getGroupId().toString(), k.getDamlDbPassword());
             nodeAssignment.addEntries(NodeAssignment.Entry.newBuilder()
                                               .setType(NodeType.CLIENT)
                                               .setNodeId(UUID.randomUUID().toString())
@@ -556,8 +556,8 @@ public class BlockchainController {
                             groupId = UUID.randomUUID();
                             groupMap.put(k.getGroupName(), groupId);
                         }
-                        Properties.Builder propBuilder = clientPropertyBuilder(k.getAuthUrlJwt(),
-                                                                               k.getGroupName(), groupId.toString());
+                        Properties.Builder propBuilder = clientPropertyBuilder(k.getAuthUrlJwt(), k.getGroupName(),
+                                                                                              groupId.toString(), null);
 
                         if (k.getSizingInfo() != null && !k.getSizingInfo().isEmpty()) {
                             // Validate sizing info, if the input is invalid throw a BadRequestException.
@@ -689,7 +689,8 @@ public class BlockchainController {
 
     private Properties.Builder clientPropertyBuilder(String authJwtUrl,
                                                      String groupName,
-                                                     String groupId) {
+                                                     String groupId,
+                                                     String damlDbPassword) {
         Properties.Builder propBuilder = Properties.newBuilder();
         if (!Strings.isNullOrEmpty(authJwtUrl)) {
             propBuilder.putValues(NodeProperty.Name.CLIENT_AUTH_JWT.name(),
@@ -698,6 +699,9 @@ public class BlockchainController {
         if (!Strings.isNullOrEmpty(groupName)) {
             propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId);
             propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
+        }
+        if (!Strings.isNullOrEmpty(damlDbPassword)) {
+            propBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), damlDbPassword);
         }
         return propBuilder;
     }
