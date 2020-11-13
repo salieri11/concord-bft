@@ -137,7 +137,7 @@ services:
       - db-server
     volumes:
       - ./config-helen:/config:ro
-    entrypoint: ['./wait-for-it.sh', 'db-server:26257', '-t', '60', '--',
+    entrypoint: ['./wait-for-it.sh', 'db-server:26257', '-t', '180', '--',
                  "java", "-Dspring.config.location=/config/app/profiles/,./",
                  "-Dspring.profiles.active=test", "-jar", "blockchain-helen.jar"]
     environment:
