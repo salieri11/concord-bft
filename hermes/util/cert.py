@@ -25,7 +25,7 @@ def getKey():
     Generates a random key and returns it
   '''
    key = crypto.PKey()
-   key.generate_key(crypto.TYPE_RSA, 4096)
+   key.generate_key(crypto.TYPE_RSA, 2048)
    key = crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
    return key
 
@@ -45,6 +45,8 @@ def createCsr(key, subject):
    csrReq.get_subject().emailAddress = subject.emailAddress
    csrReq.set_pubkey(key)
    csrReq.sign(key, "sha512")
+   open('server' + ".key", "wb").write(
+      crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
    return crypto.dump_certificate_request(crypto.FILETYPE_PEM, csrReq)
 
 def getCASignedCert(csr, caCert, caKey):
@@ -68,8 +70,6 @@ def getCASignedCert(csr, caCert, caKey):
    signedCert.sign(caPKey, "sha512")
    open('server' + ".crt", "wb").write(
       crypto.dump_certificate(crypto.FILETYPE_PEM, signedCert))
-   open('server' + ".key", "wb").write(
-      crypto.dump_privatekey(crypto.FILETYPE_PEM, pub_key))
    return crypto.dump_certificate(crypto.FILETYPE_PEM, signedCert)
 
 def getSelfSignedCACert(csr, key):
@@ -78,19 +78,22 @@ def getSelfSignedCACert(csr, key):
     Also returns the certificate and key
   '''
    cert = crypto.X509()
-   key = crypto.load_privatekey(crypto.FILETYPE_PEM, key)
+   priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, key)
    pcsr = crypto.load_certificate_request(crypto.FILETYPE_PEM, csr)
    cert.set_serial_number(random.getrandbits(64))
+   pub_key = pcsr.get_pubkey()
+   if pcsr.verify(pub_key) == -1:
+      raise Exception("csr didn't even sign its own key")
    cert.gmtime_adj_notBefore(0)
    cert.gmtime_adj_notAfter(31536000)
    cert.set_issuer(pcsr.get_subject())
    cert.set_pubkey(pcsr.get_pubkey())
    cert.add_extensions(get_exts())
-   cert.sign(key, 'sha512')
+   cert.sign(priv_key, 'sha512')
    open('root-ca' + ".crt", "wb").write(
       crypto.dump_certificate(crypto.FILETYPE_PEM, cert))
    open('root-ca' + ".key", "wb").write(
-      crypto.dump_privatekey(crypto.FILETYPE_PEM, key))
+      crypto.dump_privatekey(crypto.FILETYPE_PEM, priv_key))
    return crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
 
 def get_exts(ca=True):

@@ -226,16 +226,19 @@ class NodeCreator():
         current_zone_idx = 0
         Subject = namedtuple('Subject', ['commonName', 'countryName', 'stateOrProvinceName',
                                          'localityName', 'organizationName', 'organizationalUnitName', 'emailAddress'])
-        root_crt, server_key, server_crt = None
+        root_crt_string = server_key_string = server_crt_string = None
         if self.tls_enabled:
-            sub = Subject('Root CA', '', '', '', '', '', '')
-            root_crt, root_key = util.cert.generateCACertificate(sub, 'root-ca')
+            sub = Subject('Root CA', 'IN', 'Karnataka', 'Bangalore', "Infotech", 'BC', 'root@xyz.com')
+            root_crt, root_key = util.cert.generateCACertificate(sub)
             log.debug('Root Key :{} \n Root Certificate:{} '.format(root_key, root_crt))
 
         for _ in range(0, self.num_clients):
             if self.tls_enabled:
-                sub = Subject('systest.ledgerapi.com', '', '', '', '', '', '')
+                sub = Subject('systest.ledgerapi.com', 'IN', 'Karnataka', 'Bangalore', "Infotech", 'BC', 'server@xyz.com')
                 server_crt, server_key = util.cert.generateCASignedCert(root_key, root_crt, sub)
+                root_crt_string = root_crt.decode('utf-8')
+                server_key_string = server_key.decode('utf-8')
+                server_crt_string = server_crt.decode('utf-8')
                 log.debug('Server Key:{} \n Server Certificate:{}'.format(server_key, server_crt))
 
             node = {
@@ -243,9 +246,9 @@ class NodeCreator():
                 "auth_url_jwt": None,
                 "group_name": group_names[current_group_idx],
                 "sizing_info": size_obj,
-                "pem": server_key,
-                "crt": server_crt,
-                "cacrt": root_crt
+                "pem": server_key_string,
+                "crt": server_crt_string,
+                "cacrt": root_crt_string
             }
 
             if current_zone_idx + 1 < len(self.zone_ids):
@@ -260,5 +263,5 @@ class NodeCreator():
 
             nodes.append(node)
 
-        log.debug("client nodes {}".format(nodes))
+        log.info("client nodes {}".format(nodes))
         return nodes
