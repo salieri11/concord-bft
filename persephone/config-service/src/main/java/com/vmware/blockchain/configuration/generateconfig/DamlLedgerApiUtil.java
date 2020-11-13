@@ -132,9 +132,9 @@ public class DamlLedgerApiUtil {
 
         if (tlsEnabled) {
             String tlsSettingsValue = "export TLS_SETTINGS="
-                    + "\"--pem " + tlsPemPath
-                    + " --crt " + tlsCrtPath
-                    + " --cacrt " + tlsCacrtPath
+                    + "\"--pem /config" + tlsPemPath
+                    + " --crt /config" + tlsCrtPath
+                    + " --cacrt /config" + tlsCacrtPath
                     + "\"";
             builder.append(tlsSettingsValue);
             builder.append(System.lineSeparator());
