@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.util.StringUtils;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.exception.ErrorCode;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
@@ -265,8 +266,15 @@ public class DeploymentHelper {
                 propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), client.getLedgerTls().getPem());
                 propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), client.getLedgerTls().getCrt());
                 propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), client.getLedgerTls().getCacrt());
-                propBuilder.putValues(NodeProperty.Name.TLS_CLIENT_AUTH.name(),
-                                      client.getLedgerTls().getClientAuth().toString());
+
+                if (!Strings.isNullOrEmpty(client.getLedgerTls().getClientAuth().toString())) {
+                    propBuilder.putValues(NodeProperty.Name.TLS_CLIENT_AUTH.name(),
+                            client.getLedgerTls().getClientAuth().toString());
+                } else {
+                    // Client auth is require by default
+                    propBuilder.putValues(NodeProperty.Name.TLS_CLIENT_AUTH.name(),
+                            DeploymentDescriptorModel.TlsLedgerData.ClientAuth.REQUIRE.toString());
+                }
             }
 
             // Process client group and add group properties.
