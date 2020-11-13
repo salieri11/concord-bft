@@ -55,6 +55,8 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
     return local_tuple
 
 
+@pytest.mark.smoke
+@pytest.mark.basic
 @describe("daml test for single transaction without any interruption")
 def test_daml_single_transaction(reraise, fxLocalSetup):
     '''
@@ -77,6 +79,7 @@ def test_daml_single_transaction(reraise, fxLocalSetup):
             assert False, excp
 
 
+@pytest.mark.basic
 @describe("fault tolerance - f replicas are stopped/started, powered off/on")
 def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -152,6 +155,7 @@ def test_daml_stop_start_replicas(reraise, fxLocalSetup, fxHermesRunSettings):
             assert False, excp
 
 
+@pytest.mark.basic
 @describe("fault tolerance - participant ledger api restarted, node is powered off/on")
 def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
                                        fxHermesRunSettings):
@@ -212,6 +216,7 @@ def test_participant_ledgerapi_restart(reraise, fxLocalSetup,
             assert False, excp
 
 
+@pytest.mark.basic
 @describe("fault tolerance - participant node powered off/on, ledger api, index db restarted")
 def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRunSettings):
     '''
@@ -272,6 +277,8 @@ def test_participant_ledgerapi_indexdb_restart(reraise, fxLocalSetup, fxHermesRu
             assert False, excp
 
 
+@pytest.mark.network_failure
+@pytest.mark.basic
 @describe("fault tolerance - recovery after checkpoints (network failure), f nodes powered off/on")
 def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
@@ -362,6 +369,8 @@ def test_daml_network_failure(reraise, fxLocalSetup, fxHermesRunSettings, fxBloc
             assert False, excp
 
 
+@pytest.mark.processed_with_quorum
+@pytest.mark.basic
 @describe("fault tolerance - requests not to be processed without quorum")
 @pytest.mark.parametrize("step", [0, 1])
 def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
@@ -436,6 +445,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
             assert False, excp
 
 
+@pytest.mark.staggered_startups
 @describe("fault tolerance - nodes started with staggered startup")
 @pytest.mark.parametrize("participant_first", [True, False])
 def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettings, participant_first):
@@ -500,6 +510,7 @@ def test_system_after_staggered_startup(reraise, fxLocalSetup, fxHermesRunSettin
             dr_helper.PARTICIPANT_GENERIC_ERROR_MSG + "after staggered startup"
 
 
+@pytest.mark.view_changes
 @describe("fault tolerance - view change")
 def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
@@ -587,6 +598,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
             assert False, excp
 
 
+@pytest.mark.view_changes
 @describe("fault tolerance - multiple view changes")
 def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
@@ -669,6 +681,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
             assert False, excp
 
 
+@pytest.mark.lack_of_quorum
 @describe("fault tolerance - temporary lack of quorum after view change")
 @pytest.mark.parametrize("step", [0, 1])
 def test_temporary_lack_of_quorum_after_view_change(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain, step):
@@ -774,6 +787,7 @@ def test_temporary_lack_of_quorum_after_view_change(reraise, fxLocalSetup, fxHer
             assert False, excp
 
 
+@pytest.mark.st_coincide_vc
 @describe("fault tolerance - state transfer coinciding with view change (f>=2)")
 def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockchain):
     '''
@@ -874,4 +888,3 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
 
         except Exception as excp:
             assert False, excp
-
