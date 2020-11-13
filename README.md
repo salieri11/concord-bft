@@ -241,23 +241,17 @@ should be used).
 immediate subsection are run from the same directory as this README, and *not*
 from the `persephone` or `persephone/config-service` directories)
 
-By default, `concord-core:latest` is target as the Concord image for the
-Persephone Configuration Service build. If you have built Concord as
-`concord-core:latest`, you can build the Persephone Configuration Service with:
-```
-blockchain$ docker build -f persephone/config-service/Dockerfile -t \
-                         persephone-configuration:latest
-```
-
-You can also target specific Concord images for the Persephone Configuration
+You must target specific Concord images for the Persephone Configuration
 Service Build via build arguments. For example, to build
-`persephone-configuration:latest` `concord-core` version `512` from Artifactory:
+`persephone-configuration:latest` `concord-core` version `0.0.0.2601` from Artifactory:
 ```
 blockchain$ docker build -f persephone/config-service/Dockerfile -t \
     persephone-configuration:latest --build-arg \
     "concord_repo=athena-docker-local.artifactory.eng.vmware.com/concord-core" \
-    --build-arg "concord_tag=512"
+    --build-arg "concord_tag=0.0.0.2601"
 ```
+You can find the latest published tags of concord-core in the repository here: 
+[athena-docker-local](https://athena-docker-local.artifactory.eng.vmware.com/artifactory/webapp/#/artifacts/browse/tree/General/athena-docker-local/concord-core)
 
 ### Building the Thin Replica Client Library via Docker
 
