@@ -15,7 +15,6 @@ import lombok.Getter;
 public class BlockchainFeatures {
     private boolean isObjectStoreEnabled;
     private boolean isSplitConfig;
-    private boolean isBftEnabled;
     private boolean isPreExecutionDeployment;
     private int preExecutionThreshold;
 }

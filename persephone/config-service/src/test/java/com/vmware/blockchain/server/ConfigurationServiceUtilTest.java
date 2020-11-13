@@ -134,7 +134,7 @@ public class ConfigurationServiceUtilTest {
         BlockchainNodeList nodeList = BlockchainNodeList.builder().clients(clients).replicas(replicas).build();
 
         BlockchainFeatures bcFeatures =
-                BlockchainFeatures.builder().isBftEnabled(false).build();
+                BlockchainFeatures.builder().build();
 
         Map<String, List<IdentityComponent>> actual = ConfigurationServiceUtil.getTlsNodeIdentities(concordPrincipals,
                                                                                                     bftPrincipals,
@@ -163,7 +163,7 @@ public class ConfigurationServiceUtilTest {
                         .build();
 
         BlockchainFeatures bcFeatures =
-                BlockchainFeatures.builder().isBftEnabled(false).isObjectStoreEnabled(true).build();
+                BlockchainFeatures.builder().isObjectStoreEnabled(true).build();
 
         Map<String, List<IdentityComponent>> actual = ConfigurationServiceUtil.getTlsNodeIdentities(concordPrincipalsRo,
                                                                                                     bftPrincipalsRo,
@@ -182,7 +182,7 @@ public class ConfigurationServiceUtilTest {
                 List.of(new BlockchainReplica("node1", "addr1"), new BlockchainReplica("node2", "addr1"),
                         new BlockchainReplica("node3", "addr1"), new BlockchainReplica("node4", "addr1"));
         BlockchainNodeList nodeList = BlockchainNodeList.builder().clients(clients).replicas(replicas).build();
-        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().isBftEnabled(true).build();
+        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().build();
         Map<String, List<IdentityComponent>> actual = ConfigurationServiceUtil.getTlsNodeIdentities(
                 concordPrincipals,
                 bftPrincipals,
@@ -206,7 +206,7 @@ public class ConfigurationServiceUtilTest {
         BlockchainNodeList nodeList =
                 BlockchainNodeList.builder().clients(clients).replicas(replicas).readReplicas(readReplicas).build();
         BlockchainFeatures bcFeatures =
-                BlockchainFeatures.builder().isBftEnabled(true).isObjectStoreEnabled(true).build();
+                BlockchainFeatures.builder().isObjectStoreEnabled(true).build();
         Map<String, List<IdentityComponent>> actual = ConfigurationServiceUtil.getTlsNodeIdentities(
                 concordPrincipalsRo,
                 bftPrincipalsRo,
@@ -254,7 +254,7 @@ public class ConfigurationServiceUtilTest {
                         new BlockchainReplica("node3", "addr1"), new BlockchainReplica("node4", "addr1"));
         BlockchainNodeList nodeList = BlockchainNodeList.builder().clients(clients).replicas(replicas).build();
 
-        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().isBftEnabled(false).build();
+        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().build();
 
         Map<String, List<IdentityComponent>> tlsNodeIdentities =
                 ConfigurationServiceUtil
@@ -284,7 +284,7 @@ public class ConfigurationServiceUtilTest {
         BlockchainNodeList nodeList =
                 BlockchainNodeList.builder().clients(clients).replicas(replicas).readReplicas(readReplicas).build();
 
-        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().isBftEnabled(true).build();
+        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().build();
 
         Map<String, List<IdentityComponent>> tlsNodeIdentities =
                 ConfigurationServiceUtil

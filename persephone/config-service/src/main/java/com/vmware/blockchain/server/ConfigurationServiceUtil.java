@@ -91,7 +91,7 @@ public class ConfigurationServiceUtil {
 
         Map<Integer, List<Integer>> nodePrincipal = new HashMap<>(concordNodePrincipals);
 
-        if (bcFeatures.isBftEnabled()) {
+        if (!bftClientNodePrincipals.isEmpty()) {
             numPrincipals = bftClientNumPrincipals + 1;
             bftClientNodePrincipals.forEach((key, value) ->
                     nodePrincipal.put(concordNodePrincipals.size() + key, value));

@@ -156,7 +156,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         var bftClientConfigUtil =
                 new BftClientConfigUtil(bftClientConfigPath, sessionId, configurationServiceHelper.isKeepTempFiles());
 
-        boolean isBftEnabled = false;
         Map<String, String> bftClientConfig = new HashMap<>();
         int numClients = 0;
         String clientProxyPerParticipantStr = request.getGenericProperties().getValuesMap()
@@ -172,7 +171,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         boolean isSplitConfig = !isSplitConfigString.equalsIgnoreCase("False");
 
         if (request.getBlockchainType().equals(BlockchainType.DAML)) {
-            isBftEnabled = true;
             try {
                 bftClientConfig.putAll(bftClientConfigUtil.getBftClientConfig(nodeList, clientProxyPerParticipant));
             } catch (IOException e) {
@@ -198,7 +196,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         // Capture features on this blockchain.
         BlockchainFeatures bcFeatures = BlockchainFeatures.builder()
                 .isPreExecutionDeployment(isPreexecutionDeployment)
-                .isSplitConfig(isSplitConfig).isBftEnabled(isBftEnabled).isObjectStoreEnabled(isObjStoreEnabled)
+                .isSplitConfig(isSplitConfig).isObjectStoreEnabled(isObjStoreEnabled)
                 .build();
 
         Map<String, Map<String, String>> concordConfig = null;
@@ -253,7 +251,7 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         }
 
         Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
-        if (isBftEnabled) {
+        if (request.getBlockchainType().equals(BlockchainType.DAML)) {
             try {
                 bftIdentityComponents.putAll(ConfigurationServiceUtil
                                                      .convertToBftTlsNodeIdentities(concordIdentityComponents,
