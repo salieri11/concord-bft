@@ -164,7 +164,7 @@ def node_backup(node, remote_file_path, node_type, skip_start=False, skip_stop=F
     # to avoid over writing of backup, new folder is created with date and current time during execution.
     time_date = str(datetime.fromtimestamp(time.time()))
     backup_path = backup_path + node + "/" + time_date.replace(" ", "/")[:-7]
-    log.info("Remote file path: {}\nBackup file path: {}".format(remote_file_path, backup_path))
+    log.debug("Remote file path: {}\nBackup file path: {}".format(remote_file_path, backup_path))
 
     cmd = "mkdir -p {}; tar czf {} {}".format(backup_path, (backup_path + "/db-backup.tar.gz"), remote_file_path)
     if node_type == CLIENT:
@@ -177,7 +177,6 @@ def node_backup(node, remote_file_path, node_type, skip_start=False, skip_stop=F
         return False
 
     if not skip_start:
-        time.sleep(300)
         assert node_start_stop(node, START_NODE), 'Failed to Start Node {}'.format(node)
     log.info("Node backup completed")
     return True
@@ -224,18 +223,17 @@ def node_restore(node, remote_file_path, node_type, skip_start=False, skip_stop=
 
         docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source={},target=/concord/rocksdbdata ' \
                      '$image:{} /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
-                     'rm /config/concord/config-generated/genSec_*'.format(version, remote_file_path)
+                     'rm -rf /config/concord/config-generated/genSec_*'.format(remote_file_path, version)
         cmd = image_cmd + ';' + docker_cmd
     else:
         cmd = 'rm -rf /config/daml-ledger-api/environment-vars; ' \
               'tar xzf {}env-backup.tar.gz --directory /'.format(latest_backup_path)
 
-    status_post_action = helper.ssh_connect(node, username=username, password=password,command=cmd)
+    status_post_action = helper.ssh_connect(node, username=username, password=password, command=cmd)
     if 'error' in status_post_action or 'failure' in status_post_action:
         log.error('Unable to restore {}'.format(status_post_action))
         return False
     if not skip_start:
-        time.sleep(300)
         assert node_start_stop(node, START_NODE), 'Failed to Stop Node {}'.format(node)
     log.info("Restore completed")
     return True
@@ -293,7 +291,7 @@ def cross_node_restore(node, restore_node, node_type, db_path, skip_start=False,
 
         docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source={},target=/concord/rocksdbdata ' \
                      '$image:{} /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
-                     'rm /config/concord/config-generated/genSec_*'.format(version, db_path)
+                     'rm -rf /config/concord/config-generated/genSec_*'.format(db_path, version)
 
         status_post_action = helper.ssh_connect(restore_node, username=username, password=password,
                                                 command=(cmd + docker_cmd))

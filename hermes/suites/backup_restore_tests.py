@@ -105,7 +105,7 @@ def check_replica_block(replica_nodes):
     length = len(replica_nodes)
     block_id = backup_restore_helper.get_block_id(replica_nodes[length - 1])
     raw_block_detail = backup_restore_helper.get_raw_block(replica_nodes[length-1], block_id)
-    while length > 0:
+    while length > 1:
         length = length - 1
         node_raw_block_detail = backup_restore_helper.get_raw_block(replica_nodes[length-1], block_id)
         assert node_raw_block_detail == raw_block_detail, \
@@ -114,7 +114,6 @@ def check_replica_block(replica_nodes):
 
 
 @describe("test participants post backup")
-@pytest.mark.skip()
 def test_participants_post_backup(fxLocalSetup, fxHermesRunSettings):
     '''
     Verify participant node post backup.
@@ -140,14 +139,12 @@ def test_participants_post_backup(fxLocalSetup, fxHermesRunSettings):
 
 
 @describe("test replicas post backup")
-@pytest.mark.skip()
 def test_replicas_post_backup(fxLocalSetup, fxHermesRunSettings):
     '''
     Verify replica node post backup.
     - Connect to a replica node of network.
     - Take backup of the node.
-    - Repeat it for each replica of network.
-    - Wait for 5 min, as all nodes sync up.
+    - Repeat it for each replica of network..
     - Run DAML test.
     - Compare serialized raw block of each replicas.
     Args:
@@ -184,7 +181,6 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
         fxHermesRunSettings: Hermes command line arguments
     '''
     log.info('Test all replicas post restore')
-    log.debug("Time {}".format(time))
     output_dir = fxHermesRunSettings["hermesTestLogDir"]
     client_nodes = fxLocalSetup.client_hosts
     replica_nodes = fxLocalSetup.concord_hosts
@@ -193,6 +189,7 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
         backup_restore_helper.node_backup(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
     for replica_node in replica_nodes:
         backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
+
     assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
 
     for client_node in client_nodes:
@@ -235,11 +232,9 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
 
     assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
     check_replica_block(fxLocalSetup.concord_hosts)
-    log.debug("Time {}".format(time))
 
 
 @describe("test participants post restore")
-@pytest.mark.skip()
 def test_participants_post_restore(fxLocalSetup, fxHermesRunSettings):
     '''
     Verify participant nodes post restore
