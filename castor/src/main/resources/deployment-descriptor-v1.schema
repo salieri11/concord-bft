@@ -44,6 +44,28 @@
         "clientGroupName": {
           "description": "Client group name",
           "type": "string"
+        },
+        "tlsLedgerData": {
+          "description": "mTLS data for DAML Ledger API",
+          "type": "object",
+          "properties": {
+            "crt": {
+              "description": "Certificate for Client DAML Ledger API mTLS",
+              "type": "string"
+            },
+            "pem": {
+              "description": "Private key for Client DAML Ledger API mTLS",
+              "type": "string"
+            },
+            "cacrt": {
+              "description": "Certificate authority for Client DAML Ledger API mTLS",
+              "type": "string"
+            },
+            "clientAuth": {
+              "description": "Client auth level (NONE, OPTIONAL, REQUIRE) for Client DAML Ledger API mTLS",
+              "type": "string"
+            }
+          }
         }
       },
       "required": ["zoneName"]

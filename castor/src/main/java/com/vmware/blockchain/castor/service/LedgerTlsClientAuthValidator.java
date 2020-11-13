@@ -15,9 +15,9 @@ import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
  * Validator for blockchain types.
  */
 public class LedgerTlsClientAuthValidator
-        implements ConstraintValidator<LedgerTlsClientAuthValid, DeploymentDescriptorModel.LedgerTls.ClientAuth> {
+        implements ConstraintValidator<LedgerTlsClientAuthValid, DeploymentDescriptorModel.TlsLedgerData.ClientAuth> {
 
-    private DeploymentDescriptorModel.LedgerTls.ClientAuth[] allowedTypes;
+    private DeploymentDescriptorModel.TlsLedgerData.ClientAuth[] allowedTypes;
 
     public void initialize(LedgerTlsClientAuthValid constraint) {
         allowedTypes = constraint.allowedTypes();
@@ -25,7 +25,7 @@ public class LedgerTlsClientAuthValidator
 
     @Override
     public boolean isValid(
-            DeploymentDescriptorModel.LedgerTls.ClientAuth clientAuth,
+            DeploymentDescriptorModel.TlsLedgerData.ClientAuth clientAuth,
             ConstraintValidatorContext constraintValidatorContext) {
         return clientAuth != null && List.of(allowedTypes).contains(clientAuth);
     }

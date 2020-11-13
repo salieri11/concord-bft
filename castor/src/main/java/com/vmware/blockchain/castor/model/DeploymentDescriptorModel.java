@@ -48,7 +48,7 @@ public interface DeploymentDescriptorModel {
         private String authUrlJwt;
         private String providedIp;
         private String groupName;
-        private LedgerTls ledgerTls;
+        private TlsLedgerData ledgerTls;
     }
 
     /**
@@ -58,20 +58,23 @@ public interface DeploymentDescriptorModel {
     @Setter
     @Builder
     @EqualsAndHashCode
-    class LedgerTls {
+    class TlsLedgerData {
         private String pem;     // The pem file to be used as the private key.
         private String crt;     // The crt file to be used as the cert chain.
         private String cacrt;   // The crt file to be used as the the trusted root CA.
 
-        @Builder.Default
-        @LedgerTlsClientAuthValid(allowedTypes = {ClientAuth.NONE, ClientAuth.OPTIONAL, ClientAuth.REQUIRE})
-        private ClientAuth clientAuth = ClientAuth.REQUIRE; // Based on DAML SDK docs.
-
+        /**
+         * Client auth level for mTLS.
+         */
         public enum ClientAuth {
             NONE,
             OPTIONAL,
             REQUIRE
         }
+
+        @Builder.Default
+        @LedgerTlsClientAuthValid(allowedTypes = {ClientAuth.NONE, ClientAuth.OPTIONAL, ClientAuth.REQUIRE})
+        private ClientAuth clientAuth = ClientAuth.REQUIRE; // Based on DAML SDK docs.
     }
 
     /**

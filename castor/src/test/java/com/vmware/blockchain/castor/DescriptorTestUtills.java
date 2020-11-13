@@ -341,31 +341,31 @@ public class DescriptorTestUtills {
         DeploymentDescriptorModel.Client client1 = DeploymentDescriptorModel.Client.builder()
                 .zoneName(ZONE_1_NAME)
                 .groupName("Group1")
-                .ledgerTls(DeploymentDescriptorModel.LedgerTls.builder()
+                .ledgerTls(DeploymentDescriptorModel.TlsLedgerData.builder()
                                    .cacrt("cacrt1")
                                    .pem("pem1")
                                    .crt("crt1")
-                                   .clientAuth(DeploymentDescriptorModel.LedgerTls.ClientAuth.NONE).build())
+                                   .clientAuth(DeploymentDescriptorModel.TlsLedgerData.ClientAuth.NONE).build())
                 .build();
 
         DeploymentDescriptorModel.Client client2 = DeploymentDescriptorModel.Client.builder()
                 .zoneName(ZONE_1_NAME)
                 .groupName("Group2")
-                .ledgerTls(DeploymentDescriptorModel.LedgerTls.builder()
+                .ledgerTls(DeploymentDescriptorModel.TlsLedgerData.builder()
                                    .cacrt("cacrt1")
                                    .pem("pem1")
                                    .crt("crt1")
-                                   .clientAuth(DeploymentDescriptorModel.LedgerTls.ClientAuth.OPTIONAL).build())
+                                   .clientAuth(DeploymentDescriptorModel.TlsLedgerData.ClientAuth.OPTIONAL).build())
                 .build();
 
         DeploymentDescriptorModel.Client client3 = DeploymentDescriptorModel.Client.builder()
                 .zoneName(ZONE_1_NAME)
                 .groupName("Group1")
-                .ledgerTls(DeploymentDescriptorModel.LedgerTls.builder()
+                .ledgerTls(DeploymentDescriptorModel.TlsLedgerData.builder()
                                    .cacrt("cacrt1")
                                    .pem("pem1")
                                    .crt("crt1")
-                                   .clientAuth(DeploymentDescriptorModel.LedgerTls.ClientAuth.REQUIRE).build())
+                                   .clientAuth(DeploymentDescriptorModel.TlsLedgerData.ClientAuth.REQUIRE).build())
                 .build();
 
         List<String> zones = List.of(ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME, ZONE_1_NAME);

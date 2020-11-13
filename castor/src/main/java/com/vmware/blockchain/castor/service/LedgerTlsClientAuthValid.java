@@ -26,7 +26,7 @@ public @interface LedgerTlsClientAuthValid {
      * allowed types.
      * @return allowed types
      */
-    DeploymentDescriptorModel.LedgerTls.ClientAuth[] allowedTypes();
+    DeploymentDescriptorModel.TlsLedgerData.ClientAuth[] allowedTypes();
 
     /**
      * Default message key.
