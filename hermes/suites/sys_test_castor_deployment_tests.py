@@ -34,8 +34,6 @@ from lib.persephone.vmware.blockchain.deployment.v1 import core_pb2
 from lib.persephone.vmware.blockchain.deployment.v1 import orchestration_pb2
 from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_new_pb2 as ps_apis
 
-
-
 log = util.hermes_logging.getMainLogger()
 
 # Read by the fxProduct fixture.
@@ -88,7 +86,7 @@ def upPrereqsDocker(fxHermesRunSettings, product):
     for dcf in dockerComposeFiles:
         if "prereqs.yml" in dcf:
             prereqsComposeFile = dcf
-            
+
     # Update provisioning service application-test.properties with local docker base image versions.
     # This is needed because further DAML validation below requires the image versions to be updated to their latest.
     tags_info = helper.get_agent_pulled_tags_info()
@@ -244,7 +242,10 @@ def match_pattern(lines, pattern):
 
 def add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients):
     """
-    This function is to prepare deployment descriptor
+    This function is to modify deployment descriptor
+    :param num_replicas: number of replicas to be added
+    :param num_clients: number of participants to be added
+    :return: True/False
     """
     if num_replicas > 0 or num_clients > 0:
         with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE)) as deploy_desc:
@@ -277,7 +278,10 @@ def add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients):
 
 def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
     """
-    This function is to prepare infrastructure descriptor
+    Populate infrastructure descriptor from zone config
+    :param fxHermesRunSettings: fixture to get the zone config
+    :param is_multiple_zone: Flag if multiple zone is required
+    :return:
     """
     available_zones = list(string.ascii_uppercase)
 
@@ -342,7 +346,9 @@ def downCastorDockerCompose(dockerComposeFiles):
 
 def _get_all_nodes(castor_output_file):
     """
-    Get the private IP from the output file for each node
+    Get all the nodes information from Castor output file
+    :param castor_output_file:
+    :return: list of all nodes and IPs of client nodes
     """
     all_nodes = []
     node_values = []
@@ -369,10 +375,12 @@ def _get_all_nodes(castor_output_file):
     return all_nodes, client_node_ips
 
 
-
 def _get_node_info_list(all_nodes, client_nodes):
     """
-    Create a dictionary of the nodes to identify which is committer and which is participant
+    Create dictionary of nodes based on node type
+    :param all_nodes: list of all node IPs
+    :param client_nodes: list of all client node IPs
+    :return:
     """
     node_info_list = {}
     for node in all_nodes:
@@ -387,7 +395,11 @@ def _get_node_info_list(all_nodes, client_nodes):
 def _get_docker_containers_by_node_type(user_config, node_type):
     """
     Get the list of docker containers that should be available in each node type
+    :param user_config: User config from hermes/resources
+    :param node_type: participant/committer
+    :return: list of docker containers in each node
     """
+
     deployDescFilePath = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE)
     with open(deployDescFilePath, "r") as deployFile:
         data = deployFile.read()
@@ -519,8 +531,13 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
 
     return status
 
-def validate_castor_output_msg(castorOutputDir, num_of_nodes):
-    
+
+def validate_castor_output_msg(castorOutputDir):
+    """
+    Validate Success message in Castor output file
+    :param castorOutputDir: Location of the output file to read the file
+    :return: number of matching node logins, castor output file
+    """
     files = os.listdir(castorOutputDir)
 
     filePatternStr = _CONSORTIUM_NAME + "*"
@@ -536,22 +553,24 @@ def validate_castor_output_msg(castorOutputDir, num_of_nodes):
     outputSuccessMatchPattern = re.compile(_CASTOR_OUTPUT_SUCCESS_MSG_PATTERN)
     with open(castorOutputFile) as cof:
         lines = cof.readlines()
-        matchingLines = match_pattern(lines, outputSuccessMatchPattern);
+        matchingLines = match_pattern(lines, outputSuccessMatchPattern)
         assert matchingLines == 1, "Castor output file does not have success marker: %s" % _CASTOR_OUTPUT_SUCCESS_MSG_PATTERN
 
         # Match 2 clients and 4 committers
         nodeLoginMatchPattern = re.compile(_CASTOR_OUTPUT_NODE_LOGIN_PATTERN)
         matchingNodeLogins = match_pattern(lines, nodeLoginMatchPattern)
-    
+
     return matchingNodeLogins, castorOutputFile
 
 
-
 def create_resources(site_id, castor_output_file):
-    '''
+    """
     parse the output file to retrieve resource properties and create resource instances
     return the array of Resource
-    '''
+    :param site_id: site id is obtained from get_orchestration_site_ids_and_infos
+    :param castor_output_file: Castor output file
+    :return: list of resources
+    """
     with open(castor_output_file, 'r') as cof:
         lines = cof.readlines()
     patternString = "^Node Id:.*, name: (.*), key: (.*), value: (.*)$"
@@ -577,13 +596,15 @@ def create_resources(site_id, castor_output_file):
 
 
 def get_deployed_node_size(ip):
-    '''
-     Get Node size details
-    '''
-    
+    """
+    Get the size of the deployed node
+    :param ip: IP of the node
+    :return: Dictionary of node configuration which contains - memory, storage and CPU count
+    """
+
     # get default username and password of the node from user config
     username, password = helper.getNodeCredentials()
-    
+
     deployed_vm_size = {}
     cmd_vm_memory = "grep MemTotal /proc/meminfo"
     cmd_vm_cpu = "lscpu|grep 'CPU(s):'"
@@ -599,39 +620,66 @@ def get_deployed_node_size(ip):
     # cpu command may result in one or two line output. hence checking the length of the output
     # when storage is greater than 1024 GB, the output will be in-terms of TB. changing it to equivalent GB value
     index = 2 if len(ssh_output) == 3 else 3
-    deployed_vm_size["diskSizeGb"] = str(float(ssh_output[index].split()[2])*1024) \
+    deployed_vm_size["diskSizeGb"] = str(float(ssh_output[index].split()[2]) * 1024) \
         if "TiB" in ssh_output[index].split()[3] else ssh_output[index].split()[2]
 
     return deployed_vm_size
 
 
 def validate_replica_node_size(deployment_descriptor, deployed_vm_size, ip):
-    '''
-    Validate deployed node size with defined node size in descriptor
-    '''
+    """
+    Validate deployed replica node configuration with defined node configuration in deployment descriptor
+    :param deployment_descriptor: deployment descriptor file path
+    :param deployed_vm_size: dictionary of configuration from deployed VM
+    :param ip: IP of the VM
+    """
+
     deployment_descriptor_path = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)
     with open(deployment_descriptor_path) as ds:
         deployDescriptor = json.load(ds)
-    
-    assert deployDescriptor["replicaNodeSpec"]["cpuCount"] == int(deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with replica node CPU defined {}".format(ip, deployed_vm_size["cpuCount"], deployDescriptor["replicaNodeSpec"]["cpuCount"])
-    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(deployDescriptor["replicaNodeSpec"]["memoryGb"]) \
-               >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), "Memory of replica node IP {} is not matching with replica node memory defined {}".format(ip, deployDescriptor["replicaNodeSpec"]["memoryGb"])
-    #assert deployDescriptor["replicaNodeSpec"]["memoryGb"] == int(deployed_vm_size["memoryGb"]), "Memory of replica node IP {} is {} which is not matching with replica node memory defined {}".format(ip, deployed_vm_size["memoryGb"], deployDescriptor["replicaNodeSpec"]["memoryGb"])
-    assert deployDescriptor["replicaNodeSpec"]["diskSizeGb"] == float(deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with replica node disk size defined {}".format(ip, deployed_vm_size["diskSizeGb"], deployDescriptor["replicaNodeSpec"]["diskSizeGb"])
+
+    assert deployDescriptor["replicaNodeSpec"]["cpuCount"] == int(
+        deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with " \
+                                       "replica node CPU defined {}".format(ip, deployed_vm_size["cpuCount"],
+                                                                            deployDescriptor["replicaNodeSpec"]
+                                                                            ["cpuCount"])
+
+    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(
+        deployDescriptor["replicaNodeSpec"]["memoryGb"]) >= (float(deployed_vm_size["memoryGb"]) / (
+            1024 * 1024)), "Memory of replica node IP {} is not matching with replica node memory defined {}".format(
+        ip, deployDescriptor["replicaNodeSpec"]["memoryGb"])
+
+    assert deployDescriptor["replicaNodeSpec"]["diskSizeGb"] == float(
+        deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with replica " \
+                                         "node disk size defined {}".format(
+        ip, deployed_vm_size["diskSizeGb"], deployDescriptor["replicaNodeSpec"]["diskSizeGb"])
 
 
 def validate_client_node_size(deployment_descriptor, deployed_vm_size, ip):
-    '''
-    Validate deployed node size with defined node size in descriptor
-    '''
+    """
+    Validate deployed client node configuration with defined node configuration in deployment descriptor
+    :param deployment_descriptor: deployment descriptor file path
+    :param deployed_vm_size: dictionary of configuration from deployed VM
+    :param ip: IP of the VM
+    """
     deployment_descriptor_path = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)
     with open(deployment_descriptor_path) as ds:
         deployDescriptor = json.load(ds)
-    
-    assert deployDescriptor["clientNodeSpec"]["cpuCount"] == int(deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with client node CPU defined {}".format(ip, deployed_vm_size["cpuCount"], deployDescriptor["clientNodeSpec"]["cpuCount"])
-    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(deployDescriptor["clientNodeSpec"]["memoryGb"]) \
-               >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), "Memory of client node IP {} is not matching with client node memory defined {}".format(ip, deployDescriptor["clientNodeSpec"]["memoryGb"])    
-    assert deployDescriptor["clientNodeSpec"]["diskSizeGb"] == float(deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with client node disk size defined {}".format(ip, deployed_vm_size["diskSizeGb"], deployDescriptor["clientNodeSpec"]["diskSizeGb"])
+
+    assert deployDescriptor["clientNodeSpec"]["cpuCount"] == int(
+        deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with client node " \
+                                       "CPU defined {}".format(
+        ip, deployed_vm_size["cpuCount"], deployDescriptor["clientNodeSpec"]["cpuCount"])
+
+    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(
+        deployDescriptor["clientNodeSpec"]["memoryGb"]) >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), \
+        "Memory of client node IP {} is not matching with client node memory defined {}".format(
+        ip, deployDescriptor["clientNodeSpec"]["memoryGb"])
+
+    assert deployDescriptor["clientNodeSpec"]["diskSizeGb"] == float(
+        deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with client " \
+                                         "node disk size defined {}".format(
+        ip, deployed_vm_size["diskSizeGb"], deployDescriptor["clientNodeSpec"]["diskSizeGb"])
 
 
 def deprovision_blockchain(fxHermesRunSettings):
@@ -686,7 +734,7 @@ def deprovision_blockchain(fxHermesRunSettings):
     resources = create_resources(site_id, castorOutputFile)
 
     log.info("Deprovisioning session id: {}".format(session_id))
-    
+
     header = core_pb2.MessageHeader()
 
     cleaned_up = False
@@ -715,11 +763,10 @@ def deprovision_blockchain(fxHermesRunSettings):
 
     return cleaned_up
 
+
 """
 TEST CASES
 """
-
-
 
 
 @describe("Deploy 7 node daml blockchain and verify blockchain health")
@@ -739,6 +786,7 @@ def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHerm
     assert upCastorDockerCompose, "Deployment did not start"
 
     # start the test
+    log.info("This is {}".format(upCastorDockerCompose))
     num_of_nodes = 9
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
@@ -746,9 +794,8 @@ def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHerm
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
-            _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
+        _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
-        
     # # -------------post deployment validations -----------------
     # get all nodes and client node IPs from output file
     all_nodes, client_nodes = _get_all_nodes(castorOutputFile)
@@ -797,7 +844,7 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
-            _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
+        _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
     # -------------post deployment validations -----------------
     # get all nodes and client node IPs from output file
@@ -855,7 +902,7 @@ def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
-            _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
+        _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
     # -------------post deployment validations -----------------
     # get all nodes and client node IPs from output file
@@ -916,7 +963,7 @@ def test_castor_deployment_max_vm_sizing(upPrereqsDocker, upCastorDockerCompose,
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
-            _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
+        _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
 
     # -------------post deployment validations -----------------
     # get all nodes and client node IPs from output file
