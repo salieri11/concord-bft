@@ -100,6 +100,7 @@ class ConcordClient {
   // the better solution is to pass it via the Send function but due to the time
   // constraints we are not changing the interface now.
   void setReplyBuffer(char* buf, uint32_t size);
+  void unsetReplyBuffer();
 
  private:
   void CreateClient(const config::ConcordConfiguration& config,

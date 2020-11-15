@@ -12,6 +12,7 @@
 // file.
 
 #include "concord_client_pool.hpp"
+#include "KeyExchangeMsg.hpp"
 
 #include <utility>
 
@@ -360,14 +361,48 @@ PoolStatus ConcordClientPool::HealthStatus() {
   std::unique_lock<std::mutex> clients_lock(clients_queue_lock_);
   for (auto &client : clients_) {
     if (client->isServing()) {
-      LOG_DEBUG(logger_, "client=" << client->getClientId()
-                                   << " is serving - pool is ready to serve");
+      if (!hasKeys_ && !(hasKeys_ = clusterHasKeys(client))) {
+        break;
+      }
+      LOG_INFO(logger_, "client=" << client->getClientId()
+                                  << " is serving - pool is ready to serve");
       return PoolStatus::Serving;
     }
   }
   LOG_DEBUG(logger_,
             "All clients are not serving - pool is not ready to serve");
   return PoolStatus::NotServing;
+}
+
+bool ConcordClientPool::clusterHasKeys(
+    std::shared_ptr<external_client::ConcordClient> &cl) {
+  const uint8_t buffSize{32};
+  char reply[buffSize] = {0};
+  cl->setReplyBuffer(reply, buffSize);
+
+  KeyExchangeMsg msg;
+  msg.op = KeyExchangeMsg::HAS_KEYS;
+  std::stringstream ss;
+  concord::serialize::Serializable::serialize(ss, msg);
+  auto request = ss.str();
+
+  auto now = std::chrono::steady_clock::now().time_since_epoch();
+  auto now_ms = std::chrono::duration_cast<std::chrono::microseconds>(now);
+  auto sn = now_ms.count();
+
+  std::string cid = std::string{"HAS-KEYS-"} + std::to_string(sn);
+  auto flags = bftEngine::ClientMsgFlag(ClientMsgFlag::KEY_EXCHANGE_REQ |
+                                        ClientMsgFlag::READ_ONLY_REQ);
+  cl->SendRequest(request.c_str(), request.size(), flags,
+                  std::chrono::milliseconds(60000), buffSize, sn, cid,
+                  std::string{});
+  cl->unsetReplyBuffer();
+  auto trueReply = std::string(KeyExchangeMsg::hasKeysTrueReply);
+  std::string res(reply, trueReply.size());
+  LOG_INFO(logger_, "Reply for has keys request ["
+                        << cid << "] is " << std::boolalpha
+                        << (res == trueReply) << std::noboolalpha);
+  return res == trueReply;
 }
 
 }  // namespace concord::concord_client_pool
