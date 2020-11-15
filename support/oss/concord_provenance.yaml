@@ -180,12 +180,12 @@ other:maven:3.6.3:
  license: Apache License 2.0
  url: https://github.com/apache/maven/tree/maven-3.6.3
 
-other:solidity:0.7.8:
+other:solidity:0.7.4:
  name: solidity
- version: 0.7.8
+ version: 0.7.4
  repository: Other
- license: GNU General Public License v3.0
- url: https://github.com/ethereum/solidity/tree/v0.7.8
+ license: GPL-3.0 License
+ url: https://github.com/ethereum/solidity/tree/v0.7.4
 
 other:numpy:1.18.4:
  name: numpy
