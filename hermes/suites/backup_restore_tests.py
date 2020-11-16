@@ -3,7 +3,7 @@
 #########################################################################
 import pytest
 import time
-import json
+import random
 from suites.case import describe
 from collections import namedtuple
 from util import helper, hermes_logging, backup_restore_helper
@@ -135,7 +135,7 @@ def test_participants_post_backup(fxLocalSetup, fxHermesRunSettings):
             assert backup_restore_helper.node_backup(client_node['private_ip'], fxLocalSetup.clients_db,
                                                      backup_restore_helper.CLIENT), \
                 'Backup failed on {}'.format(client_node)
-            assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
+            assert helper.run_daml_sanity([client_node['private_ip']], output_dir), 'DAML test failed'
 
 
 @describe("test replicas post backup")
@@ -158,7 +158,8 @@ def test_replicas_post_backup(fxLocalSetup, fxHermesRunSettings):
         assert backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db,
                                                  backup_restore_helper.REPLICA),\
             'Backup failed on {}'.format(replica_node)
-    assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
+    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
+    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
     check_replica_block(fxLocalSetup.concord_hosts)
 
 
@@ -189,8 +190,9 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
         backup_restore_helper.node_backup(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
     for replica_node in replica_nodes:
         backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
-
-    assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
+    # pick any one client from the list for daml test
+    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
+    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
 
     for client_node in client_nodes:
         backup_restore_helper.node_start_stop(client_node, backup_restore_helper.STOP_NODE)
@@ -230,7 +232,8 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     for client_node in client_nodes:
         backup_restore_helper.node_restore(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
 
-    assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
+    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
+    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
     check_replica_block(fxLocalSetup.concord_hosts)
 
 
@@ -259,9 +262,10 @@ def test_participants_post_restore(fxLocalSetup, fxHermesRunSettings):
             nodes_for_restore.append(client_node)
             backup_restore_helper.node_backup(client_node['private_ip'], fxLocalSetup.clients_db,
                                               backup_restore_helper.CLIENT)
-    assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
+    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
+    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
     for client_node in nodes_for_restore:
         assert backup_restore_helper.node_restore(client_node['private_ip'], fxLocalSetup.clients_db,
                                                   backup_restore_helper.CLIENT), \
             'Restore failed on {}'.format(client_node['private_ip'])
-        assert helper.run_daml_sanity(fxLocalSetup.client_hosts, output_dir), 'DAML test failed'
+        assert helper.run_daml_sanity([client_node['private_ip']], output_dir), 'DAML test failed'
