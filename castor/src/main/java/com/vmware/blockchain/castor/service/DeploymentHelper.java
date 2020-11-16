@@ -469,11 +469,19 @@ public class DeploymentHelper {
         InfrastructureDescriptorModel.PullMetricsEndpoint telegrafDescriptor = zoneDescriptor.getPullMetricsEndpoint();
         TelegrafPullEndpoint.Builder telegrafPullEndpointBuilder = TelegrafPullEndpoint.newBuilder();
         if (telegrafDescriptor != null) {
+            log.info("Configuring Telegraf promethus_client");
             PasswordCredential.Builder credentialsBuilder = PasswordCredential.newBuilder()
                     .setUsername(telegrafDescriptor.getUserName())
                     .setPassword(telegrafDescriptor.getPassword());
 
             telegrafPullEndpointBuilder.setCredential(credentialsBuilder.build());
+            String tlsKeyData = telegrafDescriptor.getTlsKeyData();
+            String tlsCertificateData = telegrafDescriptor.getTlsCertificateData();
+            if (!StringUtils.isEmpty(tlsKeyData) && !StringUtils.isEmpty(tlsCertificateData)) {
+                log.info("Configuring Telegraf prometheus_client for TLS");
+                telegrafPullEndpointBuilder.setTlsKey(tlsKeyData);
+                telegrafPullEndpointBuilder.setTlsCert(tlsCertificateData);
+            }
         }
 
         // Build vSphere data center info

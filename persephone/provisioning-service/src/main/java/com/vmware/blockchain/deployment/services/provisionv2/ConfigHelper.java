@@ -191,8 +191,17 @@ public class ConfigHelper {
                 OrchestrationSites.getTelegrafPullEndpoint(context.sitesById.get(entry.getSite()));
         PasswordCredential credentials = telegrafPullEndpoint.getCredential();
         if (credentials != null && StringUtils.hasText(credentials.getUsername())) {
+            log.info("Telegraf prometheus_client username and password are specified, passing on properties");
             propertiesBuilder.putValues(NodeProperty.Name.TELEGRAF_USERNAME.name(), credentials.getUsername());
             propertiesBuilder.putValues(NodeProperty.Name.TELEGRAF_PASSWORD.name(), credentials.getPassword());
+            // Also set up TLS if the cert and key have been provided by the user
+            String tlsKey = telegrafPullEndpoint.getTlsKey();
+            String tlsCert = telegrafPullEndpoint.getTlsCert();
+            if (StringUtils.hasText(tlsKey) && StringUtils.hasText(tlsCert)) {
+                log.info("Telegraf prometheus_client key and certificate are specified, passing on properties");
+                propertiesBuilder.putValues(NodeProperty.Name.TELEGRAF_TLS_KEY.name(), tlsKey);
+                propertiesBuilder.putValues(NodeProperty.Name.TELEGRAF_TLS_CERT.name(), tlsCert);
+            }
         }
     }
 }

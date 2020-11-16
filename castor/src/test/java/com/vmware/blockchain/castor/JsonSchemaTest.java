@@ -87,11 +87,12 @@ public class JsonSchemaTest {
         validationException.getAllMessages().forEach(System.out::println);
         String[] expectedMessages = new String[]{
             "#/zones/0/vCenter: required key [password] not found",
-            "#/zones/0/network: required key [name] not found"
+            "#/zones/0/network: required key [name] not found",
+            "#/zones/0/pullMetricsEndpoint: required key [password] not found"
         };
 
         List<String> actualMessages = validationException.getAllMessages();
-        assertEquals(2, actualMessages.size(), "Expected validation count mismatch");
+        assertEquals(3, actualMessages.size(), "Expected validation count mismatch");
         assertThat(actualMessages, containsInAnyOrder(expectedMessages));
     }
 

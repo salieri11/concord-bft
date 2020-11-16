@@ -190,6 +190,8 @@ public class InfrastructureDescriptorModel {
         private String userName;
         @NotBlank(message = "pullmetrics.password.invalid")
         private String password;
+        private String tlsCertificateData;
+        private String tlsKeyData;
     }
 
     /**

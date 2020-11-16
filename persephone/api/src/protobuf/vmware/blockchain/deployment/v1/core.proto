@@ -200,6 +200,8 @@ message NodeProperty {
         OBJECT_STORE_URL = 30;
         TLS_CLIENT_AUTH = 31;
         DAML_DB_PASSWORD = 32;
+        TELEGRAF_TLS_KEY = 33;
+        TELEGRAF_TLS_CERT = 34;
     }
 
     Name name = 1;

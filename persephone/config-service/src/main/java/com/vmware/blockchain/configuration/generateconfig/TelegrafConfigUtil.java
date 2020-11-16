@@ -8,6 +8,8 @@ import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARC
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_URL;
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.ELASTICSEARCH_USER;
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.TELEGRAF_PASSWORD;
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.TELEGRAF_TLS_CERT;
+import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.TELEGRAF_TLS_KEY;
 import static com.vmware.blockchain.deployment.v1.NodeProperty.Name.TELEGRAF_USERNAME;
 
 import java.io.File;
@@ -30,6 +32,10 @@ import com.vmware.blockchain.server.exceptions.ErrorCode;
  * Utility class to generate telegraf configurations.
  */
 public class TelegrafConfigUtil {
+
+    // These get created on the VM under /config/telegraf/certs/prometheus_client/*
+    public static final String TELEGRAF_PROMETHEUS_CLIENT_KEY_PATH = "/telegraf/certs/prometheus_client/telegraf.key";
+    public static final String TELEGRAF_PROMETHEUS_CLIENT_CERT_PATH = "/telegraf/certs/prometheus_client/telegraf.crt";
 
     private static final Logger log = LoggerFactory.getLogger(TelegrafConfigUtil.class);
 
@@ -106,6 +112,20 @@ public class TelegrafConfigUtil {
                     .replace("$ENABLE_TELEGRAF_PULL", "")
                     .replace("$TELEGRAF_USERNAME", telegrafUsername)
                     .replace("$TELEGRAF_PASSWORD", telegrafPassword);
+
+            // Enable HTTPS for the pull endpoint if key+cert are provided by the user
+            String telegrafTlsKey = nodeInfo.getProperties().getValuesOrDefault(TELEGRAF_TLS_KEY.name(), null);
+            String telegrafTlsCert = nodeInfo.getProperties().getValuesOrDefault(TELEGRAF_TLS_CERT.name(), null);
+            if (telegrafTlsKey == null || telegrafTlsCert == null) {
+                content = content.replace("$ENABLE_TELEGRAF_TLS ", "#");
+                log.info("telegraf tls info is not available. Not enabling HTTPS");
+            }
+            else {
+                content = content.replace("$ENABLE_TELEGRAF_TLS ", "");
+                log.info("telegraf tls info is available. Enabling HTTPS");
+            }
+            // *NOTE* : The actual contents (key and cert data) are set up for processing by the Agent into
+            // /config/telegraf/certs by ConfigurationServiceHelper::nodeIndependentConfigs() for case TELEGRAF.
         }
 
         String postgressPluginStr = "#[[inputs.postgresql]]";
