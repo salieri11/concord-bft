@@ -231,4 +231,9 @@ void ConcordClient::setReplyBuffer(char* buf, uint32_t size) {
   externalReplyBufferSize = size;
 }
 
+void ConcordClient::unsetReplyBuffer() {
+  externalReplyBuffer = nullptr;
+  externalReplyBufferSize = 0;
+}
+
 }  // namespace concord::external_client

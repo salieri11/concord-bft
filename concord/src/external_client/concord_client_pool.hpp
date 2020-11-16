@@ -132,6 +132,10 @@ class ConcordClientPool {
   static void ConfigInit(config::ConcordConfiguration& config,
                          config_pool::ClientPoolConfig& pool_config,
                          std::istream& config_stream);
+
+  bool clusterHasKeys(std::shared_ptr<external_client::ConcordClient>& cl);
+  std::atomic_bool hasKeys_{false};
+
   // Clients that are available for use (i.e. not already in use).
   std::deque<std::shared_ptr<external_client::ConcordClient>> clients_;
   // Thread pool, on each thread on client will run
