@@ -143,9 +143,16 @@
     dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
     testModule: 'suites/castor_deployment_tests.py'
 - CastorDeploymentSystemTests:
-    enabled: false
+    enabled: true
     runWithGenericTests: false
     dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
+    baseCommand: '${MAIN_PYTEST} suites/sys_test_castor_deployment_tests.py -m "not on_demand_castor_default" --suitesRealname=CastorDeploymentSystemTests'
+    testModule: 'suites/sys_test_castor_deployment_tests.py'
+- CastorDeploymentOnDemand:
+    enabled: true
+    runWithGenericTests: false
+    dockerComposeFiles: '${COMPOSE_PREFIX}-castor-prereqs.yml ${COMPOSE_PREFIX}-castor.yml'
+    baseCommand: '${MAIN_PYTEST} suites/sys_test_castor_deployment_tests.py -k test_on_demand_castor_deployment --suitesRealname=CastorDeploymentOnDemand'
     testModule: 'suites/sys_test_castor_deployment_tests.py'
 - EthJsonRpcTests:
     enabled: true
