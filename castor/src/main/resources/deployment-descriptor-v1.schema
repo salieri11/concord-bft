@@ -66,6 +66,10 @@
               "type": "string"
             }
           }
+        },
+        "damlDbPassword": {
+          "description": "DAML DB password",
+          "type": "string"
         }
       },
       "required": ["zoneName"]

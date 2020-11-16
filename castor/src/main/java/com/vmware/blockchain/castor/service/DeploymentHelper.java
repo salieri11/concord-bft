@@ -242,7 +242,9 @@ public class DeploymentHelper {
                 propBuilder.putValues(
                         DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), client.getProvidedIp());
             }
-
+            if (StringUtils.hasText(client.getDamlDbPassword())) {
+                propBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), client.getDamlDbPassword());
+            }
             if (deploymentDescriptorModel.getClientNodeSpec() != null) {
                 int diskSize = deploymentDescriptorModel.getClientNodeSpec().getDiskSizeGb();
                 if (diskSize > 0) {

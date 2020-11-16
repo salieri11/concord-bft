@@ -49,6 +49,7 @@ public interface DeploymentDescriptorModel {
         private String providedIp;
         private String groupName;
         private TlsLedgerData ledgerTls;
+        private String damlDbPassword;
     }
 
     /**

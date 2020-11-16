@@ -240,6 +240,7 @@ public class ValidatorServiceImpl implements ValidatorService {
         // The 2 differences for the reconfiguration are:
         // 1. The blockchain id from a previous PROVISION deployment type is MANDATORY
         // 2. IP addresses are MANDATORY for reconfig.
+        // 3. If a client node has DAML DB password, then all the client nodes should have DAML DB passwords
 
         List<ValidationError> errors = validateProvisioning(infrastructureDescriptor, deploymentDescriptor);
 
@@ -269,6 +270,20 @@ public class ValidatorServiceImpl implements ValidatorService {
             ValidationError e = ValidationError.builder()
                     .errorCode(error)
                     .propertyPath("providedIp")
+                    .build();
+            errors.add(e);
+        }
+
+        //Ensure all or none of the client nodes have DAML DB password
+        long clientDamlDbPassCount = deploymentDescriptor.getClients().stream().mapToInt(c -> {
+            return StringUtils.hasText(c.getDamlDbPassword()) ? 1 : 0;
+        }).sum();
+        int totalClients = deploymentDescriptor.getClients().size();
+        if (clientDamlDbPassCount != 0 && clientDamlDbPassCount != totalClients) {
+            String error = "not.all.clients.daml.db.passwords.provided";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("damlDbPassword")
                     .build();
             errors.add(e);
         }

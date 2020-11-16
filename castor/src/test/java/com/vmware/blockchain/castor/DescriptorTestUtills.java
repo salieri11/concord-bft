@@ -147,6 +147,7 @@ public class DescriptorTestUtills {
                 .damlSdk("1.0.1")
                 // .templateId(UUID.randomUUID())
                 .generatePassword(true)
+                .generateDamlDbPassword(true)
                 .build();
 
         return organization;
