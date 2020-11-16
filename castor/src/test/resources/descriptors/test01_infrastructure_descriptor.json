@@ -1,7 +1,8 @@
 {
   "organization": {
     "damlSdk": "1.0.1",
-    "generatePassword": true
+    "generatePassword": true,
+    "generateDamlDbPassword": true
   },
   "zones": [
     {

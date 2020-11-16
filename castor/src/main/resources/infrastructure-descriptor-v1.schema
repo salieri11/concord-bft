@@ -20,6 +20,10 @@
         "generatePassword": {
           "description": "Whether a root password should be generated",
           "type": "boolean"
+        },
+        "generateDamlDbPassword": {
+          "description": "Whether a DAML DB password should be generated",
+          "type": "boolean"
         }
       },
       "required": []

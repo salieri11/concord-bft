@@ -86,6 +86,8 @@ public class CastorDescriptorTest {
             "classpath:descriptors/test_invalid_reconfigure_deployment_descriptor.json";
     private static final String VALID_RECONFIGURE_DEPLOYMENT_DESCRIPTOR =
             "classpath:descriptors/test_valid_reconfigure_deployment_descriptor.json";
+    private static final String INVALID_RECONFIG_NOT_ALL_DAML_DB_PWD_DEPLOYMENT_DESC =
+            "classpath:descriptors/test_invalid_not_all_daml_db_pwd_deployment_descriptor.json";
 
     private InfrastructureDescriptorModel validInfra;
     private ProvisionDescriptorDescriptorModel validDeployment;
@@ -649,6 +651,31 @@ public class CastorDescriptorTest {
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertEquals(0, validationErrorCodes.size());
+    }
+
+    /**
+     * Test invalid "reconfigure" deployment descriptor.
+     * For reconfiguration: all clients must have DAML DB password, if at least one of them has it.
+     */
+    @Test
+    public void testInvalidReconfigDamlDbPasswordDescriptor() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(INVALID_RECONFIG_NOT_ALL_DAML_DB_PWD_DEPLOYMENT_DESC);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readInvalidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.RECONFIGURE, deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.RECONFIGURE, readInfra, readInvalidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+
+        Set<String> expectedErrorCodes = new HashSet<>();
+        expectedErrorCodes.add("not.all.clients.daml.db.passwords.provided");
+        assertEquals(1, validationErrorCodes.size());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
     }
 
     /**
