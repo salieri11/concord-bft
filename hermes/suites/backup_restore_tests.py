@@ -163,6 +163,41 @@ def test_replicas_post_backup(fxLocalSetup, fxHermesRunSettings):
     check_replica_block(fxLocalSetup.concord_hosts)
 
 
+@describe("test replica post restore")
+def test_replica_post_restore(fxLocalSetup, fxHermesRunSettings):
+    '''
+    Verify replicas post restore.
+    - Connect to a replica node of network.
+    - Take backup if it is not available for all the replica nodes.
+    - Restore the backup on replica.
+    - Repeat it for each replica of network.
+    - Wait for 5 min, as all nodes sync up.
+    - Run DAML test.
+    - Compare serialized raw block of each replicas.
+    Args:
+        fxLocalSetup: Local fixture
+        fxHermesRunSettings: Hermes command line arguments
+    '''
+
+    log.info("Test replica post restore")
+    output_dir = fxHermesRunSettings["hermesTestLogDir"]
+    replica_nodes = fxLocalSetup.concord_hosts
+    for replica_node in replica_nodes:
+        if not backup_restore_helper.check_backup(replica_node):
+            backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
+
+    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
+    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
+
+    for replica_node in replica_nodes:
+        backup_restore_helper.node_restore(replica_node, fxLocalSetup.replica_db,
+                                           backup_restore_helper.REPLICA, clean_metadata=False)
+        node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
+        assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
+
+    check_replica_block(fxLocalSetup.concord_hosts)
+
+
 @describe("test all replica post restore")
 def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     '''
@@ -190,9 +225,8 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
         backup_restore_helper.node_backup(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
     for replica_node in replica_nodes:
         backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
-    # pick any one client from the list for daml test
-    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
-    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
+
+    assert helper.run_daml_sanity(client_nodes, output_dir), 'DAML test failed'
 
     for client_node in client_nodes:
         backup_restore_helper.node_start_stop(client_node, backup_restore_helper.STOP_NODE)
@@ -232,8 +266,7 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     for client_node in client_nodes:
         backup_restore_helper.node_restore(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
 
-    node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
-    assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
+    assert helper.run_daml_sanity(client_nodes, output_dir), 'DAML test failed'
     check_replica_block(fxLocalSetup.concord_hosts)
 
 
