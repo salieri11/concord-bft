@@ -4,6 +4,10 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 
@@ -47,6 +51,59 @@ public class ValidationUtil {
                 break;
             default:
                 break;
+        }
+        return true;
+    }
+
+    /**
+     * Validate that the node list is not null and not empty, making sure that it has some nodes.
+     * @param nodeList List of nodes in the deployment
+     * @return True if nodes are available, false otherwise.
+     */
+    public static boolean isValidNodeList(BlockchainNodeList nodeList) {
+        if (nodeList == null || nodeList.getAllNodeIds().isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Validate nodeId.
+     * @param nodeId node id
+     * @return True if the node Id is valid, false otherwise.
+     */
+    public static boolean isValidNodeId(String nodeId) {
+        if (nodeId == null || nodeId.isEmpty()) {
+            return false;
+        }
+        try {
+            UUID.fromString(nodeId);
+        } catch (IllegalArgumentException iae) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Validate a list.
+     * @param list of objects
+     * @return True if the list is valid, false otherwise.
+     */
+    public static boolean isValidList(List list) {
+        if (list == null || list.isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Validate a map.
+     * @param map of objects
+     * @return True if the map is valid, false otherwise.
+     */
+    public static boolean isValidMap(Map map) {
+        if (map == null || map.isEmpty()) {
+            return false;
         }
         return true;
     }

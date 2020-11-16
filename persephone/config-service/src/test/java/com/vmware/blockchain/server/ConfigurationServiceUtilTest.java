@@ -5,7 +5,6 @@
 package com.vmware.blockchain.server;
 
 import java.security.Security;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -63,7 +62,7 @@ public class ConfigurationServiceUtilTest {
         concordPrincipalsRo.put(2, Arrays.asList(8, 12, 16, 20, 2));
         concordPrincipalsRo.put(3, Arrays.asList(9, 13, 17, 21, 3));
         concordPrincipalsRo.put(4, List.of());
-        concordPrincipalsRo.put(4, List.of());
+        concordPrincipalsRo.put(5, List.of());
 
         bftPrincipalsRo.put(0, Arrays.asList(20, 21));
 
@@ -72,57 +71,6 @@ public class ConfigurationServiceUtilTest {
     @AfterAll
     static void teardown() {
         Security.removeProvider("BC");
-    }
-
-    @Test
-    void testConvertToBftTlsNodeIdentities() {
-        Map<String, List<IdentityComponent>> input = new HashMap<>();
-        List<IdentityComponent> identities1 = new ArrayList<>();
-
-        identities1.add(IdentityComponent.newBuilder()
-                .setType(IdentityComponent.Type.UNKNOWN)
-                .setBase64Value("value1")
-                .setUrl("not valid")
-                .build());
-        identities1.add(IdentityComponent.newBuilder()
-                .setType(IdentityComponent.Type.UNKNOWN)
-                .setBase64Value("value2")
-                .setUrl(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH)
-                .build());
-
-        input.put("id1", identities1);
-
-        List<IdentityComponent> identities2 = new ArrayList<>();
-        identities2.add(IdentityComponent.newBuilder()
-                .setType(IdentityComponent.Type.UNKNOWN)
-                .setBase64Value("value3")
-                .setUrl(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH)
-                .build());
-        identities2.add(IdentityComponent.newBuilder()
-                .setType(IdentityComponent.Type.UNKNOWN)
-                .setBase64Value("value4")
-                .setUrl("not valid")
-                .build());
-
-        input.put("id2", identities2);
-
-        var actual = ConfigurationServiceUtil.convertToBftTlsNodeIdentities(input, null);
-
-        actual.forEach((key, value) -> {
-            if (key.equalsIgnoreCase("id1")) {
-                value.forEach(ident -> {
-                    if (ident.getBase64Value().equalsIgnoreCase("value2")
-                            || ident.getBase64Value().equalsIgnoreCase("value3")) {
-                        Assertions.assertEquals(ident.getUrl(),
-                                CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH);
-                    } else {
-                        Assertions.assertNotEquals(ident.getUrl(),
-                                CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH);
-                    }
-
-                });
-            }
-        });
     }
 
     @Test
@@ -136,7 +84,7 @@ public class ConfigurationServiceUtilTest {
         BlockchainFeatures bcFeatures =
                 BlockchainFeatures.builder().build();
 
-        Map<String, List<IdentityComponent>> actual = ConfigurationServiceUtil.getTlsNodeIdentities(concordPrincipals,
+        var actual = ConfigurationServiceUtil.getTlsNodeIdentities(concordPrincipals,
                                                                                                     bftPrincipals,
                                                                                                     certGen,
                                                                                                     nodeList,
@@ -144,13 +92,14 @@ public class ConfigurationServiceUtilTest {
                                                                                                     2);
         Assertions.assertFalse(actual.isEmpty());
         checkValues(actual);
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
 
     /**
-     * Test with RO replica.
+     * Test with RO replica. This is a non-DAML case.
      */
     @Test
-    void testGetTlsNodeIdentitiesConcordWithRo() {
+    void testGetTlsNodeIdentitiesConcordNonDamlWithRo() {
         List<BlockchainClient> clients = List.of(new BlockchainClient("participant0", "addr1"));
         List<BlockchainReplica> replicas =
                 List.of(new BlockchainReplica("node1", "addr1"), new BlockchainReplica("node2", "addr1"),
@@ -165,14 +114,14 @@ public class ConfigurationServiceUtilTest {
         BlockchainFeatures bcFeatures =
                 BlockchainFeatures.builder().isObjectStoreEnabled(true).build();
 
-        Map<String, List<IdentityComponent>> actual = ConfigurationServiceUtil.getTlsNodeIdentities(concordPrincipalsRo,
+        var actual = ConfigurationServiceUtil.getTlsNodeIdentities(concordPrincipalsRo,
                                                                                                     bftPrincipalsRo,
                                                                                                     certGen,
                                                                                                     nodeList,
                                                                                                     bcFeatures, 2);
         Assertions.assertFalse(actual.isEmpty());
         checkValuesRo(actual);
-
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
 
     @Test
@@ -192,9 +141,12 @@ public class ConfigurationServiceUtilTest {
 
         Assertions.assertFalse(actual.isEmpty());
         checkValues(actual);
-
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
 
+    /**
+     * This case is for DAML and Object store is enabled.
+     */
     @Test
     void testGetTlsNodeIdentitiesBftClientRo() {
         List<BlockchainClient> clients = List.of(new BlockchainClient("participant0", "addr1"));
@@ -213,90 +165,85 @@ public class ConfigurationServiceUtilTest {
                 certGen,
                 nodeList,
                 bcFeatures, 2);
-
         Assertions.assertFalse(actual.isEmpty());
         checkValuesRo(actual);
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
 
     @Test
     void testBuildTlsIdentity() {
         List<String> nodeIds = Arrays.asList("node1", "node2", "node3", "node4");
+        List<BlockchainReplica> replicas =
+                List.of(new BlockchainReplica("node1", "addr1"), new BlockchainReplica("node2", "addr1"),
+                        new BlockchainReplica("node3", "addr1"), new BlockchainReplica("node4", "addr1"));
+        BlockchainNodeList nodeList =
+                BlockchainNodeList.builder().replicas(replicas).build();
         List<Identity> identities = certGen.generateSelfSignedCertificates(numConcordCerts,
                 ConcordComponent.ServiceType.CONCORD);
+        BlockchainFeatures bcFeatures =
+                BlockchainFeatures.builder().isObjectStoreEnabled(false).build();
+        // Do not consider clients, because this is non DAML case.
+        boolean considerClients = false;
 
-        var actual = ConfigurationServiceUtil.buildTlsIdentity(nodeIds, identities, concordPrincipals, numConcordCerts);
+        var actual = ConfigurationServiceUtil
+                .buildTlsIdentity(nodeList, identities, concordPrincipals, numConcordCerts, bcFeatures,
+                                  considerClients);
 
         Assertions.assertFalse(actual.isEmpty());
         checkValues(actual);
-
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
 
     @Test
-    void testBuildTlsIdentityRo() {
-        List<String> nodeIds = Arrays.asList("node1", "node2", "node3", "node4", "ronode1", "ronode2", "participant0");
+    void testBuildTlsIdentityRoDaml() {
+        List<BlockchainClient> clients = List.of(new BlockchainClient("participant0", "addr1"));
+        List<BlockchainReplica> replicas =
+                List.of(new BlockchainReplica("node1", "addr1"), new BlockchainReplica("node2", "addr1"),
+                        new BlockchainReplica("node3", "addr1"), new BlockchainReplica("node4", "addr1"));
+        List<BlockchainReadReplica> readReplicas = List.of(new BlockchainReadReplica("ronode1", "addr1"),
+                                                           new BlockchainReadReplica("ronode2", "addr1"));
+        BlockchainNodeList nodeList =
+                BlockchainNodeList.builder().clients(clients).replicas(replicas).readReplicas(readReplicas).build();
         List<Identity> identities = certGen.generateSelfSignedCertificates(numConcordCertsRo,
                                                                            ConcordComponent.ServiceType.CONCORD);
-
-        var actual =
-                ConfigurationServiceUtil.buildTlsIdentity(nodeIds, identities, concordPrincipalsRo, numConcordCertsRo);
+        BlockchainFeatures bcFeatures =
+                BlockchainFeatures.builder().isObjectStoreEnabled(true).build();
+        // Consider clients, because this is DAML case.
+        boolean considerClients = true;
+        var actual = ConfigurationServiceUtil
+                .buildTlsIdentity(nodeList, identities, concordPrincipalsRo, numConcordCertsRo, bcFeatures,
+                                  considerClients);
 
         Assertions.assertFalse(actual.isEmpty());
         checkValuesRo(actual);
-
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
 
-
     @Test
-    void testConvertToBftTlsNodeIdentitiesPositive() {
+    void testBuildTlsIdentityRoNonDaml() {
         List<BlockchainClient> clients = List.of(new BlockchainClient("participant0", "addr1"));
         List<BlockchainReplica> replicas =
                 List.of(new BlockchainReplica("node1", "addr1"), new BlockchainReplica("node2", "addr1"),
                         new BlockchainReplica("node3", "addr1"), new BlockchainReplica("node4", "addr1"));
-        BlockchainNodeList nodeList = BlockchainNodeList.builder().clients(clients).replicas(replicas).build();
-
-        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().build();
-
-        Map<String, List<IdentityComponent>> tlsNodeIdentities =
-                ConfigurationServiceUtil
-                        .getTlsNodeIdentities(concordPrincipals, bftPrincipals, certGen, nodeList, bcFeatures,
-                                              15);
-
-        Map<String, List<IdentityComponent>> converted = ConfigurationServiceUtil
-                .convertToBftTlsNodeIdentities(tlsNodeIdentities, nodeList);
-        Assertions.assertFalse(converted.isEmpty());
-    }
-
-
-    @Test
-    void testConvertToBftTlsNodeIdentitiesNegative() {
-        Map<String, List<IdentityComponent>> converted =
-                ConfigurationServiceUtil.convertToBftTlsNodeIdentities(null, null);
-        Assertions.assertNotNull(converted);
-    }
-
-    @Test
-    void testConvertToBftTlsNodeIdentitiesPositiveRo() {
-        List<BlockchainClient> clients = List.of(new BlockchainClient("participant0", "addr1"));
-        List<BlockchainReplica> replicas =
-                List.of(new BlockchainReplica("node1", "addr1"), new BlockchainReplica("node2", "addr1"),
-                        new BlockchainReplica("node3", "addr1"), new BlockchainReplica("node4", "addr1"));
-        List<BlockchainReadReplica> readReplicas = List.of(new BlockchainReadReplica("ronode", "addr1"));
+        List<BlockchainReadReplica> readReplicas = List.of(new BlockchainReadReplica("ronode1", "addr1"),
+                                                           new BlockchainReadReplica("ronode2", "addr1"));
         BlockchainNodeList nodeList =
                 BlockchainNodeList.builder().clients(clients).replicas(replicas).readReplicas(readReplicas).build();
+        List<Identity> identities = certGen.generateSelfSignedCertificates(numConcordCertsRo,
+                                                                           ConcordComponent.ServiceType.CONCORD);
+        BlockchainFeatures bcFeatures =
+                BlockchainFeatures.builder().isObjectStoreEnabled(true).build();
+        // Do not consider clients, because this is non DAML case.
+        boolean considerClients = false;
 
-        BlockchainFeatures bcFeatures = BlockchainFeatures.builder().build();
+        var actual = ConfigurationServiceUtil
+                .buildTlsIdentity(nodeList, identities, concordPrincipalsRo, numConcordCertsRo, bcFeatures,
+                                  considerClients);
 
-        Map<String, List<IdentityComponent>> tlsNodeIdentities =
-                ConfigurationServiceUtil
-                        .getTlsNodeIdentities(concordPrincipalsRo, bftPrincipalsRo, certGen, nodeList, bcFeatures,
-                                              2);
-
-        Map<String, List<IdentityComponent>> converted = ConfigurationServiceUtil
-                .convertToBftTlsNodeIdentities(tlsNodeIdentities, nodeList);
-        Assertions.assertFalse(converted.isEmpty());
+        Assertions.assertFalse(actual.isEmpty());
+        checkValuesRo(actual);
+        checkClientUrl(actual, nodeList.getClientNodeIds());
     }
-
-
 
     @Test
     void testGetNodeListOfTypePositive() {
@@ -337,7 +284,7 @@ public class ConfigurationServiceUtilTest {
         Assertions.assertEquals(1, nodeList.getReadReplicaSize(),
                                 "Read Replica size is not correct.");
         Assertions.assertEquals(3, nodeList.getAllNodeIds().size(), "Total node count is incorrect.");
-        Assertions.assertEquals(2, nodeList.getReplicaNodeIds().size(),
+        Assertions.assertEquals(2, nodeList.getAllReplicaNodeIds().size(),
                                 "Total node count is incorrect.");
     }
 
@@ -457,13 +404,29 @@ public class ConfigurationServiceUtilTest {
                         if (identity.getType().equals(IdentityComponent.Type.KEY)) {
                             Assertions.assertTrue(identity.getUrl().contains("/4/")
                                                   || identity.getUrl().contains("/2") || identity.getUrl()
-                                                          .contains("/3"));
+                                                          .contains("/3") || identity.getUrl().contains("/6"));
                         }
                         break;
                     default:
                         Assertions.assertFalse(identity.getType().equals(IdentityComponent.Type.KEY));
                 }
             });
+        });
+    }
+
+    private void checkClientUrl(Map<String, List<IdentityComponent>> actual, List<String> clientNodeIds) {
+        actual.forEach((key, value) -> {
+            if (clientNodeIds.contains(key)) {
+                value.forEach(ident -> {
+                    Assertions.assertTrue(ident.getUrl().contains(
+                                               CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH));
+                });
+            } else {
+                value.forEach(ident -> {
+                    Assertions.assertTrue(
+                            ident.getUrl().contains(CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH));
+                });
+            }
         });
     }
 

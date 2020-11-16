@@ -40,7 +40,7 @@ public class BlockchainNodeList {
      * Get a list of Ids for all Replicas (BFT and read replica nodes) in node list.
      * @return List of node Ids.
      */
-    public List<String> getReplicaNodeIds() {
+    public List<String> getAllReplicaNodeIds() {
         var nodeIds = new ArrayList<String>();
         // This order is important, because we generate principal Ids based on this order.
         nodeIds.addAll(getIds(replicas));
@@ -48,6 +48,11 @@ public class BlockchainNodeList {
         return nodeIds;
     }
 
+    /**
+     * Get a list of Ids for a given list of nodes.
+     * @param nodes A list of nodes.
+     * @return A list of Ids.
+     */
     private List<String> getIds(List<? extends BlockchainNode> nodes) {
         if (nodes == null) {
             return new ArrayList<>();
@@ -100,4 +105,23 @@ public class BlockchainNodeList {
         return nodeIds;
     }
 
+    /**
+     * Get a list of Ids for all Clients in node list.
+     * @return List of node Ids.
+     */
+    public List<String> getClientNodeIds() {
+        var nodeIds = new ArrayList<String>();
+        nodeIds.addAll(getIds(clients));
+        return nodeIds;
+    }
+
+    /**
+     * Get a list of Ids for all Replicas in node list.
+     * @return List of node Ids.
+     */
+    public List<String> getReplicaNodeIds() {
+        var nodeIds = new ArrayList<String>();
+        nodeIds.addAll(getIds(replicas));
+        return nodeIds;
+    }
 }
