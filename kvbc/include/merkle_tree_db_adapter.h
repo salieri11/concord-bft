@@ -50,6 +50,7 @@ namespace concord::kvbc::v2MerkleTree {
 class DBAdapter : public IDbAdapter {
  public:
   using NonProvableKeySet = std::unordered_set<Key>;
+
   // Unless explicitly turned off, the constructor will try to link the blockchain with any blocks in the temporary
   // state transfer chain. This is done so that the DBAdapter will operate correctly in case a crash or an abnormal
   // shutdown has occurred prior to startup (construction). Only a single DBAdapter instance should operate on a
@@ -194,6 +195,11 @@ class DBAdapter : public IDbAdapter {
 
   void deleteKeysForBlock(const KeysVector &keys, BlockId blockId) const;
 
+  BlockId loadLastReachableBlockId() const;
+
+  // Return std::nullopt if no temporary ST blocks are present.
+  std::optional<BlockId> loadLatestTempSTBlockId() const;
+
   class Reader : public sparse_merkle::IDBReader {
    public:
     Reader(const DBAdapter &adapter) : adapter_{adapter} {}
@@ -212,6 +218,8 @@ class DBAdapter : public IDbAdapter {
 
   logging::Logger logger_;
   std::shared_ptr<storage::IDBClient> db_;
+  BlockId lastReachableBlockId_{0};
+  std::optional<BlockId> latestBlockId_;
   sparse_merkle::Tree smTree_;
   std::unique_ptr<concordMetrics::ISummary> commitSizeSummary_;
   const NonProvableKeySet nonProvableKeySet_;
