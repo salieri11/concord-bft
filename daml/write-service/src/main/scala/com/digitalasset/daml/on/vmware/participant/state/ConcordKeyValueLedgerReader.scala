@@ -9,8 +9,10 @@ import com.daml.ledger.participant.state.pkvutils.api.{KeyValueLedgerReader, Led
 import com.daml.ledger.participant.state.v1.{LedgerId, Offset}
 import com.digitalasset.daml.on.vmware.thin.replica.client.core.Update
 import com.daml.ledger.api.health.{HealthStatus, Healthy}
+import com.daml.ledger.telemetry.Tracer
 import com.digitalasset.daml.on.vmware.read.service.ThinReplicaReadClient
 import com.google.protobuf.ByteString
+import io.opentelemetry.trace.Span
 import org.slf4j.LoggerFactory
 
 class ConcordKeyValueLedgerReader(
@@ -29,19 +31,31 @@ class ConcordKeyValueLedgerReader(
     committedBlocksSource(beginFromBlockId)
       .flatMapConcat { block =>
         if (block.kvPairs.nonEmpty) {
-          logger.info(
-            s"Processing blockId=${block.blockId.toHexString} correlationId=${block.correlationId} size=${block.kvPairs.length}")
-          if (logger.isTraceEnabled())
-            logger.trace(
-              s"keys=[${block.kvPairs.map(_._1).map(ByteString.copyFrom).map(_.toStringUtf8).mkString(",")}]")
-          Source.single(
-            LedgerBlockContent(
-              OffsetBuilder.fromLong(block.blockId),
-              block.kvPairs.toSeq.map {
-                case (keyByteArray, valueByteArray) =>
-                  (ByteString.copyFrom(keyByteArray), ByteString.copyFrom(valueByteArray))
-              }
-            ))
+          val span = Tracer
+            .spanBuilder(s"${classOf[ConcordKeyValueLedgerReader].getSimpleName}.events")
+            .setSpanKind(Span.Kind.CONSUMER)
+            .setNoParent()
+            .setAttribute("correlationId", block.correlationId)
+            .setAttribute("blockId", block.blockId)
+            .startSpan()
+          try {
+            logger.info(
+              s"Processing blockId=${block.blockId.toHexString} correlationId=${block.correlationId} size=${block.kvPairs.length}")
+            if (logger.isTraceEnabled())
+              logger.trace(
+                s"keys=[${block.kvPairs.map(_._1).map(ByteString.copyFrom).map(_.toStringUtf8).mkString(",")}]")
+            Source.single(
+              LedgerBlockContent(
+                OffsetBuilder.fromLong(block.blockId),
+                block.kvPairs.toSeq.map {
+                  case (keyByteArray, valueByteArray) =>
+                    (ByteString.copyFrom(keyByteArray), ByteString.copyFrom(valueByteArray))
+                },
+                span,
+              ))
+          } finally {
+            span.end()
+          }
         } else {
           Source.empty
         }
