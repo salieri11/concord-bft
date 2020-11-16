@@ -59,6 +59,7 @@ _CASTOR_OUTPUT_NODE_LOGIN_PATTERN = "NODE_LOGIN"
 _CONSORTIUM_NAME = "hermes-castor-consortium"
 _CASTOR_OUTPUT_CLIENT_NODE_PATTERN = "CLIENT_GROUP_ID"
 _COMPOSE_CONFIG_SERVICE_LOG = "docker-compose-config-service.log"
+_CONCORD_TYPE = "DAML"
 
 """
 All fixtures
@@ -143,14 +144,24 @@ def upCastorDockerCompose(request, fxHermesRunSettings, product):
 
     :return success or failure of launching the compose file:
     """
-
-    num_replicas, num_clients, deployment_descriptor, infra_descriptor, is_multiple_zone = request.param
-    if deployment_descriptor is not _DEPLOY_DESC_FILENAME_VALUE and infra_descriptor is not _INFRA_DESC_FILENAME_VALUE:
-        log.info("Not updating infrastructure and deployment descriptor. customized ones are {} and {}".
-                 format(infra_descriptor, deployment_descriptor))
+    is_request_param = True
+    try:
+        request_param = getattr(request, "param")
+    except AttributeError:
+        is_request_param = False
+    
+    if is_request_param:
+        num_replicas, num_clients, deployment_descriptor, infra_descriptor, is_multiple_zone = request.param
+        if deployment_descriptor is not _DEPLOY_DESC_FILENAME_VALUE and infra_descriptor is not _INFRA_DESC_FILENAME_VALUE:
+            log.info("Not updating infrastructure and deployment descriptor. customized ones are {} and {}".
+                    format(infra_descriptor, deployment_descriptor))
+        else:
+            add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients)
+            _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone)
     else:
-        add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients)
-        _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone)
+        infra_descriptor = _INFRA_DESC_FILENAME_VALUE
+        deployment_descriptor = _DEPLOY_DESC_FILENAME_VALUE
+        _populateInfraDescriptorFile(fxHermesRunSettings)
     dockerComposeFiles = fxHermesRunSettings['hermesCmdlineArgs'].dockerComposeFile
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     os.makedirs(castorOutputDir, exist_ok=True)
@@ -213,12 +224,14 @@ def upCastorDockerCompose(request, fxHermesRunSettings, product):
 
 
 @pytest.fixture
-def castor_teardown(fxHermesRunSettings):
+def castor_teardown(fxHermesRunSettings, request):
     """
     This is a teardown function which will deprovision the deployed blockchain and revert the infra and deployment descriptor
     """
     yield True
     log.info("Starting teardown")
+    if request.session.testsfailed:
+        collect_concord_support_bundle(fxHermesRunSettings)
     deprovision_blockchain(fxHermesRunSettings)
 
     # Revert modified descriptors
@@ -298,7 +311,6 @@ def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
             infraDescriptor['zones'] = [*infraDescriptor['zones'], *clone_zones]
         with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE), "w") as infraFile:
             json.dump(infraDescriptor, infraFile, indent=4)
-        time.sleep(5)
 
     else:
         len_default_zone_path = 1
@@ -625,61 +637,31 @@ def get_deployed_node_size(ip):
 
     return deployed_vm_size
 
-
-def validate_replica_node_size(deployment_descriptor, deployed_vm_size, ip):
+def validate_node_size(deployment_descriptor, deployed_vm_size, ip, node):
     """
-    Validate deployed replica node configuration with defined node configuration in deployment descriptor
-    :param deployment_descriptor: deployment descriptor file path
-    :param deployed_vm_size: dictionary of configuration from deployed VM
-    :param ip: IP of the VM
-    """
-
+   Validate deployed client node configuration with defined node configuration in deployment descriptor
+   :param deployment_descriptor: deployment descriptor file path
+   :param deployed_vm_size: dictionary of configuration from deployed VM
+   :param ip: IP of the VM
+   """
     deployment_descriptor_path = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)
     with open(deployment_descriptor_path) as ds:
         deployDescriptor = json.load(ds)
 
-    assert deployDescriptor["replicaNodeSpec"]["cpuCount"] == int(
-        deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with " \
-                                       "replica node CPU defined {}".format(ip, deployed_vm_size["cpuCount"],
-                                                                            deployDescriptor["replicaNodeSpec"]
-                                                                            ["cpuCount"])
-
-    assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(
-        deployDescriptor["replicaNodeSpec"]["memoryGb"]) >= (float(deployed_vm_size["memoryGb"]) / (
-            1024 * 1024)), "Memory of replica node IP {} is not matching with replica node memory defined {}".format(
-        ip, deployDescriptor["replicaNodeSpec"]["memoryGb"])
-
-    assert deployDescriptor["replicaNodeSpec"]["diskSizeGb"] == float(
-        deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with replica " \
-                                         "node disk size defined {}".format(
-        ip, deployed_vm_size["diskSizeGb"], deployDescriptor["replicaNodeSpec"]["diskSizeGb"])
-
-
-def validate_client_node_size(deployment_descriptor, deployed_vm_size, ip):
-    """
-    Validate deployed client node configuration with defined node configuration in deployment descriptor
-    :param deployment_descriptor: deployment descriptor file path
-    :param deployed_vm_size: dictionary of configuration from deployed VM
-    :param ip: IP of the VM
-    """
-    deployment_descriptor_path = os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, deployment_descriptor)
-    with open(deployment_descriptor_path) as ds:
-        deployDescriptor = json.load(ds)
-
-    assert deployDescriptor["clientNodeSpec"]["cpuCount"] == int(
-        deployed_vm_size["cpuCount"]), "CPU count of replica node IP {} is {} which is not matching with client node " \
+    assert deployDescriptor[f"{node}NodeSpec"]["cpuCount"] == int(
+        deployed_vm_size["cpuCount"]), "CPU count of {} node IP {} is {} which is not matching with client node " \
                                        "CPU defined {}".format(
-        ip, deployed_vm_size["cpuCount"], deployDescriptor["clientNodeSpec"]["cpuCount"])
+        node, ip, deployed_vm_size["cpuCount"], deployDescriptor[f"{node}NodeSpec"]["cpuCount"])
 
     assert (float(deployed_vm_size["memoryGb"]) / (1000 * 1000)) >= float(
-        deployDescriptor["clientNodeSpec"]["memoryGb"]) >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), \
+        deployDescriptor[f"{node}NodeSpec"]["memoryGb"]) >= (float(deployed_vm_size["memoryGb"]) / (1024 * 1024)), \
         "Memory of client node IP {} is not matching with client node memory defined {}".format(
-        ip, deployDescriptor["clientNodeSpec"]["memoryGb"])
+        ip, deployDescriptor[f"{node}NodeSpec"]["memoryGb"])
 
-    assert deployDescriptor["clientNodeSpec"]["diskSizeGb"] == float(
-        deployed_vm_size["diskSizeGb"]), "Disk size of replica node IP {} is {} which is not matching with client " \
+    assert deployDescriptor[f"{node}NodeSpec"]["diskSizeGb"] == float(
+        deployed_vm_size["diskSizeGb"]), "Disk size of {} node IP {} is {} which is not matching with client " \
                                          "node disk size defined {}".format(
-        ip, deployed_vm_size["diskSizeGb"], deployDescriptor["clientNodeSpec"]["diskSizeGb"])
+        node, ip, deployed_vm_size["diskSizeGb"], deployDescriptor[f"{node}NodeSpec"]["diskSizeGb"])
 
 
 def deprovision_blockchain(fxHermesRunSettings):
@@ -693,6 +675,9 @@ def deprovision_blockchain(fxHermesRunSettings):
 
     filePatternStr = _CONSORTIUM_NAME + "*"
     outputFileBases = fnmatch.filter(files, filePatternStr)
+    if len(outputFileBases) < 1:
+        log.info("No output file available. No need to deprovision")
+        return
 
     outputFileBase = outputFileBases[0]
     castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
@@ -764,6 +749,20 @@ def deprovision_blockchain(fxHermesRunSettings):
     return cleaned_up
 
 
+def collect_concord_support_bundle(fxHermesRunSettings):
+    """
+    Collect concord support bundle
+    """
+    try:
+        castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
+        castor_output_file = validate_castor_output_msg(castorOutputDir)[1]
+        all_nodes = _get_all_nodes(castor_output_file)[0]
+        helper.create_concord_support_bundle(all_nodes, _CONCORD_TYPE.lower(), castorOutputDir)
+    except FileNotFoundError:
+        log.info("No output file found to collect support bundle. Skipping.........")
+
+
+
 """
 TEST CASES
 """
@@ -783,6 +782,7 @@ def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHerm
     4. After the above 3 are verified then the Daml sanity is executed for the participant nodes
     """
     # Check if deployment started
+    
     assert upCastorDockerCompose, "Deployment did not start"
 
     # start the test
@@ -790,7 +790,7 @@ def test_castor_deployment_7_node(upPrereqsDocker, upCastorDockerCompose, fxHerm
     num_of_nodes = 9
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir)
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
@@ -840,7 +840,7 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     # start the test
     num_of_nodes = 5
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir)
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
@@ -857,9 +857,9 @@ def test_castor_4_node_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     for node_ip, node_type in node_info_list.items():
         vm_size = get_deployed_node_size(node_ip)
         if "committer" in node_type:
-            validate_replica_node_size(_DEPLOY_DESC_FILENAME_VALUE, vm_size, node_ip)
+            validate_node_size(_DEPLOY_DESC_FILENAME_VALUE, vm_size, node_ip, "replica")
         if "client" in node_type:
-            validate_client_node_size(_DEPLOY_DESC_FILENAME_VALUE, vm_size, node_ip)
+            validate_node_size(_DEPLOY_DESC_FILENAME_VALUE, vm_size, node_ip, "client")
 
     # verify docker containers on each node
     status, error = _verify_docker_containers_in_each_node(fxHermesRunSettings, node_info_list)
@@ -898,7 +898,7 @@ def test_multiple_zone_deployment(upPrereqsDocker, upCastorDockerCompose, fxHerm
     num_of_nodes = 5
     log.info("Starting test test_castor_deployment")
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir)
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
@@ -959,7 +959,7 @@ def test_castor_deployment_max_vm_sizing(upPrereqsDocker, upCastorDockerCompose,
     # start the test
     num_of_nodes = 5
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
-    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir, num_of_nodes)
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir)
 
     # validate success message in the output file
     assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
@@ -976,6 +976,98 @@ def test_castor_deployment_max_vm_sizing(upPrereqsDocker, upCastorDockerCompose,
     for node_ip, node_type in node_info_list.items():
         vm_size = get_deployed_node_size(node_ip)
         if "committer" in node_type:
-            validate_replica_node_size("test04_deployment_descriptor_vm_sizing.json", vm_size, node_ip)
+            validate_node_size("test04_deployment_descriptor_vm_sizing.json", vm_size, node_ip, "replica")
         if "client" in node_type:
-            validate_client_node_size("test04_deployment_descriptor_vm_sizing.json", vm_size, node_ip)
+            validate_node_size("test04_deployment_descriptor_vm_sizing.json", vm_size, node_ip, "client")
+
+
+#--------------On Demand -----------------------
+
+@pytest.fixture
+def prepare_deployment_descriptor_from_cmdline(fxHermesRunSettings):
+    """
+    This test is only for on demand castor deployment
+    """
+
+    blockchain_type = "DAML"
+    num_replicas = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)
+    num_clients = int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
+    client_memory = 16 if not fxHermesRunSettings["hermesCmdlineArgs"].clientMemory else int(fxHermesRunSettings["hermesCmdlineArgs"].clientMemory)
+    client_cpu = 2 if not fxHermesRunSettings["hermesCmdlineArgs"].clientCpu else int(fxHermesRunSettings["hermesCmdlineArgs"].clientCpu)
+    client_storage = 64 if not fxHermesRunSettings["hermesCmdlineArgs"].clientStorage else int(fxHermesRunSettings["hermesCmdlineArgs"].clientStorage)
+    replica_memory = 16 if not fxHermesRunSettings["hermesCmdlineArgs"].replicaMemory else int(fxHermesRunSettings["hermesCmdlineArgs"].replicaMemory)
+    replica_cpu = 2 if not fxHermesRunSettings["hermesCmdlineArgs"].replicaCpu else int(fxHermesRunSettings["hermesCmdlineArgs"].replicaCpu)
+    replica_storage = 64 if not fxHermesRunSettings["hermesCmdlineArgs"].replicaStorage else int(fxHermesRunSettings["hermesCmdlineArgs"].replicaStorage)
+
+    # prepare descriptor files based on the command line args
+    log.info("Updating descriptor")
+    log.info(num_replicas, num_clients)
+    add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients)
+
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE)) as deploy_desc:
+            data = json.load(deploy_desc)
+
+    # update blockchain type
+    data["blockchain"]["blockchainType"] = blockchain_type
+    
+    if "replicaNodeSpec" not in data:
+        data["replicaNodeSpec"] = {}
+    
+    data["replicaNodeSpec"]["cpuCount"] = replica_cpu
+    data["replicaNodeSpec"]["memoryGb"] = replica_memory
+    data["replicaNodeSpec"]["diskSizeGb"] = replica_storage
+
+    if "clientNodeSpec" not in data:
+        data["clientNodeSpec"] = {}
+    
+    data["clientNodeSpec"]["cpuCount"] = client_cpu
+    data["clientNodeSpec"]["memoryGb"] = client_memory
+    data["clientNodeSpec"]["diskSizeGb"] = client_storage
+
+    with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _DEPLOY_DESC_FILENAME_VALUE), 'w') as w_deploy_desc:
+            json.dump(data, w_deploy_desc, indent=4)
+    
+    log.info("updated deployment descriptor")
+    
+
+@pytest.fixture
+def run_on_failure(request, fxHermesRunSettings):
+    yield True
+    if request.session.testsfailed:
+        collect_concord_support_bundle(fxHermesRunSettings)
+        deprovision_blockchain(fxHermesRunSettings)
+
+
+@describe("On demand castor deployment")
+@pytest.mark.cmdline
+@pytest.mark.on_demand_castor_default # IMPORTANT DO NOT DELETE
+def test_on_demand_castor_deployment(prepare_deployment_descriptor_from_cmdline, upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, run_on_failure):
+    # Check if deployment started
+    assert upCastorDockerCompose, "Deployment did not start"
+
+    # start the test
+    num_of_nodes = int(fxHermesRunSettings["hermesCmdlineArgs"].numReplicas)+int(fxHermesRunSettings["hermesCmdlineArgs"].numParticipants)
+    castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
+    matchingNodeLogins, castorOutputFile = validate_castor_output_msg(castorOutputDir)
+
+    # validate success message in the output file
+    assert matchingNodeLogins == num_of_nodes, "%s expected lines: %s, found: %s" % (
+            _CASTOR_OUTPUT_NODE_LOGIN_PATTERN, num_of_nodes, matchingNodeLogins)
+
+    # -------------post deployment validations -----------------
+    # get all nodes and client node IPs from output file
+    all_nodes, client_nodes = _get_all_nodes(castorOutputFile)
+
+    # create a dictionary to segregate all the nodes by Replica and Client
+    node_info_list = _get_node_info_list(all_nodes, client_nodes)
+
+    # verify docker containers on each node
+    status, error = _verify_docker_containers_in_each_node(fxHermesRunSettings, node_info_list)
+    log.info(status, error)
+    assert status, "Unable to verify all the docker containers in each node, refer to error - {}".format(error)
+
+    # run daml sanity
+    log.info("Running daml sanity tests to validate health of the deployed blockchain")
+    daml_sanity_status = helper.run_daml_sanity(ledger_api_hosts=client_nodes, results_dir=castorOutputDir,
+                                                run_all_tests=False)
+    assert daml_sanity_status, "Daml Sanity test did not pass, deployment is failed"
