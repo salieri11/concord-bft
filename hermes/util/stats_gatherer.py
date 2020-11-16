@@ -99,7 +99,7 @@ class StatsGatherer(threading.Thread):
               },
               cpu_data: {
                 cpu_count: 4,
-                cpu_freq_ghz: 1.9
+                cpu_freq_mhz: 1.9
                 cpu_usage_each: [1.0, 1.0, 99.0, 0.0]
                 cpu_usage_avg: 25
               },
