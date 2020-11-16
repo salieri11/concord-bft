@@ -52,15 +52,22 @@ public class ConfigurationServiceUtil {
     }
 
     /**
-     * Get tls node identities.
-     * TODO: better refactoring when deprecated code cleaned up
+     * Get TLS node identities of all nodes in the BLockchain.
+     * @param concordNodePrincipals Principals for concord nodes (Replica, Read replica)
+     * @param bftClientNodePrincipals Principals for Clients
+     * @param certGen Certificate generator
+     * @param nodeList List of all nodes in the Blockchain
+     * @param bcFeatures Blockchain features
+     * @param clientProxyPerParticipant Client proxies per participant
+     * @return A map of Node ids and its list of TLS identities.
+     * @throws ConfigServiceException during an error during the cert generation.
      */
     static Map<String, List<IdentityComponent>> getTlsNodeIdentities(Map<Integer, List<Integer>> concordNodePrincipals,
-                                                                    Map<Integer, List<Integer>> bftClientNodePrincipals,
-                                                                     ConcordEcCertificatesGenerator certGen,
-                                                                     BlockchainNodeList nodeList,
-                                                                     BlockchainFeatures bcFeatures,
-                                                                     int clientProxyPerParticipant)
+                                                        Map<Integer, List<Integer>> bftClientNodePrincipals,
+                                                        ConcordEcCertificatesGenerator certGen,
+                                                        BlockchainNodeList nodeList,
+                                                        BlockchainFeatures bcFeatures,
+                                                        int clientProxyPerParticipant)
             throws ConfigServiceException {
         if (!ValidationUtil.isValid(concordNodePrincipals) || !ValidationUtil.isValid(bftClientNodePrincipals)
             || !ValidationUtil.isValid(certGen) || !ValidationUtil.isValid(nodeList)
@@ -88,10 +95,12 @@ public class ConfigurationServiceUtil {
          */
         int numPrincipals = maxCommitterPrincipalId + 1;
 
-
         Map<Integer, List<Integer>> nodePrincipal = new HashMap<>(concordNodePrincipals);
+        // We will consider clients only when they are available.
+        // When Blockchain type is NOT DAML, then no clients are available.
+        boolean considerClients = !bftClientNodePrincipals.isEmpty();
 
-        if (!bftClientNodePrincipals.isEmpty()) {
+        if (considerClients) {
             numPrincipals = bftClientNumPrincipals + 1;
             bftClientNodePrincipals.forEach((key, value) ->
                     nodePrincipal.put(concordNodePrincipals.size() + key, value));
@@ -101,45 +110,54 @@ public class ConfigurationServiceUtil {
                 certGen.generateSelfSignedCertificates(numPrincipals,
                         ConcordComponent.ServiceType.CONCORD);
 
-        Map<String, List<IdentityComponent>> tlsNodeIdentities = buildTlsIdentity(
-                nodeList.getAllNodeIds(),
+        return buildTlsIdentity(
+                nodeList,
                 tlsIdentityList,
                 nodePrincipal,
-                numPrincipals);
-        return tlsNodeIdentities;
+                numPrincipals,
+                bcFeatures,
+                considerClients);
     }
 
     /**
-     * Filter tls identities based on nodes and principal ids.
+     * Generate TLS identities based on nodetypes and principal Ids.
+     * @param nodeList List of nodes
+     * @param identities TLS identities
+     * @param principals Principal nodes
+     * @param numCerts Number of certificates generated
+     * @param bcFeatures Features of this Blockchain
+     * @return A map of TLS node identities for all nodes.
      */
-    static Map<String, List<IdentityComponent>> buildTlsIdentity(List<String> nodeIds,
-                                                          List<Identity> identities,
-                                                          Map<Integer, List<Integer>> principals,
-                                                          int numCerts) {
-        if (!ValidationUtil.isValid(nodeIds) || !ValidationUtil.isValid(identities)
-            || !ValidationUtil.isValid(principals)) {
+    static Map<String, List<IdentityComponent>> buildTlsIdentity(BlockchainNodeList nodeList, List<Identity> identities,
+                                                                 Map<Integer, List<Integer>> principals, int numCerts,
+                                                                 BlockchainFeatures bcFeatures,
+                                                                 boolean considerClients)
+            throws ConfigServiceException {
+        if (!ValidationUtil.isValid(identities) || !ValidationUtil.isValid(principals) || !ValidationUtil
+                .isValidNodeList(nodeList)) {
             log.error("Invalid input parameters.");
             throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
                                              "Invalid input parameters.");
         }
-
-
+        // Principals are always available, so there is no need to check if 'principals' is empty.
         Map<String, List<IdentityComponent>> result = new HashMap<>();
-
-        // TODO: May remove logic once principals are available
-        if (principals.size() == 0) {
-            IntStream.range(0, nodeIds.size()).forEach(node -> {
-                List<IdentityComponent> identityComponents = new ArrayList<>();
-                identities.forEach(identity -> {
-                    identityComponents.add(identity.getCertificate());
-                    identityComponents.add(identity.getKey());
-                });
-                result.put(nodeIds.get(node), identityComponents);
-            });
-            return result;
+        // All applicable node Ids in this deployment, the order of nodes is very important due to the following code.
+        var allNodeIds = getApplicableNodeIds(nodeList, bcFeatures, considerClients);
+        log.info("All node Ids in this deployment {}", allNodeIds);
+        // Also check to see if there are enough nodes as principals.
+        if (allNodeIds.size() < principals.keySet().size()) {
+            log.error("Available nodes are less than principals.");
+            throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
+                                             "Not enough nodes are available in the node list.");
         }
-
         for (int node : principals.keySet()) {
+            // We assume that if clients are available, then this must be a DAML Blockchain.
+            boolean isThisClientNode =
+                    nodeList.getClientNodeIds() != null && nodeList.getClientNodeIds().contains(allNodeIds.get(node));
+
+            // If this node is Client node and BFT is enabled, then convert the URL.
+            boolean replaceUrl = isThisClientNode;
+
             List<IdentityComponent> nodeIdentities = new ArrayList<>();
 
             List<Integer> notPrincipal = IntStream.range(0, numCerts)
@@ -150,61 +168,58 @@ public class ConfigurationServiceUtil {
             List<Identity> clientList = new ArrayList<>(identities.subList(identities.size() / 2, identities.size()));
 
             notPrincipal.forEach(entry -> {
-                nodeIdentities.add(serverList.get(entry).getCertificate());
-                nodeIdentities.add(clientList.get(entry).getCertificate());
+                nodeIdentities.add(replaceClientUrl(serverList.get(entry).getCertificate(), replaceUrl));
+                nodeIdentities.add(replaceClientUrl(clientList.get(entry).getCertificate(), replaceUrl));
             });
 
             // add self keys
-            nodeIdentities.add(serverList.get(node).getKey());
-            nodeIdentities.add(clientList.get(node).getKey());
+            nodeIdentities.add(replaceClientUrl(serverList.get(node).getKey(), replaceUrl));
+            nodeIdentities.add(replaceClientUrl(clientList.get(node).getKey(), replaceUrl));
 
             principals.get(node).forEach(entry -> {
-                nodeIdentities.add(serverList.get(entry).getCertificate());
-                nodeIdentities.add(serverList.get(entry).getKey());
-                nodeIdentities.add(clientList.get(entry).getCertificate());
-                nodeIdentities.add(clientList.get(entry).getKey());
+                nodeIdentities.add(replaceClientUrl(serverList.get(entry).getCertificate(), replaceUrl));
+                nodeIdentities.add(replaceClientUrl(serverList.get(entry).getKey(), replaceUrl));
+                nodeIdentities.add(replaceClientUrl(clientList.get(entry).getCertificate(), replaceUrl));
+                nodeIdentities.add(replaceClientUrl(clientList.get(entry).getKey(), replaceUrl));
             });
-            result.putIfAbsent(nodeIds.get(node), nodeIdentities);
+            // Add the Identities for the node.
+            result.putIfAbsent(allNodeIds.get(node), nodeIdentities);
         }
-
-        log.info("Filtered tls identities based on nodes and principal ids.");
+        log.info("Total node mappings available {}", result.size());
         return result;
     }
 
+
     /**
-     * transform concord node identities to bft node identities.
+     * Replace Identity URL, essentially for client nodes.
+     * @param identityComponent Identity component
+     * @param replaceUrl Identifies whether replacement is needed
+     * @return If replaceUrl is true, then replace and return the Identity component, otherwise return as-is.
      */
-    static Map<String, List<IdentityComponent>> convertToBftTlsNodeIdentities(
-            Map<String, List<IdentityComponent>> tlsNodeIdentities, BlockchainNodeList nodeList) {
-        if (tlsNodeIdentities == null || tlsNodeIdentities.isEmpty()) {
-            log.error("No node identities are available to process.");
-            return new HashMap<>();
+    private static IdentityComponent replaceClientUrl(IdentityComponent identityComponent, boolean replaceUrl) {
+        if (identityComponent == null || identityComponent.getUrl() == null) {
+            log.error("Identity component or it's URL is missing.");
+            throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
+                                             "Invalid Identity component.");
         }
-        Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
-
-        tlsNodeIdentities.forEach((key, value) -> {
-            // Do not convert when nodeList is available, and the nodeId is a Read Replica.
-            if (nodeList != null && nodeList.getReadReplicaNodeIds().contains(key)) {
-                // Keep it as-is in the case of a Read Replica.
-                bftIdentityComponents.put(key, value);
-            } else {
-                List<IdentityComponent> bftIdentities = new ArrayList<>();
-                value.forEach(val -> {
-                    String newUrl = val.getUrl().replace(
-                            CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH,
-                            CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH);
-                    IdentityComponent ident = IdentityComponent.newBuilder()
-                            .setType(val.getType())
-                            .setBase64Value(val.getBase64Value())
-                            .setUrl(newUrl)
-                            .build();
-                    bftIdentities.add(ident);
-                });
-                bftIdentityComponents.put(key, bftIdentities);
-            }
-        });
-
-        return bftIdentityComponents;
+        if (!replaceUrl) {
+            log.info("No need to replace Identity component URL.");
+            return identityComponent;
+        }
+        String newUrl = identityComponent.getUrl().replace(
+                CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH,
+                CertificatesGenerator.BFT_CLIENT_TLS_SECURITY_IDENTITY_PATH);
+        try {
+            return IdentityComponent.newBuilder()
+                    .setType(identityComponent.getType())
+                    .setBase64Value(identityComponent.getBase64Value())
+                    .setUrl(newUrl)
+                    .build();
+        } catch (NullPointerException npe) {
+            log.error("Failed to build an Identity component with replaced URL.");
+            throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
+                                             "Failed to build a new Identity component with replaced URL.");
+        }
     }
 
     /**
@@ -287,6 +302,26 @@ public class ConfigurationServiceUtil {
 
         return BlockchainNodeList.builder().replicas(replicaNodes).clients(clientNodes).readReplicas(readReplicaNodes)
                 .build();
+    }
+
+    /**
+     * Return a list of applicable nodes, based on Blockchain features.
+     * @param bcFeatures Blockchain features
+     * @return A list of applicable node Ids.
+     */
+    private static List<String> getApplicableNodeIds(BlockchainNodeList nodeList, BlockchainFeatures bcFeatures,
+                                                     boolean considerClients) {
+        // Prepare a list of applicable node Ids to be sent to build method.
+        List<String> applicableNodeIds = new ArrayList<>();
+        if (bcFeatures.isObjectStoreEnabled()) {
+            applicableNodeIds.addAll(nodeList.getAllReplicaNodeIds());
+        } else {
+            applicableNodeIds.addAll(nodeList.getReplicaNodeIds());
+        }
+        if (considerClients) {
+            applicableNodeIds.addAll(nodeList.getClientNodeIds());
+        }
+        return applicableNodeIds;
     }
 
 }

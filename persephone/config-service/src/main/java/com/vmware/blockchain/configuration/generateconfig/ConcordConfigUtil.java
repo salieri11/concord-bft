@@ -121,7 +121,7 @@ public class ConcordConfigUtil {
                                 log.info("Node principal after adding read replicas {}", nodePrincipal);
 
                                 result.putAll(ConfigUtilHelpers.getConcordNodeConfigs(outputPath,
-                                                                                      nodeList.getReplicaNodeIds(),
+                                                                                      nodeList.getAllReplicaNodeIds(),
                                                                                       bcFeatures.isSplitConfig()));
                             } catch (Throwable collectError) {
                                 log.error("Cannot collect generated cluster configuration for session id : {}",

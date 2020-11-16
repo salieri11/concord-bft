@@ -170,6 +170,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         boolean isSplitConfig = !isSplitConfigString.equalsIgnoreCase("False");
 
+        // So if the Blockchain type is DAML, then we populate bftClientConfig.
+        // For all Blockchain types, bftClientConfig would be empty.
         if (request.getBlockchainType().equals(BlockchainType.DAML)) {
             try {
                 bftClientConfig.putAll(bftClientConfigUtil.getBftClientConfig(nodeList, clientProxyPerParticipant));
@@ -232,16 +234,21 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         log.info("Generated node independent configurations for session Id : {}", sessionId);
 
         var certGen = new ConcordEcCertificatesGenerator();
-        Map<String, List<IdentityComponent>> concordIdentityComponents = new HashMap<>();
 
         log.info("Creating secrets for session Id {}", sessionId);
+        Map<String, List<IdentityComponent>> allNodeIdentities = new HashMap<>();
         try {
-            concordIdentityComponents.putAll(ConfigurationServiceUtil
-                                                     .getTlsNodeIdentities(configUtil.nodePrincipal,
-                                                                           bftClientConfigUtil.nodePrincipal,
-                                                                           certGen, nodeList, bcFeatures,
-                                                                           clientProxyPerParticipant));
-            log.info("concordIdentityComponents {}", concordIdentityComponents);
+            // Get TLS identities for all nodes.
+            // bftClientConfigUtil.nodePrincipal would be empty if Blockchain type is NOT DAML.
+            allNodeIdentities = ConfigurationServiceUtil
+                    .getTlsNodeIdentities(configUtil.nodePrincipal, bftClientConfigUtil.nodePrincipal, certGen,
+                                          nodeList, bcFeatures, clientProxyPerParticipant);
+            if (allNodeIdentities == null) {
+                throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_FAILURE,
+                                                 "Failed to get TLS node identities.");
+            }
+
+            log.info("Node identities count: {}.", allNodeIdentities.size());
         } catch (ConfigServiceException e) {
             throw e;
         } catch (Exception e) {
@@ -250,40 +257,23 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_FAILURE, msg, e);
         }
 
-        Map<String, List<IdentityComponent>> bftIdentityComponents = new HashMap<>();
-        if (request.getBlockchainType().equals(BlockchainType.DAML)) {
-            try {
-                bftIdentityComponents.putAll(ConfigurationServiceUtil
-                                                     .convertToBftTlsNodeIdentities(concordIdentityComponents,
-                                                                                    nodeList));
-                log.info("BFT identity components {}", bftIdentityComponents);
-            } catch (ConfigServiceException e) {
-                throw e;
-            } catch (Exception e) {
-                var msg = "Trouble converting BFT TLS node identities for session Id : " + sessionId;
-                log.error(msg, e);
-                throw new ConfigServiceException(ErrorCode.CONVERT_TO_BFT_TLS_NODE_IDENTITIES_FAILURE, msg, e);
-            }
-        }
-
         log.info("Generated tls identity elements for session id: {}", sessionId);
 
         try {
+            // Need these copy objects to satisfy lambda function.
             Map<String, Map<String, String>> finalConcordConfig = concordConfig;
+            Map<String, List<IdentityComponent>> finalAllNodeIdentities = allNodeIdentities;
             configByNodeId.forEach((nodeId, componentList) -> {
-
                 String key = String.join(separator, sessionId.getId(), nodeId);
                 log.info("Persisting configurations for session: {}, node: {} in memory...", sessionId, nodeId);
                 cacheByNodeId.put(key, configurationServiceHelper.buildNodeConfigs(nodeId, componentList, certGen,
                                                                                     finalConcordConfig, bftClientConfig,
-                                                                                    concordIdentityComponents,
-                                                                                    bftIdentityComponents));
+                                                                                    finalAllNodeIdentities));
             });
         } catch (ConfigServiceException e) {
             throw e;
         } catch (Exception e) {
             log.error("Error organizing the configurations for sessions {}", sessionId, e);
-            log.error("Error organizing the configurations for sessions {}", sessionId);
             throw new ConfigServiceException(ErrorCode.CONFIGURATION_GENERATION_FAILURE,
                                              "Error organizing the configurations for sessions {}" + sessionId, e);
         }
