@@ -2574,6 +2574,7 @@ TEST(config_test, test_principal_locations_mapping) {
     config.loadValue("num_ro_replicas", to_string(num_ro_replicas_to_test[i]));
     config.instantiateScope("node");
     size_t num_nodes = config.scopeSize("node");
+    size_t num_ro_nodes = num_ro_replicas_to_test[i];
     for (size_t i = 0; i < num_nodes; ++i) {
       ConcordConfiguration& node_config = config.subscope("node", i);
       node_config.instantiateScope("replica");
@@ -2628,6 +2629,17 @@ TEST(config_test, test_principal_locations_mapping) {
                  " expected principal IDs for node " + node_id + ".";
 
       principals_map.erase(node_id);
+    }
+
+    // The mappings file should contain all RO replica IDs with an empty array
+    // for the corresponding client ids.
+    for (size_t i = num_nodes; i < num_nodes + num_ro_nodes; ++i) {
+      string ro_node_id = to_string(i + 1);
+      json reported_ids = principals_map[ro_node_id];
+      EXPECT_TRUE(reported_ids.size() == 0)
+          << "JSON principal mapping contains ro node with client ids: "
+          << reported_ids << ".";
+      principals_map.erase(ro_node_id);
     }
 
     EXPECT_TRUE(principals_map.empty())

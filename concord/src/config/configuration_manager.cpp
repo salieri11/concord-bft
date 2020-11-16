@@ -5353,9 +5353,12 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
                                          ostream& output, bool client_flag) {
   json principal_map;
   string scope_name = "node";
+  uint32_t scope_size = 0;
+
   if (client_flag) scope_name = "participant_nodes";
   if (config.containsScope(scope_name) &&
       config.scopeIsInstantiated(scope_name)) {
+    scope_size = config.scopeSize(scope_name);
     for (size_t i = 0; i < config.scopeSize(scope_name); ++i) {
       string node_id = to_string(i + 1);
       ConcordConfiguration& node = config.subscope(scope_name, i);
@@ -5375,6 +5378,17 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
     }
   }
 
+  // Add RO replica IDs to the principals file for replicas. This change is
+  // needed by the cloud services team in order to know the IDs of the RO
+  // replicas. This is done only when we generate config for the committer
+  // nodes.
+  if (!client_flag && config.hasValue<uint16_t>("num_ro_replicas")) {
+    uint16_t numRoReplicas = config.getValue<uint16_t>("num_ro_replicas");
+    for (auto i = 0; i < numRoReplicas; ++i) {
+      string node_id = to_string(i + 1 + scope_size);
+      principal_map[node_id] = json::array();
+    }
+  }
   output << principal_map;
 }
 
