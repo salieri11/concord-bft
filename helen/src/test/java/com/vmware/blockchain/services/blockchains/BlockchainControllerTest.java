@@ -105,867 +105,6 @@ import io.grpc.stub.StreamObserver;
 @ComponentScan(basePackageClasses = { BlockchainControllerTest.class, HelenExceptionHandler.class,
                                       TaskController.class})
 public class BlockchainControllerTest {
-    static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
-    static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
-    static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
-    static final UUID BC_MISSING = UUID.fromString("d3cad1e0-b520-47f5-9dfd-4cb28d59dfe8");
-    static final UUID BC_UNAVAILABLE = UUID.fromString("a15cfd74-5f4b-4af4-a286-888a036d7889");
-
-    static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
-
-    static final UUID BC_DEREGISTER = UUID.fromString("691f2038-7545-11ea-bc55-0242ac130003");
-    static final UUID BC_DEREGISTER_INACTIVE = UUID.fromString("8a304abc-4964-488e-a3c6-1379e6a67229");
-
-    static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
-    static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
-
-    static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
-
-    static final UUID ORG_ID = UUID.fromString("5c373085-0cd1-47e4-b4f2-66d418f22fdf");
-    static final UUID ORG2_ID = UUID.fromString("a774d0e3-b182-4330-93df-6738c8b1b2de");
-
-    static final UUID DEP_ID = UUID.fromString("67376aed-333c-4e35-b6b6-c59800752dc3");
-
-    private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
-    private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
-    private static final UUID NODE_1 = UUID.fromString("f81899ce-861f-4479-9adf-f3ad753fcaf6");
-
-    private static final String pem = "-----BEGIN PRIVATE KEY-----\\n"
-            + "MIIJQwIBADANBgkqhkiG9w0BAQEFAASCCS0wggkpAgEAAoICAQDeojrK2KNwJWoH\\n"
-            + "udDB8/k17H5zJns0mlbXP7INfULuwxwGS0xF5MhB3tYHINlJ5cPDDMS4YzXh0AR8\\n"
-            + "pKj5wKNlt2oqVE67HYmMm73ZCrV0duORnZQMyrREiaBW5eUqbPCxYcJmoNzG9Rbz\\n"
-            + "kCcG+LVkDFPDTbOQ6UgHKm1vx6Eq9uT4mneI7q8rgrJ5/7Oia953DNd84Nx/4EbO\\n"
-            + "hMDT3RqU9OnY9yiPTXgsVVcVXNyY0mTME4geVKO4RbyE/zTlDe/f5L/fJw83RutX\\n"
-            + "iAQ1rd0DDspDn9fsecw5bsHIefOfp/p3sJm2pvTLn94ObaDMnJey/AiUSD0N2UuQ\\n"
-            + "igXmTWoaPvlQMQe/etxvE8cQIB1rLuXVBnmfXue7KK8zY1YlIt3eo5J3+p7RscXC\\n"
-            + "GnN0QnkdQtfY58wolvWlHu07D/TNS5oHiOPed+Ep/XlRs2lSBIqwcYbLRTdmXX7Q\\n"
-            + "koetglIpHraAamctIub0fFvZRQORAwVAEFJS4WDciJSv0NbMgO4GpcIWjpE4jrWO\\n"
-            + "u6AUDo+0NtPHef/Urm69FiZuOMkyeYRHichoKkW4i56fRrujp10ARbZljcH2K6hd\\n"
-            + "xZwbSkIfbZyAHuqx5wI4ua4VJrDlSrqHUQ7kkSotMsjvMFjejsJ6owcKzHUnh7Oe\\n"
-            + "Fbhu3QqwetgLGKaCk+h8rhRGNzmHJQIDAQABAoICAC5Kt0TUVO+NqAVhOqoJi8kN\\n"
-            + "mqFg3/9pFCN/qAsr/43b3ejlIT/rOUSRDBnBV80IzHKzJfhdEKgac8RjDIuZ5Z/R\\n"
-            + "ym5wx0oa8y3ceFY35tEHo3v0swMR5vfVUhSfis4OhuGrPRvP2Pg5oAMW9zZ44mai\\n"
-            + "NYyHjI3WI9bxmH3EmZtwaN3UaIR9dMjsTSYW6Ageu8wvTGM38kFYpgBtFBc5gzxz\\n"
-            + "zGgDxFg/uHwnZosXmvrfzHuumAAOg1hej7trwVjbVARO8SJ6YayRv3+c1Zs/wpPP\\n"
-            + "MHltNB2EmdVbVUnVKbYJ3IekneGfx4jLfgWr/+JrsRNTWolSl/dYNmEggeeIM0ZM\\n"
-            + "cuSOgPDFMDLcRn5FPuOWBViSkBIJiipuGWfocTXlbNB6jqHoV2nblLCqu2sSFaEC\\n"
-            + "UuJNf7yxeXc+i70C7GzCpmRc21zd6luckLhBnrEOl+VT8IFjrEibik9qqhzeZCXc\\n"
-            + "Iy7mNMwidKglri/FCfCwVSfJp27Hk2njSynsD53AdLNYm1MjRzVqHLIrO8sfDr8C\\n"
-            + "6hIW+HDaiJW3/J8JuufssrRp1QlSm1y8EqcJlOTdDflNFKgRxW9kK1DfR75XzjD0\\n"
-            + "Xqwp/jyobDQtABHFn5R0i1/UDthjrf+1n9D5nWbSS73T1AC4cd24VtMGY1nm7lel\\n"
-            + "Q6Wej5cyAm2VwREQ18RlAoIBAQD4pPqrdHx4KeEGbK8kfI4Bgdb2IaoCWgY/3hH7\\n"
-            + "rznQWTi4skEwO3FbTXp/57WmMlWHAnEOH1ck1oq6C2B6eczsB6QZGSem6Ewgrfcm\\n"
-            + "6+ELqN9+NGkgfvl2yNDAxKg+HkJ3zuDy1v31uaHbW9zGHSZ8s1aazkw5N+gCfIuS\\n"
-            + "7p307qxj5NUjcmT7gMCy4x0RxVYwu4RXpoLiWiAc8y5nB7dGItgLeP43s9/MWh30\\n"
-            + "kq+4Y8OsewIgeAH4kH0woUqp2hUP+oq6mC8WmYaXow8/rXBIqlz+lldUqRygOWhP\\n"
-            + "Ml9s6kpE8XGz5MReUnwWsuggqlEBdn+kRwHc193F79/o4TcXAoIBAQDlOERwCXDY\\n"
-            + "tfkbIq+qIXV6n0B5km3ARF2kdPcQRmhyDAE2K0GcqA4XfPPsAFq7v8ME7s/JjkSj\\n"
-            + "lSk8J212Bi0CDRTBWRmlO8rG8JKU7Q5u3Etm+RYTGuXGcA8X0xKh+7m1vr5OhWA0\\n"
-            + "K2BfxJNmukYJZPpLiws9lQE/YceQq0L3VWDiD4hEzwwPJ9/msr0I5C2jCI6PZJ0E\\n"
-            + "iy/omwYjlvSpQJ0nE8iPzDC3A18IGx4qeP7FpLhQWT4rHVfh0pnHfZLzLZYrtjwg\\n"
-            + "vdLkcDqQ5AuFYdJzaMgaP+NS0+9hE9o7eiSKT3MG0Zwsi0hCfqK9pjplw0EOpEPW\\n"
-            + "ICogztm6+FkjAoIBAQDUHMnLImBckj1pIaZ31dm+52jeJ/HEd9AFBAkLUHxdhP+i\\n"
-            + "cE60OsGFRh9OpfiMgzv7JNYVWh8ZSfymobX4RZfPcuVGk/MDq//lkQLarTcan0Gp\\n"
-            + "hER6eFeQQdfz2tA7zcyeMFouT8HusiGl5EP+rjd7AfLLtVnJJixCksTu36jYnhNq\\n"
-            + "VHiO+LO06i15bc4KrvHMOOu5ak8VkhT7HWlkc2yh5G+xudIE6unshqQvVEObZWAz\\n"
-            + "7+vsjvP/fCOQLMhpBaYaL33RmKny+Z2cFnqXs/mpw8v5U3/EtU+6T77wcOR/IY+i\\n"
-            + "KOb6tBng7TT2mED2PNVGDjTti7XHFFAY332ASUCZAoIBAAklaJ2r0sPi5vCtPqMk\\n"
-            + "OKLO7eyr6hMs5yujuyP8GzjJv9agfTq5/e3z/2ugS/6H1UlCGippsdVxIzcSP6zg\\n"
-            + "7DTTvstEOeC89QdhHAgzOUs1IREXyUiz3w0+9Ws28dxixfM5jDBn5AHQ5USM/HCx\\n"
-            + "6A+B5vbSsn0fj/Auf58HJmHmFzqN8hsEw+9q4OU8poxPRn7l3YJdOmKvBxdZ8DHF\\n"
-            + "WTfTqzGe+Xa7aAo1aTpSkq6RK2FJhE04cmGYBySsmZQ7L3ziicZuvBF2YY7Z54xW\\n"
-            + "fRsyXwpZ2PorKG/qoveVqjSLWB/osadI/9lLKXP1x5qXombjFpp19Xr6x5ONjWSH\\n"
-            + "ek8CggEBAOD7rePnEhFajNpXFTRUzHe6LWwmV4AUkdj8x7+vG6Oscp/sByVU8+FA\\n"
-            + "mwck+su0jCox+H5rHdPlzBtfV1cVbPv5BQKZePmpruKtyf3PklwfJNB1GscOoD6c\\n"
-            + "obTQIxSsPtcbM8g5V4ei7RwWZtXtXX+aQc+OgNw+y1jKbSIipdkp0uVOw6dEDyGK\\n"
-            + "BE/W46kwBgtE86JzPGRar9PlhrS5q1q/03CO0LBmrzpe7MW6kjOKLZkM8QnLQ7gF\\n"
-            + "6c3YT+CSXZuGDdBqqx3FJW6ABTKhaH8nb8m2h03LEtqpG1vCmMKWEhJHqscf1iNS\\n"
-            + "LfIMSooMNhY1dT8pgYQM5F8tFXFBgUQ=\\n"
-            + "-----END PRIVATE KEY-----\\n";
-
-    private static final String crt = "-----BEGIN CERTIFICATE-----\\n"
-            + "MIIEqjCCApICCQCeXPJRYX+VazANBgkqhkiG9w0BAQsFADAVMRMwEQYDVQQDDAow\\n"
-            + "LjAuMC4wLmNhMB4XDTIwMTExMjIxMTMwM1oXDTMwMTExMDIxMTMwM1owGTEXMBUG\\n"
-            + "A1UEAwwOMC4wLjAuMC5jbGllbnQwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIK\\n"
-            + "AoICAQDeojrK2KNwJWoHudDB8/k17H5zJns0mlbXP7INfULuwxwGS0xF5MhB3tYH\\n"
-            + "INlJ5cPDDMS4YzXh0AR8pKj5wKNlt2oqVE67HYmMm73ZCrV0duORnZQMyrREiaBW\\n"
-            + "5eUqbPCxYcJmoNzG9RbzkCcG+LVkDFPDTbOQ6UgHKm1vx6Eq9uT4mneI7q8rgrJ5\\n"
-            + "/7Oia953DNd84Nx/4EbOhMDT3RqU9OnY9yiPTXgsVVcVXNyY0mTME4geVKO4RbyE\\n"
-            + "/zTlDe/f5L/fJw83RutXiAQ1rd0DDspDn9fsecw5bsHIefOfp/p3sJm2pvTLn94O\\n"
-            + "baDMnJey/AiUSD0N2UuQigXmTWoaPvlQMQe/etxvE8cQIB1rLuXVBnmfXue7KK8z\\n"
-            + "Y1YlIt3eo5J3+p7RscXCGnN0QnkdQtfY58wolvWlHu07D/TNS5oHiOPed+Ep/XlR\\n"
-            + "s2lSBIqwcYbLRTdmXX7QkoetglIpHraAamctIub0fFvZRQORAwVAEFJS4WDciJSv\\n"
-            + "0NbMgO4GpcIWjpE4jrWOu6AUDo+0NtPHef/Urm69FiZuOMkyeYRHichoKkW4i56f\\n"
-            + "Rrujp10ARbZljcH2K6hdxZwbSkIfbZyAHuqx5wI4ua4VJrDlSrqHUQ7kkSotMsjv\\n"
-            + "MFjejsJ6owcKzHUnh7OeFbhu3QqwetgLGKaCk+h8rhRGNzmHJQIDAQABMA0GCSqG\\n"
-            + "SIb3DQEBCwUAA4ICAQBkyUtZuZisSm4oCX5IGjTiYQne7Qx/RiFAecBkc9zcqeFy\\n"
-            + "ZjDtYrgW4rximI21bJhfveh2uCIhwGdPMu/5ZioVfvaOe8EOKqlI25sAazpK9gvY\\n"
-            + "gOknHjHHaY2Coh7TeSHAnpJ7Y7Iz7/1myyIr+HWURRzinVmNf3JqlYCsgPTpXHxF\\n"
-            + "SZlyi/9ugdxiwgMH9TI1KwcJt+fJxYOXPudjVybpJVrgjoYIzVExzF9OfjbnVrlz\\n"
-            + "NtEzRx+kZEYNgMeAUk8ZpX6lis4nldo/gYX79t1utcaS3DutAkDjYl6mXCTRIIzW\\n"
-            + "uKxCnZysnE9XxmB3Ul1JdBjn7BU+SVvVXumssAhzccNLhts10eUAJPloTLbmEwUC\\n"
-            + "ZkMdkVhirVB5/01FaUxB88d9mdrF0tjM/LstCvvJFiP7AdHQKpFFVAdMgbwjzttg\\n"
-            + "cGOkYQGuh5/ZxTMQnwf6EZNNEl5z764vUhmYTltybG+I6twyKpBEY7BYCW4ix8zr\\n"
-            + "/qqe6SQMR8k6rDYK8k9EOnzEtw7ms96NHO3huCqsZOoLCxqMQPcSqcew45oGWcyR\\n"
-            + "SJPuSg+AZdl9drYRAQiIZll9La74U6ERqsz5m6b3up9ZI0XqEIJnwvcWO8sZzjhK\\n"
-            + "dNfeBt3Y9NG9725mlqksSwSaOGpWAI1DzFdqvtiDeQiUZ0i8fR02Y7pcRHCAxw==\\n"
-            + "-----END CERTIFICATE-----";
-
-    // Fixed placement.  three in site1, one is site 2
-    static final String POST_BODY_DAML = "{"
-                                         + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                         + "    \"blockchain_type\": \"DAML\","
-                                         + "    \"replica_zone_ids\": ["
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                         + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                         + "    ,\"replica_nodes\": ["
-                                         + "{"
-                                         + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "             \"sizing_info\": {"
-                                         + "             \"no_of_cpus\": \"2\","
-                                         + "             \"storage_in_gigs\": \"60\","
-                                         + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                         + "{"
-                                         + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "             \"sizing_info\": {"
-                                         + "             \"no_of_cpus\": \"2\","
-                                         + "             \"storage_in_gigs\": \"60\","
-                                         + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                         + "{"
-                                         + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                         + "             \"sizing_info\": {"
-                                         + "             \"no_of_cpus\": \"2\","
-                                         + "             \"storage_in_gigs\": \"60\","
-                                         + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                         + "{"
-                                         + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "             \"sizing_info\": {"
-                                         + "             \"no_of_cpus\": \"2\","
-                                         + "             \"storage_in_gigs\": \"60\","
-                                         + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                         + "]"
-                                         + "    ,\"client_nodes\": [{"
-                                         + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                         + "            \"auth_url_jwt\": \"user@server.com\","
-                                         + "            \"group_name\": \"1\","
-                                         + "             \"sizing_info\": {"
-                                         + "             \"no_of_cpus\": \"2\","
-                                         + "             \"storage_in_gigs\": \"60\","
-                                         + "             \"memory_in_gigs\": \"32\"},"
-                                         + "            \"pem\": \"" + pem + "\","
-                                         + "            \"crt\": \"" + crt + "\","
-                                         + "            \"cacrt\": \"cacrt\""
-                                         + "      }]"
-                                         + "}";
-
-    static final String POST_BODY_BAD_CONS = "{"
-                                             + "    \"consortium_id\": \"a4b8f7ed-00b3-451e-97bc-4aa51a211288\","
-                                             + "    \"blockchain_type\": \"DAML\","
-                                             + "    \"replica_zone_ids\": ["
-                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                             + "    ,\"replica_nodes\": ["
-                                             + "{"
-                                             + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                             + "{"
-                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                             + "{"
-                                             + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                             + "{"
-                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                             + "]"
-                                             + "}";
-
-    static final String POST_BODY_ETH = "{"
-                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                        + "    \"blockchain_type\": \"ETHEREUM\","
-                                        + "    \"replica_zone_ids\": ["
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                        + "    ,\"replica_nodes\": ["
-                                        + "{"
-                                        + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                        + "{"
-                                        + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                        + "{"
-                                        + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                        + "{"
-                                        + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                        + "]"
-                                        + "}";
-
-    // Bad placement, wrong number of sites
-    static final String POST_BODY_BAD = "{"
-                                        + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                        + "    \"f_count\": 1,"
-                                        + "    \"c_count\": 0,"
-                                        + "    \"replica_zone_ids\": ["
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                        + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                        + "    ,\"replica_nodes\": ["
-                                        + "{"
-                                        + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                        + "{"
-                                        + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                        + "{"
-                                        + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                        + "             \"sizing_info\": {"
-                                        + "             \"no_of_cpus\": \"2\","
-                                        + "             \"storage_in_gigs\": \"60\","
-                                        + "             \"memory_in_gigs\": \"32\"}" + "}" + "]" +  "}";
-
-    static final String CORRECT_CLIENT_NUM = "{"
-                                             + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                             + "    \"blockchain_type\": \"DAML\","
-                                             + "    \"replica_zone_ids\": ["
-                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                             + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                             + "    ,\"replica_nodes\": ["
-                                             + "{"
-                                             + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                             + "{"
-                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                             + "{"
-                                             + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                             + "{"
-                                             + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                             + "]"
-                                             + "    ,\"client_nodes\": [{"
-                                             + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                             + "            \"auth_url_jwt\": \"user@server.com\","
-                                             + "            \"group_name\": \"1\","
-                                             + "             \"sizing_info\": {"
-                                             + "             \"no_of_cpus\": \"2\","
-                                             + "             \"storage_in_gigs\": \"60\","
-                                             + "             \"memory_in_gigs\": \"32\"},"
-                                             + "            \"pem\": \"" + pem + "\","
-                                             + "            \"crt\": \"" + crt + "\","
-                                             + "            \"cacrt\": \"cacrt\""
-                                             + "      }]"
-                                             + "}";
-
-    static final String CLIENT_ETHEREUM_TYPE = "{"
-                                               + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                               + "    \"blockchain_type\": \"ETHEREUM\","
-                                               + "    \"replica_zone_ids\": ["
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                               + "    ,\"replica_nodes\": ["
-                                               + "{"
-                                               + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                               + "{"
-                                               + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                               + "{"
-                                               + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                               + "{"
-                                               + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                               + "]"
-                                               + "    ,\"client_nodes\": [{"
-                                               + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"auth_url_jwt\": \"user@server.com\","
-                                               + "            \"group_name\": \"1\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"},"
-                                               + "            \"pem\": \"" + pem + "\","
-                                               + "            \"crt\": \"" + crt + "\","
-                                               + "            \"cacrt\": \"cacrt\""
-                                               + "      }]"
-                                               + "}";
-
-    static final String WRONG_CLIENT_NUM = "{"
-                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                           + "    \"blockchain_type\": \"DAML\","
-                                           + "    \"replica_zone_ids\": ["
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                           + "    ,\"replica_nodes\": ["
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                           + "]"
-                                           + "    ,\"client_nodes\": ["
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "}]"
-                                           + "}";
-
-    static final String BAD_NUM_REPLICAS = "{"
-                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                           + "    \"blockchain_type\": \"DAML\","
-                                           + "    \"replica_zone_ids\": ["
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                           + "    ,\"replica_nodes\": ["
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                           + "]"
-                                           + "    ,\"client_nodes\": [{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"},"
-                                           + "            \"pem\": \"" + pem + "\","
-                                           + "            \"crt\": \"" + crt + "\","
-                                           + "            \"cacrt\": \"cacrt\""
-                                           + "      }]"
-                                           + "}";
-
-    static final String CORRECT_NUM_REPLICAS = "{"
-                                               + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                               + "    \"blockchain_type\": \"DAML\","
-                                               + "    \"replica_zone_ids\": ["
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                               + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                               + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                               + "    ,\"replica_nodes\": ["
-                                               + "{"
-                                               + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                               + "{"
-                                               + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                               + "{"
-                                               + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                               + "{"
-                                               + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                               + "]"
-                                               + "    ,\"client_nodes\": [{"
-                                               + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                               + "            \"auth_url_jwt\": \"user@server.com\","
-                                               + "            \"group_name\": \"Group 1\","
-                                               + "             \"sizing_info\": {"
-                                               + "             \"no_of_cpus\": \"2\","
-                                               + "             \"storage_in_gigs\": \"60\","
-                                               + "             \"memory_in_gigs\": \"32\"},"
-                                               + "            \"pem\": \"" + pem + "\","
-                                               + "            \"crt\": \"" + crt + "\","
-                                               + "            \"cacrt\": \"cacrt\""
-                                               + "      }]"
-                                               + "}";
-
-    static final String BC_DAML_NO_CLIENT_GROUPING = "{"
-                                                    + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                                     + "    \"blockchain_type\": \"DAML\","
-                                                     + "    \"replica_zone_ids\": ["
-                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                                     + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                                     + "    ,\"replica_nodes\": ["
-                                                     + "{"
-                                                     + "     \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "             \"sizing_info\": {"
-                                                     + "             \"no_of_cpus\": \"2\","
-                                                     + "             \"storage_in_gigs\": \"60\","
-                                                     + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                                     + "{"
-                                                     + "       \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "             \"sizing_info\": {"
-                                                     + "             \"no_of_cpus\": \"2\","
-                                                     + "             \"storage_in_gigs\": \"60\","
-                                                     + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                                     + "{"
-                                                     + "       \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                                     + "             \"sizing_info\": {"
-                                                     + "             \"no_of_cpus\": \"2\","
-                                                     + "             \"storage_in_gigs\": \"60\","
-                                                     + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                                     + "{"
-                                                     + "        \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "             \"sizing_info\": {"
-                                                     + "             \"no_of_cpus\": \"2\","
-                                                     + "             \"storage_in_gigs\": \"60\","
-                                                     + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                                     + "]"
-                                                     + "    ,\"client_nodes\": [{"
-                                                     + "      \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                                     + "      \"auth_url_jwt\": \"user@server.com\","
-                                                     + "      \"sizing_info\": {"
-                                                     + "        \"no_of_cpus\": \"2\","
-                                                     + "        \"storage_in_gigs\": \"60\","
-                                                     + "        \"memory_in_gigs\": \"32\"},"
-                                                     + "      \"pem\": \"" + pem + "\","
-                                                     + "      \"crt\": \"" + crt + "\","
-                                                     + "      \"cacrt\": \"cacrt\""
-                                                     + "      }]"
-                                                     + "}";
-    static final String NO_TLS_POST_BODY = "{"
-                                           + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                           + "    \"blockchain_type\": \"DAML\","
-                                           + "    \"replica_zone_ids\": ["
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                           + "    ,\"replica_nodes\": ["
-                                           + "{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                           + "{"
-                                           + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                           + "]"
-                                           + "    ,\"client_nodes\": [{"
-                                           + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                           + "            \"auth_url_jwt\": \"user@server.com\","
-                                           + "            \"group_name\": \"Group 1\","
-                                           + "             \"sizing_info\": {"
-                                           + "             \"no_of_cpus\": \"2\","
-                                           + "             \"storage_in_gigs\": \"60\","
-                                           + "             \"memory_in_gigs\": \"32\"}"
-                                           + "      }]"
-                                           + "}";
-
-    static final String MISSING_TLS_DETAILS = "{"
-                                              + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                              + "    \"blockchain_type\": \"DAML\","
-                                              + "    \"replica_zone_ids\": ["
-                                              + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                              + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                              + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                              + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                              + "    ,\"replica_nodes\": ["
-                                              + "{"
-                                              + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "             \"sizing_info\": {"
-                                              + "             \"no_of_cpus\": \"2\","
-                                              + "             \"storage_in_gigs\": \"60\","
-                                              + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                              + "{"
-                                              + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "             \"sizing_info\": {"
-                                              + "             \"no_of_cpus\": \"2\","
-                                              + "             \"storage_in_gigs\": \"60\","
-                                              + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                              + "{"
-                                              + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                              + "             \"sizing_info\": {"
-                                              + "             \"no_of_cpus\": \"2\","
-                                              + "             \"storage_in_gigs\": \"60\","
-                                              + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                              + "{"
-                                              + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "             \"sizing_info\": {"
-                                              + "             \"no_of_cpus\": \"2\","
-                                              + "             \"storage_in_gigs\": \"60\","
-                                              + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                              + "]"
-                                              + "    ,\"client_nodes\": [{"
-                                              + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                              + "            \"auth_url_jwt\": \"user@server.com\","
-                                              + "            \"group_name\": \"Group 1\","
-                                              + "             \"sizing_info\": {"
-                                              + "             \"no_of_cpus\": \"2\","
-                                              + "             \"storage_in_gigs\": \"60\","
-                                              + "             \"memory_in_gigs\": \"32\"},"
-                                              + "            \"pem\": \"" + pem + "\","
-                                              + "            \"cacrt\": \"cacrt\""
-                                              + "      }]"
-                                              + "}";
-
-    static final String POST_BAD_PEM = "{"
-                                            + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                            + "    \"blockchain_type\": \"DAML\","
-                                            + "    \"replica_zone_ids\": ["
-                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                            + "    ,\"replica_nodes\": ["
-                                            + "{"
-                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                            + "{"
-                                            + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                            + "{"
-                                            + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                            + "{"
-                                            + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                            + "]"
-                                            + "    ,\"client_nodes\": [{"
-                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                            + "            \"group_name\": \"1\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"},"
-                                            + "            \"pem\": \"this_is_not_pem_this_is_katsura\","
-                                            + "            \"crt\": \"" + crt + "\","
-                                            + "            \"cacrt\": \"cacrt\""
-                                            + "      }]"
-                                            + "}";
-
-    static final String POST_BAD_CRT = "{"
-                                            + "    \"consortium_id\": \"04e4f62d-5364-4363-a582-b397075b65a3\","
-                                            + "    \"blockchain_type\": \"DAML\","
-                                            + "    \"replica_zone_ids\": ["
-                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "            \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                            + "            \"84b9a0ed-c162-446a-b8c0-2e45755f3844\"]"
-                                            + "    ,\"replica_nodes\": ["
-                                            + "{"
-                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                            + "{"
-                                            + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                            + "{"
-                                            + "            \"zone_id\": \"275638a3-8860-4925-85de-c73d45cb7232\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "},"
-                                            + "{"
-                                            + "             \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"}" + "}"
-                                            + "]"
-                                            + "    ,\"client_nodes\": [{"
-                                            + "            \"zone_id\": \"84b9a0ed-c162-446a-b8c0-2e45755f3844\","
-                                            + "            \"auth_url_jwt\": \"user@server.com\","
-                                            + "            \"group_name\": \"1\","
-                                            + "             \"sizing_info\": {"
-                                            + "             \"no_of_cpus\": \"2\","
-                                            + "             \"storage_in_gigs\": \"60\","
-                                            + "             \"memory_in_gigs\": \"32\"},"
-                                            + "            \"pem\": \"" + pem + "\","
-                                            + "            \"crt\": \"this_is_not_crt_this_is_abbe_bussoni\","
-                                            + "            \"cacrt\": \"cacrt\""
-                                            + "      }]"
-                                            + "}";
-
-    private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
-    private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
-    private static final String CLIENT_GROUP_NAME = "Test Group";
-    private static final UUID DEFAULT_TEMPLATE_ID = UUID.fromString("dab730c9-c82d-436a-8b71-38076f061093");
-    private static final String DEFAULT_TEMPLATE_NAME = "Default Template";
-
-
     @Autowired
     private WebApplicationContext context;
 
@@ -1009,6 +148,37 @@ public class BlockchainControllerTest {
 
     @Autowired
     AuthHelper authHelper;
+
+    static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
+    static final UUID BC2_ID = UUID.fromString("7324cb8f-0ffc-4311-b57e-4c3e1e10a3aa");
+    static final UUID BC_NEW = UUID.fromString("4b8a5ec6-91ad-437d-b574-45f5b7345b96");
+    static final UUID BC_MISSING = UUID.fromString("d3cad1e0-b520-47f5-9dfd-4cb28d59dfe8");
+    static final UUID BC_UNAVAILABLE = UUID.fromString("a15cfd74-5f4b-4af4-a286-888a036d7889");
+
+    static final UUID BC_DAML = UUID.fromString("fd7167b0-057d-11ea-8d71-362b9e155667");
+
+    static final UUID BC_DEREGISTER = UUID.fromString("691f2038-7545-11ea-bc55-0242ac130003");
+    static final UUID BC_DEREGISTER_INACTIVE = UUID.fromString("8a304abc-4964-488e-a3c6-1379e6a67229");
+
+    static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
+    static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
+
+    static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
+
+    static final UUID ORG_ID = UUID.fromString("5c373085-0cd1-47e4-b4f2-66d418f22fdf");
+    static final UUID ORG2_ID = UUID.fromString("a774d0e3-b182-4330-93df-6738c8b1b2de");
+
+    static final UUID DEP_ID = UUID.fromString("67376aed-333c-4e35-b6b6-c59800752dc3");
+
+    private static final UUID SITE_1 = UUID.fromString("84b9a0ed-c162-446a-b8c0-2e45755f3844");
+    private static final UUID SITE_2 = UUID.fromString("275638a3-8860-4925-85de-c73d45cb7232");
+    private static final UUID NODE_1 = UUID.fromString("f81899ce-861f-4479-9adf-f3ad753fcaf6");
+
+    private static final UUID CLIENT_NODE_ID = UUID.fromString("7eef6110-68bc-11ea-906e-8c859085f3e7");
+    private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
+    private static final String CLIENT_GROUP_NAME = "Test Group";
+    private static final UUID DEFAULT_TEMPLATE_ID = UUID.fromString("dab730c9-c82d-436a-8b71-38076f061093");
+    private static final String DEFAULT_TEMPLATE_NAME = "Default Template";
 
     private Consortium consortium;
     private ObjectMapper objectMapper;
@@ -1429,7 +599,7 @@ public class BlockchainControllerTest {
     void postUserAccess() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(userAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_DAML)
+                                .content(BlockchainJsonObjects.POST_BODY_DAML)
                                 .characterEncoding("utf-8"))
                 .andExpect(status().isForbidden());
     }
@@ -1438,7 +608,7 @@ public class BlockchainControllerTest {
     void postWrongConsortium() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_BAD_CONS)
+                                .content(BlockchainJsonObjects.POST_BODY_BAD_CONS)
                                 .characterEncoding("utf-8"))
                 .andExpect(status().isForbidden());
     }
@@ -1451,7 +621,7 @@ public class BlockchainControllerTest {
                                                       ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.POST_BODY_DAML).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1468,7 +638,7 @@ public class BlockchainControllerTest {
                                                           ImmutableList.of(BC_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.POST_BODY_DAML).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
 
@@ -1486,7 +656,7 @@ public class BlockchainControllerTest {
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth)));
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.POST_BODY_DAML).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1503,7 +673,7 @@ public class BlockchainControllerTest {
                                                           ImmutableList.of(BC_ID, BC2_ID), "");
         mockMvc.perform(post("/api/blockchains").with(authentication(tooManyAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.POST_BODY_DAML).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
 
@@ -1512,7 +682,7 @@ public class BlockchainControllerTest {
         ArgumentCaptor<DeploymentRequest> captor = ArgumentCaptor.forClass(DeploymentRequest.class);
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.POST_BODY_DAML).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
         verify(client).createDeployment(captor.capture(), any(StreamObserver.class));
         DeploymentRequest request = captor.getValue();
@@ -1522,7 +692,7 @@ public class BlockchainControllerTest {
     void creatBad() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_BODY_BAD).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.POST_BODY_BAD).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
 
     }
@@ -1549,7 +719,8 @@ public class BlockchainControllerTest {
 
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_BODY_DAML).characterEncoding("utf-8"))
+                                                   .content(BlockchainJsonObjects.POST_BODY_DAML)
+                                                   .characterEncoding("utf-8"))
                 .andExpect(status().isAccepted()).andReturn();
         String body = result.getResponse().getContentAsString();
 
@@ -1645,7 +816,7 @@ public class BlockchainControllerTest {
         ArgumentCaptor<DeploymentRequest> captor = ArgumentCaptor.forClass(DeploymentRequest.class);
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(CORRECT_CLIENT_NUM).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.CORRECT_CLIENT_NUM).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
         verify(client).createDeployment(captor.capture(), any(StreamObserver.class));
     }
@@ -1655,7 +826,7 @@ public class BlockchainControllerTest {
         ArgumentCaptor<DeploymentRequest> captor = ArgumentCaptor.forClass(DeploymentRequest.class);
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(CLIENT_ETHEREUM_TYPE).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.CLIENT_ETHEREUM_TYPE).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
         verify(client).createDeployment(captor.capture(), any(StreamObserver.class));
     }
@@ -1664,7 +835,7 @@ public class BlockchainControllerTest {
     void wrongClientNumberCheck() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(WRONG_CLIENT_NUM).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.WRONG_CLIENT_NUM).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1672,7 +843,7 @@ public class BlockchainControllerTest {
     void wrongReplicaNumber() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(BAD_NUM_REPLICAS).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.BAD_NUM_REPLICAS).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1680,7 +851,7 @@ public class BlockchainControllerTest {
     void correctReplicaNumber() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(CORRECT_NUM_REPLICAS).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.CORRECT_NUM_REPLICAS).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
 
@@ -1705,7 +876,8 @@ public class BlockchainControllerTest {
 
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(BC_DAML_NO_CLIENT_GROUPING).characterEncoding("utf-8"))
+                                                   .content(BlockchainJsonObjects.BC_DAML_NO_CLIENT_GROUPING)
+                                                   .characterEncoding("utf-8"))
                 .andExpect(status().isAccepted()).andReturn();
         String body = result.getResponse().getContentAsString();
 
@@ -1732,7 +904,7 @@ public class BlockchainControllerTest {
     void noTlsBlockchainPost() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(NO_TLS_POST_BODY).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.NO_TLS_POST_BODY).characterEncoding("utf-8"))
                 .andExpect(status().isAccepted());
     }
 
@@ -1740,7 +912,7 @@ public class BlockchainControllerTest {
     void missingTlsCredentialsPost() throws Exception {
         mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(MISSING_TLS_DETAILS).characterEncoding("utf-8"))
+                                .content(BlockchainJsonObjects.MISSING_TLS_DETAILS).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1748,7 +920,7 @@ public class BlockchainControllerTest {
     void badPemPost() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BAD_PEM).characterEncoding("utf-8"))
+                .content(BlockchainJsonObjects.POST_BAD_PEM).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -1762,7 +934,7 @@ public class BlockchainControllerTest {
     void badCrtPost() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_BAD_CRT).characterEncoding("utf-8"))
+                .content(BlockchainJsonObjects.POST_BAD_CRT).characterEncoding("utf-8"))
                 .andExpect(status().isBadRequest()).andReturn();
 
         String body = result.getResponse().getContentAsString();
