@@ -802,8 +802,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     assert(success);
 
     LOG_INFO(logger,
+             "Starting committer replica with id " << replicaConfig.replicaId);
+
+    LOG_INFO(logger,
              "N = 3F + 2C + 1 with F=" << replicaConfig.fVal
                                        << " and C=" << replicaConfig.cVal);
+
     LOG_INFO(logger, "Direct proofs are not supported");
 
     // Replica
@@ -1062,6 +1066,8 @@ int run_ro_service(ConcordConfiguration &config,
     LOG_INFO(logger,
              "N = 3F + 2C + 1 with F=" << replicaConfig.fVal
                                        << " and C=" << replicaConfig.cVal);
+    LOG_INFO(logger,
+             "Starting read-only replica with id " << replicaConfig.replicaId);
 
     bft::communication::ICommunication *icomm =
         initialise_communication(commConfig);
@@ -1140,11 +1146,6 @@ int main(int argc, char **argv) {
     tracingInitialized = true;
     // actually run the service - when this call returns, the
     // service has shutdown
-    if (isReadOnly) {
-      LOG_INFO(mainLogger, "Starting read-only replica with id " << nodeIndex);
-    } else {
-      LOG_INFO(mainLogger, "Starting committer replica with id " << nodeIndex);
-    }
 
     signal(SIGINT, signalHandler);
     signal(SIGABRT, signalHandler);

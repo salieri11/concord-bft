@@ -5005,9 +5005,9 @@ void loadNodeConfiguration(ConcordConfiguration& config,
   ParameterSelection nodeConfiguration(
       config, make_shared<NodeConfigurationSelector>(
                   localNode, isReadOnly ? "ro_node" : "node"));
-  LOG_INFO(logger, "Detected node "
-                       << localNode
-                       << (isReadOnly ? " (RO node)" : " (committer node"));
+  LOG_INFO(logger, "Detected " << (isReadOnly ? "RO node " : "Committer node ")
+                               << "with idx " << localNode
+                               << ". This value is not necessary replica id!");
 
   // Try loading defaults and running generators for optional parameters and
   // parameters that can be implicit in the node configuration, excluding those
