@@ -182,11 +182,25 @@ void DamlValidatorClient::SwapWriteSet(
           << "]");
 }
 
+void SwapPreExecutionResult(da_kvbc::PreExecutionResult* input,
+                            com::vmware::concord::PreExecutionResult* output) {
+  auto output_read_set = output->mutable_read_set();
+  for (auto key_with_fingerprint :
+       *(input->mutable_read_set()->mutable_keys_with_fingerprints())) {
+    auto read_key = output_read_set->add_keys_with_fingerprints();
+    read_key->set_key(std::move(key_with_fingerprint.key()));
+    read_key->set_fingerprint(std::move(key_with_fingerprint.fingerprint()));
+  }
+  output->set_output(input->output().SerializeAsString());
+  output->set_request_correlation_id(
+      std::move(*input->mutable_request_correlation_id()));
+}
+
 void DamlValidatorClient::SetAndLogPreExecutionResult(
     da_kvbc::PreprocessorFromEngine& from_engine,
     com::vmware::concord::PreExecutionResult* pre_execution_result) {
   auto result = from_engine.mutable_preexecution_result();
-  result->Swap(pre_execution_result);
+  SwapPreExecutionResult(result, pre_execution_result);
   if (logger_.getChainedLogLevel() <= log4cplus::DEBUG_LOG_LEVEL) {
     if (pre_execution_result->has_read_set()) {
       const auto& raw_read_set =

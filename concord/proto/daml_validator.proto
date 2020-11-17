@@ -9,7 +9,6 @@ option java_package = "com.digitalasset.kvbc";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "concord.proto";
 
 // The validation service provides a gRPC API taking the `DamlSubmission` message, along
 // with the inputs to the submission and returns the resulting fragments and state updates.
@@ -171,8 +170,6 @@ message PreprocessorFromEngine {
     // Post-execution checks for conflicts on these keys using the fingerprints.
     // Keys are sorted in ascending order.
     //
-    // The prexecution_result.output field is a PreExecutionOutput message for DAML pre-execution results.
-    //
     // The serialization may only depend on the following inputs:
     // - The key-value-fingerprint triples read during this pre-execution
     // - Key-value-fingerprint triples cached during earlier (pre-)executions
@@ -180,7 +177,7 @@ message PreprocessorFromEngine {
     // - The submitting participant id
     // In particular, it must not depend on the following:
     // - The replica ID
-    com.vmware.concord.PreExecutionResult preexecution_result = 2;
+    PreExecutionResult preexecution_result = 2;
   }
 
   message ReadRequest {
@@ -191,6 +188,13 @@ message PreprocessorFromEngine {
     // The keys to be read
     repeated bytes keys = 2;
   }
+}
+
+message PreExecutionResult {
+  ReadSet read_set = 1;
+  // Pre-execution output to be passed to post-execution.
+  PreExecutionOutput output = 2;
+  string request_correlation_id = 3;
 }
 
 message PreExecutionOutput {
@@ -224,6 +228,15 @@ message PreExecutionOutput {
   // of the DAML Execution Engine
   // so that it makes it to post-execution.
   string submitting_participant_id = 6;
+}
+
+message KeyAndFingerprint {
+  bytes key = 1;
+  bytes fingerprint = 2;
+}
+
+message ReadSet {
+  repeated KeyAndFingerprint keys_with_fingerprints = 1;
 }
 
 message WriteSet {
