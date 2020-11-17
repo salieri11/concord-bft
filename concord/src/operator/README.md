@@ -66,3 +66,5 @@ Type `./concop` and then ont of the following commands:
 | release install [version] | install the SW version on the replicas (not implemented yet) | `{'additional_data': 'Upgraded', 'succ': True}` or  `{'succ': False}`|
 | wedge stop | Stop all replicas on the next next checkpoint | `{'additional_data': 'set stop flag', 'succ': True}` or `{'succ': False}`|
 | wedge status | Check the wedge status of the replicas | list of `replica_id : wedge_status`|
+| prune latestPruneableBlock | get the latest pruneable block from all replicas | list of `replica_id : latestPruneableBlock`
+| prune execute | execute a full pruning operation |  `{'additional_data': 'set stop flag', 'succ': True}` or `{'succ': False}`
