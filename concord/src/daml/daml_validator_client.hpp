@@ -10,6 +10,7 @@
 #include <string>
 #include <utils/concord_prometheus_metrics.hpp>
 #include "Logger.hpp"
+#include "concord.pb.h"
 #include "concord_storage.pb.h"
 #include "daml_validator.grpc.pb.h"
 

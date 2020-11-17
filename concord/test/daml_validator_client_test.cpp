@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <opentracing/tracer.h>
 #include "Logger.hpp"
+#include "concord.pb.h"
 #include "daml_validator_mock.grpc.pb.h"
 
 using ::std::placeholders::_1;
@@ -22,10 +23,12 @@ using ::testing::WithArg;
 using com::digitalasset::kvbc::EventFromValidator;
 using com::digitalasset::kvbc::EventToValidator;
 using com::digitalasset::kvbc::MockValidationServiceStub;
+using com::digitalasset::kvbc::PreExecutionOutput;
+using com::digitalasset::kvbc::PreExecutionResult;
 using com::digitalasset::kvbc::PreprocessorFromEngine;
 using com::digitalasset::kvbc::PreprocessorToEngine;
+using com::digitalasset::kvbc::ReadSet;
 using com::digitalasset::kvbc::ValidationService;
-using com::vmware::concord::PreExecutionResult;
 using com::vmware::concord::kvb::ValueWithTrids;
 using concord::daml::DamlValidatorClient;
 using concord::daml::KeyValuePairWithThinReplicaIds;
@@ -81,6 +84,10 @@ class DamlValidatorClientTest : public ::testing::Test {
     mock_stream_ = new MockClientReaderWriter<PreprocessorToEngine,
                                               PreprocessorFromEngine>();
     mock_validation_service_stub_.reset(new MockValidationServiceStub());
+    some_pre_execution_output_.mutable_min_record_time()->CopyFrom(
+        test_record_time);
+    some_pre_execution_output_.add_informee_success_thin_replica_ids("id1");
+    some_pre_execution_output_.set_submitting_participant_id("a participant");
   }
 
   void TearDown() override {
@@ -103,7 +110,8 @@ class DamlValidatorClientTest : public ::testing::Test {
                         ->add_keys_with_fingerprints();
     read_key->set_key("1");
     read_key->set_fingerprint("2");
-    expected_preexecution_result->set_output("some result");
+    expected_preexecution_result->mutable_output()->CopyFrom(
+        some_pre_execution_output_);
     expected_preexecution_result->set_request_correlation_id("some ID");
     return expected_preexecution_result;
   }
@@ -121,6 +129,7 @@ class DamlValidatorClientTest : public ::testing::Test {
       mock_stream_;
   std::shared_ptr<MockReadingFromStorage> mock_reader_;
   std::unique_ptr<MockValidationServiceStub> mock_validation_service_stub_;
+  PreExecutionOutput some_pre_execution_output_;
 };
 
 std::string expected_submission = "a submission";
@@ -423,9 +432,9 @@ TEST_F(DamlValidatorClientTest, PreExecuteCopiesResultAsIs) {
   EXPECT_CALL(*mock_stream_, Write(_, _)).Times(1).WillOnce(Return(true));
   // <== finished
   PreprocessorFromEngine finished;
-  auto expected_preexecution_result = CreateExpectedPreExecutionResult();
+  auto expected_pre_execution_result = CreateExpectedPreExecutionResult();
   finished.mutable_preexecution_result()->CopyFrom(
-      *expected_preexecution_result);
+      *expected_pre_execution_result);
   EXPECT_CALL(*mock_stream_, Read(_))
       .WillOnce(DoAll(WithArg<0>(copy(&finished)), Return(true)));
   // End of stream.
@@ -439,8 +448,20 @@ TEST_F(DamlValidatorClientTest, PreExecuteCopiesResultAsIs) {
                                mock_reader_, _1),
                      &actual_result);
 
-  EXPECT_EQ(expected_preexecution_result->SerializeAsString(),
-            actual_result.SerializeAsString());
+  auto expected_read_set = expected_pre_execution_result->read_set();
+  auto actual_read_set = actual_result.read_set();
+  EXPECT_EQ(expected_read_set.keys_with_fingerprints_size(),
+            actual_read_set.keys_with_fingerprints_size());
+  for (int i = 0; i < expected_read_set.keys_with_fingerprints_size(); ++i) {
+    auto expected_to_be_read = expected_read_set.keys_with_fingerprints(i);
+    auto actually_read = actual_read_set.keys_with_fingerprints(i);
+    EXPECT_EQ(expected_to_be_read.key(), actually_read.key());
+    EXPECT_EQ(expected_to_be_read.fingerprint(), actually_read.fingerprint());
+  }
+  EXPECT_EQ(expected_pre_execution_result->output().SerializeAsString(),
+            actual_result.output());
+  EXPECT_EQ(expected_pre_execution_result->request_correlation_id(),
+            actual_result.request_correlation_id());
 }
 
 }  // anonymous namespace
