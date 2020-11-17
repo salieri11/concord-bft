@@ -250,7 +250,7 @@ def node_restore(node, remote_file_path, node_type, skip_start=False, skip_stop=
                      '$image:{} /concord/sparse_merkle_db_editor /concord/rocksdbdata removeMetadata; ' \
                      'rm -rf /config/concord/config-generated/genSec_*'.format(remote_file_path, version)
         cmd = image_cmd + ';' + docker_cmd
-    else:
+    elif node_type == CLIENT:
         cmd = 'rm -rf /config/daml-ledger-api/environment-vars; ' \
               'tar xzf {}env-backup.tar.gz --directory /'.format(latest_backup_path)
 
