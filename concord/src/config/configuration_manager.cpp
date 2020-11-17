@@ -3227,18 +3227,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   vector<string> privateGeneratedTags(
       {"config_generation_time", "generated", "private"});
-  vector<string> publicGeneratedTags(
-      {"config_generation_time", "generated", "public"});
-  vector<string> publicInputTags({"config_generation_time", "input", "public"});
+  vector<string> publicGeneratedTags({"config_generation_time", "generated"});
+  vector<string> publicInputTags({"config_generation_time", "input"});
   vector<string> principalHostTags(
-      {"config_generation_time", "could_be_loopback", "input", "public"});
+      {"config_generation_time", "could_be_loopback", "input"});
   vector<string> defaultableByUtilityTags(
-      {"config_generation_time", "defaultable", "public"});
+      {"config_generation_time", "defaultable"});
   vector<string> privateInputTags({"input", "private"});
   vector<string> defaultableByReplicaTags({"defaultable", "private"});
   vector<string> privateOptionalTags({"optional", "private"});
-  vector<string> publicOptionalTags({"optional", "public"});
-  vector<string> publicDefaultableTags({"defaultable", "public"});
+  vector<string> publicOptionalTags({"optional"});
+  vector<string> publicDefaultableTags({"defaultable"});
 
   // Global optional config values
   vector<string> optionalTags({"optional"});
@@ -5656,10 +5655,9 @@ class ClientNumReplicasCalculator
 
 void specifyClientConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
-      {"config_generation_time", "generated", "public"});
+      {"config_generation_time", "generated"});
 
-  vector<std::string> publicInputTags(
-      {"config_generation_time", "input", "public"});
+  vector<std::string> publicInputTags({"config_generation_time", "input"});
 
   vector<std::string> privateInputTags(
       {"config_generation_time", "input", "private"});
@@ -5715,10 +5713,9 @@ void specifyClientConfiguration(ConcordConfiguration& config) {
 
 void specifyOperatorNodeConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
-      {"config_generation_time", "generated", "public"});
+      {"config_generation_time", "generated"});
 
-  vector<std::string> publicInputTags(
-      {"config_generation_time", "input", "public"});
+  vector<std::string> publicInputTags({"config_generation_time", "input"});
 
   vector<std::string> privateInputTags(
       {"config_generation_time", "input", "private"});
@@ -5759,13 +5756,12 @@ void specifyOperatorNodeConfiguration(ConcordConfiguration& config) {
 
 void specifyGeneralConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
-      {"config_generation_time", "generated", "public"});
+      {"config_generation_time", "generated"});
 
-  vector<std::string> publicInputTags(
-      {"config_generation_time", "input", "public"});
+  vector<std::string> publicInputTags({"config_generation_time", "input"});
 
   vector<std::string> defaultableByUtilityTags(
-      {"config_generation_time", "defaultable", "public"});
+      {"config_generation_time", "defaultable"});
 
   // Validation of f_val is based on c_val and num_replicas .
   config.declareParameter("f_val", "F parameter to the SBFT algorithm.");
@@ -5828,13 +5824,12 @@ void specifyGeneralConfiguration(ConcordConfiguration& config) {
 
 void specifyReplicaConfiguration(ConcordConfiguration& config) {
   vector<std::string> publicGeneratedTags(
-      {"config_generation_time", "generated", "public"});
+      {"config_generation_time", "generated"});
 
-  vector<std::string> publicInputTags(
-      {"config_generation_time", "input", "public"});
+  vector<std::string> publicInputTags({"config_generation_time", "input"});
 
   vector<std::string> principalHostTags(
-      {"config_generation_time", "could_be_loopback", "input", "public"});
+      {"config_generation_time", "could_be_loopback", "input"});
 
   config.declareScope("node",
                       "Concord nodes that form the distributed system that "
@@ -5873,7 +5868,7 @@ void specifyReplicaConfiguration(ConcordConfiguration& config) {
 
 void specifySimpleClientParams(ConcordConfiguration& config) {
   vector<std::string> defaultableByUtilityTags(
-      {"config_generation_time", "defaultable", "public"});
+      {"config_generation_time", "defaultable"});
 
   config.declareParameter("client_initial_retry_timeout_milli",
                           "The starting request retry timeout.", "150");
