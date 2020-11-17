@@ -16,6 +16,7 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <iostream>
 #include <condition_variable>
 #include <getopt.h>
 #include <signal.h>
@@ -43,7 +44,6 @@ int client_id = 0;
 bool verbose = false;
 char* request_bytes = nullptr;
 
-
 mutex done_mutex;
 condition_variable cv;
 bool done = false;
@@ -63,16 +63,13 @@ class ServerReceiver : IReceiver {
  public:
   ServerReceiver() {
     reply = new char[100];
-    for(int i =0; i < 100; i++)
-      reply[i] = (char)(i+1);
+    for (int i = 0; i < 100; i++) reply[i] = (char)(i + 1);
   }
 
-  ~ServerReceiver() {
-    delete[] reply;
-  }
+  ~ServerReceiver() { delete[] reply; }
 
   virtual void onConnectionStatusChanged(NodeNum node, ConnectionStatus newStatus) override {}
-  virtual void onNewMessage(NodeNum sourceNode, const char *const message, size_t messageLength) override {
+  virtual void onNewMessage(NodeNum sourceNode, const char* const message, size_t messageLength) override {
     // LOG_INFO(logger, "got " << messageLength << " bytes from " << sourceNode << ", total " << ++count);
     server->sendAsyncMessage(sourceNode, reply, 100);
   }
@@ -80,16 +77,16 @@ class ServerReceiver : IReceiver {
 
 class ClientReceiver : IReceiver {
   int done_counter = 0;
+
  public:
   ulong receive_bytes = 0;
   virtual void onConnectionStatusChanged(NodeNum node, ConnectionStatus newStatus) override {}
-  virtual void onNewMessage(NodeNum sourceNode, const char *const message, size_t messageLength) override {
+  virtual void onNewMessage(NodeNum sourceNode, const char* const message, size_t messageLength) override {
     ++done_counter;
     receive_bytes += messageLength;
-    if(verbose && done_counter % 1000 == 0)
-      LOG_INFO(log, "total " << done_counter);
+    if (verbose && done_counter % 1000 == 0) LOG_INFO(log, "total " << done_counter);
     LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << done_counter);
-    if(done_counter == num_of_requests) {
+    if (done_counter == num_of_requests) {
       done = true;
       cv.notify_all();
     }
@@ -112,14 +109,15 @@ ulong start_client() {
   int count = 0;
   LOG_INFO(logger, "client connected...");
   ulong sent_bytes = 0;
-  for(int i =0; i < num_of_requests; i++) {
+  for (int i = 0; i < num_of_requests; i++) {
     // LOG_INFO(log, "sending " << i);
-    while(client->sendAsyncMessage(0, (const char*)request_bytes, req_size_bytes) != 0);
-    //std::this_thread::sleep_for(chrono::milliseconds(1));
+    while (client->sendAsyncMessage(0, (const char*)request_bytes, req_size_bytes) != 0)
+      ;
+    // std::this_thread::sleep_for(chrono::milliseconds(1));
     count++;
     sent_bytes += req_size_bytes;
   }
-  //std::this_thread::sleep_for(chrono::milliseconds(10));
+  // std::this_thread::sleep_for(chrono::milliseconds(10));
   LOG_INFO(log, "sent " << count);
   {
     unique_lock l(done_mutex);
@@ -152,21 +150,18 @@ void parse_args(int argc, char** argv) {
       }
       case 'm': {
         string t = string(optarg);
-        if (t == "server")
-          is_server = true;
+        if (t == "server") is_server = true;
         break;
       }
       case 'v': {
-          verbose = true;
-          break;
+        verbose = true;
+        break;
       }
-      case 'c':
-      {
+      case 'c': {
         auto t = stoi(string(optarg));
         if (t > 0) client_id = t;
       }
       default: {
-
       }
     }
   }
@@ -178,21 +173,18 @@ int main(int argc, char** argv) {
   NodeMap nodes;
   nodes[0] = NodeInfo{"127.0.0.1", 3501, true};
   nodes[1] = NodeInfo{"127.0.0.1", 3501, false};
-  TlsTcpConfig conf_server = TlsTcpConfig
-      ("0.0.0.0", 3501, 64000, nodes,0, 0, "certs", cipherSuite);
-  TlsTcpConfig conf_client = TlsTcpConfig
-      ("0.0.0.0", 3501, 64000, nodes,0, client_id, "certs", cipherSuite);
+  TlsTcpConfig conf_server = TlsTcpConfig("0.0.0.0", 3501, 64000, nodes, 0, 0, "certs", cipherSuite);
+  TlsTcpConfig conf_client = TlsTcpConfig("0.0.0.0", 3501, 64000, nodes, 0, client_id, "certs", cipherSuite);
 
-  if(is_server) {
+  if (is_server) {
     server = unique_ptr<TlsTCPCommunication>(TlsTCPCommunication::create(conf_server));
     server->setReceiver(0, (IReceiver*)new ServerReceiver());
     start_server();
   } else {
     request_bytes = new char[req_size_bytes];
-    for(int i = 0; i < req_size_bytes; i++)
-      request_bytes[i] = (char)(i+1);
+    for (int i = 0; i < req_size_bytes; i++) request_bytes[i] = (char)(i + 1);
     client = unique_ptr<TlsTCPCommunication>(TlsTCPCommunication::create(conf_client));
-    auto receiver  = new ClientReceiver();
+    auto receiver = new ClientReceiver();
     client->setReceiver(1, (IReceiver*)receiver);
     auto start = chrono::steady_clock::now();
     auto sent_bytes = start_client();
@@ -200,10 +192,10 @@ int main(int argc, char** argv) {
     client->Stop();
     auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count() - client_wait;
     double tp = (double)num_of_requests / dur * 1000.0;
-    ulong tp1 =  sent_bytes / dur * 1000;
-    cout << "Total: " << num_of_requests << " requests, bytes sent: "
-         << sent_bytes << ", bytes received: " << receiver->receive_bytes << ", dur: " << dur << " ms" << endl;
+    ulong tp1 = sent_bytes / dur * 1000;
+    cout << "Total: " << num_of_requests << " requests, bytes sent: " << sent_bytes
+         << ", bytes received: " << receiver->receive_bytes << ", dur: " << dur << " ms" << endl;
     cout << "TP: " << tp << " req/sec" << endl;
-    cout << "TP: " << tp1<< " bytes/sec" << endl;
+    cout << "TP: " << tp1 << " bytes/sec" << endl;
   }
 }
