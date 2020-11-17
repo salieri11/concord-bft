@@ -1746,18 +1746,30 @@ public class BlockchainControllerTest {
 
     @Test
     void badPemPost() throws Exception {
-        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+        MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(POST_BAD_PEM).characterEncoding("utf-8"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(ErrorCode.BAD_TLS_CREDENTIALS_PEM, errorMessage);
     }
 
     @Test
     void badCrtPost() throws Exception {
-        mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+        MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(POST_BAD_CRT).characterEncoding("utf-8"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest()).andReturn();
+
+        String body = result.getResponse().getContentAsString();
+
+        String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
+
+        Assertions.assertEquals(ErrorCode.BAD_TLS_CREDENTIALS_CRT, errorMessage);
     }
 
 }

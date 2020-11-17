@@ -573,11 +573,9 @@ public class BlockchainController {
 
 
                         if (tlsEnabled) {
+                            String pem = k.getPem();
                             try {
                                 // Propagate TLS details if and only if all details are provided
-
-                                String pem = k.getPem();
-
                                 // Validate proper PEM input
                                 String privateKeyPem = pem
                                         .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -589,23 +587,26 @@ public class BlockchainController {
                                 KeyFactory keyFactory = KeyFactory.getInstance("RSA");
                                 PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
                                 RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) keyFactory.generatePrivate(keySpec);
+                            } catch (Exception ex) {
+                                throw new BadRequestException(ErrorCode.BAD_TLS_CREDENTIALS_PEM);
+                            }
 
-                                // Validate proper CRT input
-                                String crt = k.getCrt();
+                            String crt = k.getCrt();
+                            try {
                                 // Implicitly checks for the Certificate Parsing and Encoding Exceptions
                                 X509Certificate crtCertificate = (X509Certificate) CertificateFactory
                                         .getInstance("X.509")
                                         .generateCertificate(new ByteArrayInputStream(crt.getBytes()));
                                 crtCertificate.checkValidity();
-
-                                String cacrt = k.getCacrt();
-
-                                propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), pem);
-                                propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), crt);
-                                propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), cacrt);
                             } catch (Exception ex) {
-                                throw new BadRequestException(ErrorCode.BAD_TLS_CREDENTIALS);
+                                throw new BadRequestException(ErrorCode.BAD_TLS_CREDENTIALS_CRT);
                             }
+
+                            String cacrt = k.getCacrt();
+
+                            propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), pem);
+                            propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), crt);
+                            propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), cacrt);
 
                         } else {
                             // If some credentials are present while others are absent, throw BAD REQUEST exception.
