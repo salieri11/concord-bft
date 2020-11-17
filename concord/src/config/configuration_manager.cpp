@@ -2645,6 +2645,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.addValidator("blockchain_storage_type",
                     make_shared<StorageTypeValidator>());
 
+  node.declareParameter("store_time_data_in_non_provable_keys",
+                        "Store Time service keys outside of the Merkle Tree",
+                        "false");
+  node.tagParameter("store_time_data_in_non_provable_keys",
+                    publicDefaultableTags);
+  node.tagParameter("store_time_data_in_non_provable_keys", applicationTag);
+  node.addValidator("store_time_data_in_non_provable_keys",
+                    make_shared<BooleanValidator>());
+
   ro_node.declareParameter("s3-bucket-name",
                            "S3 bucket name used by the object store.");
   ro_node.tagParameter("s3-bucket-name", publicInputTags);

@@ -299,9 +299,18 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
       return std::make_unique<
           concord::kvbc::v1DirectKeyValue::RocksDBStorageFactory>(rocks_path);
     }
+    std::unordered_set<Key> non_provable_keys;
+    const auto store_time_data_in_non_provable_keys =
+        nodeConfig.getValue<bool>("store_time_data_in_non_provable_keys");
+    if (store_time_data_in_non_provable_keys) {
+      non_provable_keys = std::unordered_set<Key>{
+          Key{new char[1]{concord::storage::kKvbKeyTimeSamples}},
+          Key{new char[1]{concord::storage::kKvbKeySummarizedTime}}};
+      LOG_INFO(logger, "Time service data will be stored in non-provable keys");
+    }
     LOG_INFO(logger, "Using rocksdb merkle blockchain storage");
     return std::make_unique<concord::kvbc::v2MerkleTree::RocksDBStorageFactory>(
-        rocks_path);
+        rocks_path, non_provable_keys);
 #endif
   } else {
     LOG_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
