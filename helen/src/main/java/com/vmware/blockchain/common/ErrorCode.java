@@ -17,7 +17,8 @@ public final class ErrorCode {
     public static final String BAD_NUMBER_FORMAT = "Bad number format {0}";
     public static final String BAD_ORG_REMOVE = "Cannot remove the Consortium Owner Org";
     public static final String BAD_TOKEN = "Bad token";
-    public static final String BAD_TLS_CREDENTIALS = "Incorrect TLS credentials provided.";
+    public static final String BAD_TLS_CREDENTIALS_CRT = "Incorrect CRT value provided in TLS credentials.";
+    public static final String BAD_TLS_CREDENTIALS_PEM = "Incorrect PEM value provided in TLS credentials.";
     public static final String BAD_UUID_FORMAT = "Error converting {0} to UUID";
     public static final String BLOCKCHAIN_UNSPECIFIED = "No blockchain specified";
     public static final String BLOCKCHAIN_NOT_FOUND = "Blockchain with ID {0} not found.";
