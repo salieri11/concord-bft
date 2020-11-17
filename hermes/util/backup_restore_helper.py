@@ -52,6 +52,30 @@ def check_backup(node):
         return True
 
 
+def get_backup_command(node, path):
+    '''
+    Function to get the backup command.
+    Args:
+        node: Node to take backup.
+        path: Path of folder to take backup.
+    Returns:
+        tar cvzf when the files to backup is less than 64GB.
+        rsync -avh when the files to backup is more than 64GB.
+    '''
+    cmd = 'du -sh {}'.format(path)
+    status_post_action = helper.ssh_connect(node, username, password, cmd)
+    size = status_post_action.split('\t')[0]
+    log.debug('{} with path {} has size {}'.format(node, path, size))
+    if size[-1] is 'G' or size[-1] is 'T':
+        if float(size[:-1]) > 64:
+            print("grater tha 64GB")
+            return 'rsync -avh'
+        else:
+            return 'tar cvzf'
+    else:
+        return 'tar cvzf'
+
+
 def get_block_id(node, skip_start=False, skip_stop=False):
     '''
     Function to get last block id on a node.
@@ -166,7 +190,8 @@ def node_backup(node, remote_file_path, node_type, skip_start=False, skip_stop=F
     backup_path = backup_path + node + "/" + time_date.replace(" ", "/")[:-7]
     log.debug("Remote file path: {}\nBackup file path: {}".format(remote_file_path, backup_path))
 
-    cmd = "mkdir -p {}; tar czf {} {}".format(backup_path, (backup_path + "/db-backup.tar.gz"), remote_file_path)
+    cmd = "mkdir -p {}; {} {} {}".format(backup_path, get_backup_command(node, remote_file_path),
+                                         (backup_path + "/db-backup.tar.gz"), remote_file_path)
     if node_type == CLIENT:
         config_backup_cmd = "tar cvzf {} /config/daml-ledger-api/environment-vars".\
             format((backup_path + "/env-backup.tar.gz"))

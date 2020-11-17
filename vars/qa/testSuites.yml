@@ -331,5 +331,5 @@
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/backup_restore_tests.py --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/backup_restore_tests.py --blockchainLocation onprem --blockchainType daml --numReplicas 7 --numParticipants 3 --numGroups 2'
     testModule: 'suites/backup_restore_tests.py'
