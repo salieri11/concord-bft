@@ -115,1160 +115,6 @@ class ZoneControllerTest {
     private static final UUID CLIENT_GROUP_ID = UUID.fromString("050d3785-e2fc-4b59-9042-191da02a81a9");
     private static final String CLIENT_GROUP_NAME = "Test Group";
 
-
-    private static final String POST_ONPREM_BODY = "{\n"
-                                                   + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"type\": \"ON_PREM\",\n"
-                                                   + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                   + "  \"vcenter\": {\n"
-                                                   + "    \"url\": \"www.vcenter.com\",\n"
-                                                   + "    \"username\": \"admin\",\n"
-                                                   + "    \"password\": \"password\"\n"
-                                                   + "  },\n"
-                                                   + "  \"resource_pool\": \"pool\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"folder\": \"folder\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"outbound_proxy\": {\n"
-                                                   + "    \"http_host\": \"localhost\",\n"
-                                                   + "    \"http_port\": 8080\n"
-                                                   + "  },\n"
-                                                   + "  \"container_repo\": {\n"
-                                                   + "    \"url\": \"https://docker-repo.com\",\n"
-                                                   + "    \"username\": \"user\",\n"
-                                                   + "    \"password\": \"docker\"\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  },\n"
-                                                   + "  \"notary_server\": {\n"
-                                                   + "    \"url\": \"https://notary.test.com\"\n"
-                                                   + "  },\n"
-                                                   + "  \"log_managements\": [{\n"
-                                                   + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                   + "    \"address\": \"10.78.20.10\",\n"
-                                                   + "    \"port\": 9000,\n"
-                                                   + "    \"username\": \"foo\",\n"
-                                                   + "    \"password\": \"bar\"\n"
-                                                   + "  }]\n"
-                                                   + "}";
-
-    private static final String POST_ONPREM_BODY_BAD_REQUEST = "{\n"
-                                                    + "  \"name\": \"OnPrem\",\n"
-                                                    + "  \"type\": \"ON_PREM\",\n"
-                                                    + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                    + "  \"vcenter\": {\n"
-                                                    + "    \"url\": \"www.vcenter.com\",\n"
-                                                    + "    \"username\": \"admin\",\n"
-                                                    + "    \"password\": \"password\"\n"
-                                                    + "  },\n"
-                                                    + "  \"resource_pool\": \"pool\",\n"
-                                                    + "  \"storage\": \"datastore\",\n"
-                                                    + "  \"folder\": \"folder\",\n"
-                                                    + "  \"network\": {\n"
-                                                    + "    \"name\": \"Network 1\",\n"
-                                                    + "    \"ip_pool\": [\n"
-                                                    + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                    + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                    + "    ],\n"
-                                                    + "    \"gateway\": \"10.1.1.1\",\n"
-                                                    + "    \"subnet\": \"24\",\n"
-                                                    + "    \"name_servers\": [\n"
-                                                    + "      \"10.1.1.3\"\n"
-                                                    + "    ]\n"
-                                                    + "  },\n"
-                                                    + "  \"outbound_proxy\": {\n"
-                                                    + "    \"http_host\": \"localhost\",\n"
-                                                    + "    \"http_port\": \"8080a\"\n"
-                                                    + "  },\n"
-                                                    + "  \"container_repo\": {\n"
-                                                    + "    \"url\": \"https://docker-repo.com\",\n"
-                                                    + "    \"username\": \"user\",\n"
-                                                    + "    \"password\": \"docker\"\n"
-                                                    + "  },\n"
-                                                    + "  \"wavefront\": {\n"
-                                                    + "    \"url\": \"https://wavefront.com\",\n"
-                                                    + "    \"token\": \"token\"\n"
-                                                    + "  },\n"
-                                                    + "  \"log_managements\": [{\n"
-                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                    + "    \"address\": \"10.78.20.10\",\n"
-                                                    + "    \"port\": 9000,\n"
-                                                    + "    \"username\": \"foo\",\n"
-                                                    + "    \"password\": \"bar\"\n"
-                                                    + "  }]\n"
-                                                    + "}";
-
-    private static final String POST_ONPREM_BODY_MISSING_NAME = "{\n"
-                                                    + "  \"type\": \"ON_PREM\",\n"
-                                                    + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                    + "  \"vcenter\": {\n"
-                                                    + "    \"url\": \"www.vcenter.com\",\n"
-                                                    + "    \"username\": \"admin\",\n"
-                                                    + "    \"password\": \"password\"\n"
-                                                    + "  },\n"
-                                                    + "  \"resource_pool\": \"pool\",\n"
-                                                    + "  \"storage\": \"datastore\",\n"
-                                                    + "  \"folder\": \"folder\",\n"
-                                                    + "  \"network\": {\n"
-                                                    + "    \"name\": \"Network 1\",\n"
-                                                    + "    \"ip_pool\": [\n"
-                                                    + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                    + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                    + "    ],\n"
-                                                    + "    \"gateway\": \"10.1.1.1\",\n"
-                                                    + "    \"subnet\": \"24\",\n"
-                                                    + "    \"name_servers\": [\n"
-                                                    + "      \"10.1.1.3\"\n"
-                                                    + "    ]\n"
-                                                    + "  },\n"
-                                                    + "  \"outbound_proxy\": {\n"
-                                                    + "    \"http_host\": \"localhost\",\n"
-                                                    + "    \"http_port\": 8080\n"
-                                                    + "  },\n"
-                                                    + "  \"container_repo\": {\n"
-                                                    + "    \"url\": \"https://docker-repo.com\",\n"
-                                                    + "    \"username\": \"user\",\n"
-                                                    + "    \"password\": \"docker\"\n"
-                                                    + "  },\n"
-                                                    + "  \"wavefront\": {\n"
-                                                    + "    \"url\": \"https://wavefront.com\",\n"
-                                                    + "    \"token\": \"token\"\n"
-                                                    + "  },\n"
-                                                    + "  \"log_managements\": [{\n"
-                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                    + "    \"address\": \"10.78.20.10\",\n"
-                                                    + "    \"port\": 9000,\n"
-                                                    + "    \"username\": \"foo\",\n"
-                                                    + "    \"password\": \"bar\"\n"
-                                                    + "  }]\n"
-                                                    + "}";
-
-    private static final String POST_ONPREM_BODY_MISSING_RESOURCE_POOL = "{\n"
-                                                   + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"type\": \"ON_PREM\",\n"
-                                                   + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                   + "  \"vcenter\": {\n"
-                                                   + "    \"url\": \"www.vcenter.com\",\n"
-                                                   + "    \"username\": \"admin\",\n"
-                                                   + "    \"password\": \"password\"\n"
-                                                   + "  },\n"
-                                                   + "  \"resource_pool\": \"\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"folder\": \"folder\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"outbound_proxy\": {\n"
-                                                   + "    \"http_host\": \"localhost\",\n"
-                                                   + "    \"http_port\": 8080\n"
-                                                   + "  },\n"
-                                                   + "  \"container_repo\": {\n"
-                                                   + "    \"url\": \"https://docker-repo.com\",\n"
-                                                   + "    \"username\": \"user\",\n"
-                                                   + "    \"password\": \"docker\"\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  },\n"
-                                                   + "  \"log_managements\": [{\n"
-                                                   + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                   + "    \"address\": \"10.78.20.10\",\n"
-                                                   + "    \"port\": 9000,\n"
-                                                   + "    \"username\": \"foo\",\n"
-                                                   + "    \"password\": \"bar\"\n"
-                                                   + "  }]\n"
-                                                   + "}";
-
-    private static final String POST_ONPREM_BODY_BAD_NETWORK = "{\n"
-                                                    + "  \"name\": \"OnPrem\",\n"
-                                                    + "  \"type\": \"ON_PREM\",\n"
-                                                    + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                    + "  \"vcenter\": {\n"
-                                                    + "    \"url\": \"www.vcenter.com\",\n"
-                                                    + "    \"username\": \"admin\",\n"
-                                                    + "    \"password\": \"password\"\n"
-                                                    + "  },\n"
-                                                    + "  \"resource_pool\": \"pool\",\n"
-                                                    + "  \"storage\": \"datastore\",\n"
-                                                    + "  \"folder\": \"folder\",\n"
-                                                    + "  \"network\": {\n"
-                                                    + "    \"name\": \"Network 1\",\n"
-                                                    + "    \"ip_pool\": [\n"
-                                                    + "      \"\",\n"
-                                                    + "      \"\"\n"
-                                                    + "    ],\n"
-                                                    + "    \"gateway\": \"10.1.1.1\",\n"
-                                                    + "    \"subnet\": \"24\",\n"
-                                                    + "    \"name_servers\": [\n"
-                                                    + "      \"10.1.1.3\"\n"
-                                                    + "    ]\n"
-                                                    + "  },\n"
-                                                    + "  \"outbound_proxy\": {\n"
-                                                    + "    \"http_host\": \"localhost\",\n"
-                                                    + "    \"http_port\": 8080\n"
-                                                    + "  },\n"
-                                                    + "  \"container_repo\": {\n"
-                                                    + "    \"url\": \"https://docker-repo.com\",\n"
-                                                    + "    \"username\": \"user\",\n"
-                                                    + "    \"password\": \"docker\"\n"
-                                                    + "  },\n"
-                                                    + "  \"wavefront\": {\n"
-                                                    + "    \"url\": \"https://wavefront.com\",\n"
-                                                    + "    \"token\": \"token\"\n"
-                                                    + "  },\n"
-                                                    + "  \"log_managements\": [{\n"
-                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                    + "    \"address\": \"10.78.20.10\",\n"
-                                                    + "    \"port\": 9000,\n"
-                                                    + "    \"username\": \"foo\",\n"
-                                                    + "    \"password\": \"bar\"\n"
-                                                    + "  }]\n"
-                                                    + "}";
-
-    private static final String POST_ONPREM_BODY_BAD_VCENTER = "{\n"
-                                                    + "  \"name\": \"OnPrem\",\n"
-                                                    + "  \"type\": \"ON_PREM\",\n"
-                                                    + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                    + "  \"vcenter\": {\n"
-                                                    + "    \"url\": \"\",\n"
-                                                    + "    \"username\": \"admin\",\n"
-                                                    + "    \"password\": \"password\"\n"
-                                                    + "  },\n"
-                                                    + "  \"resource_pool\": \"pool\",\n"
-                                                    + "  \"storage\": \"datastore\",\n"
-                                                    + "  \"folder\": \"folder\",\n"
-                                                    + "  \"network\": {\n"
-                                                    + "    \"name\": \"Network 1\",\n"
-                                                    + "    \"ip_pool\": [\n"
-                                                    + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                    + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                    + "    ],\n"
-                                                    + "    \"gateway\": \"10.1.1.1\",\n"
-                                                    + "    \"subnet\": \"24\",\n"
-                                                    + "    \"name_servers\": [\n"
-                                                    + "      \"10.1.1.3\"\n"
-                                                    + "    ]\n"
-                                                    + "  },\n"
-                                                    + "  \"outbound_proxy\": {\n"
-                                                    + "    \"http_host\": \"localhost\",\n"
-                                                    + "    \"http_port\": 8080\n"
-                                                    + "  },\n"
-                                                    + "  \"container_repo\": {\n"
-                                                    + "    \"url\": \"https://docker-repo.com\",\n"
-                                                    + "    \"username\": \"user\",\n"
-                                                    + "    \"password\": \"docker\"\n"
-                                                    + "  },\n"
-                                                    + "  \"wavefront\": {\n"
-                                                    + "    \"url\": \"https://wavefront.com\",\n"
-                                                    + "    \"token\": \"token\"\n"
-                                                    + "  },\n"
-                                                    + "  \"log_managements\": [{\n"
-                                                    + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                    + "    \"address\": \"10.78.20.10\",\n"
-                                                    + "    \"port\": 9000,\n"
-                                                    + "    \"username\": \"foo\",\n"
-                                                    + "    \"password\": \"bar\"\n"
-                                                    + "  }]\n"
-                                                    + "}";
-
-    public static final String VALID_TLS_CERT_DATA = "-----BEGIN CERTIFICATE-----\\n"
-                                              + "MIIFhjCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
-                                              + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
-                                              + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
-                                              + "MTMwMzM4MzBaFw0yOTAzMTAwMzM4MzBaMF8xCzAJBgNVBAYTAlVTMQswCQYDVQQI\\n"
-                                              + "DAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0GA1UECgwGRG9ja2VyMRow\\n"
-                                              + "GAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIP\\n"
-                                              + "ADCCAgoCggIBALhYY5zNWlDlHIgNhQ2PCDUxZYe9IL8OuIVQMrfbihD5Y16wNBRs\\n"
-                                              + "S+LgADFoLuOqk2+46A84kFPfUdsAzj+RME2MvhscJ06TsmWRc86GG+YWTtBR87cA\\n"
-                                              + "A/HTSTrKgRmy4wOYn3sLhjhuFENPZLMnAcLb+SW1OXNyirLOmL4U3DUERpliYgjp\\n"
-                                              + "wpXlWiq2eS/txhzTDd3+Js6FwWq61PxFxf3A5snz4h9FlCP17tRfeBxIseCfDGRl\\n"
-                                              + "fSWiCnpl9rRWINtwkViyz6V2ik1VPZdatoWIiH1+PnFREwCxp42dZopH8hqr3Vlk\\n"
-                                              + "Grtro+cp5p3s/QCrYWx7hAieLqUX1MXpR69PoOqggmJADRPvTlUeSjesIMkHyzVd\\n"
-                                              + "wAlgQWUlBG5MLjmmj5Qu0oeYzPRojG0bvkp4eX0NCT2cjNi0tAnVoDaHKabaU1V+\\n"
-                                              + "Hau1X6/jv/G88R4lHujKOmVdbVFw+Wsh9JcRm7YBhL9v3XJD7gF2Yzl+3Dst9EZn\\n"
-                                              + "T1fEkf2cmatxKCzcHENqJ7q/nZbaThHSVZ6p9b13wkdzRVHd5ZIRXh8R/hAKtXPT\\n"
-                                              + "8PeVsIPWmMmtFQdwytOGB/K6Zt3azd73MezRIIQmVTKzAxXMAI/20eiiKVTSC+/4\\n"
-                                              + "Y/sb9jp/6QlKm7+XItXgH7Us3e1TrFU0hJ3pXskBuDdFTsM4BnXBSh8DAgMBAAGj\\n"
-                                              + "RTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgFGMB0GA1UdDgQW\\n"
-                                              + "BBRUPtrEw+QIsXMuw9jkngUmzBR3QjANBgkqhkiG9w0BAQsFAAOCAgEAE65LEkhz\\n"
-                                              + "acwPiKhnTAWXGNANTYN2vbo+RxolqEbIfFWp0mQNYPZG9KwpR7r5R7U9yOjgQgMd\\n"
-                                              + "9jC6rbJiFmu8IhLUvWuuhDAQqw+FaUFyvswmUVKXbsxt9Y1uzgBhAbyS5Cqxcmlv\\n"
-                                              + "0b/emiiUO/wBiar2SJzJ+YNAW54ncllYdEU6m/rxpTujW4SV9fIzPngHyaQza4Y7\\n"
-                                              + "hH6H8qF/FBT9ljcTdTcZFPpjJn6EFhdf8rCSDe5VQ6SpKUzR7R/cSJWKrfsp40aw\\n"
-                                              + "jRj2oVPVPs1mAHummr8Ti7m6ozkfsrO2p0cX8xImKvr7AGenRu4cMk1iSH3GHCDC\\n"
-                                              + "/x2Bmw0uIQqh8dFU22273LvWEfyAdbjsTvCjlG04aUHPyKHAluUo5FdJBTZ33uMp\\n"
-                                              + "R0C3cKK2is9tHc3d9kTtQpA3dhvgx6CR4ZHSY0++YRyx5RA/RyxWNx1xsj0G6tAr\\n"
-                                              + "iOJGyea1H1IP3GWnDDFMmlGl5WwabGO3PB5crvWEyd1fZz3PZHszuKerR4VgQT7z\\n"
-                                              + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
-                                              + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
-                                              + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
-                                              + "-----END CERTIFICATE-----";
-
-    public static final String INVALID_TLS_CERT_DATA = "-----BEGIN CERTIFICATE-----\\n"
-                                            + "hjCCA26gAwIBAgIJAMDPQyyFDvTLMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\\n"
-                                            + "BAYTAlVTMQswCQYDVQQIDAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0G\\n"
-                                            + "A1UECgwGRG9ja2VyMRowGAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTAeFw0xOTAz\\n"
-                                            + "MTMwMzM4MzBaFw0yOTAzMTAwMzM4MzBaMF8xCzAJBgNVBAYTAlVTMQswCQYDVQQI\\n"
-                                            + "DAJDQTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzEPMA0GA1UECgwGRG9ja2VyMRow\\n"
-                                            + "GAYDVQQDDBFOb3RhcnkgVGVzdGluZyBDQTCCAiIwDQYJKoZIhvcNAQEBBQADggIP\\n"
-                                            + "ADCCAgoCggIBALhYY5zNWlDlHIgNhQ2PCDUxZYe9IL8OuIVQMrfbihD5Y16wNBRs\\n"
-                                            + "S+LgADFoLuOqk2+46A84kFPfUdsAzj+RME2MvhscJ06TsmWRc86GG+YWTtBR87cA\\n"
-                                            + "A/HTSTrKgRmy4wOYn3sLhjhuFENPZLMnAcLb+SW1OXNyirLOmL4U3DUERpliYgjp\\n"
-                                            + "wpXlWiq2eS/txhzTDd3+Js6FwWq61PxFxf3A5snz4h9FlCP17tRfeBxIseCfDGRl\\n"
-                                            + "fSWiCnpl9rRWINtwkViyz6V2ik1VPZdatoWIiH1+PnFREwCxp42dZopH8hqr3Vlk\\n"
-                                            + "Grtro+cp5p3s/QCrYWx7hAieLqUX1MXpR69PoOqggmJADRPvTlUeSjesIMkHyzVd\\n"
-                                            + "wAlgQWUlBG5MLjmmj5Qu0oeYzPRojG0bvkp4eX0NCT2cjNi0tAnVoDaHKabaU1V+\\n"
-                                            + "Hau1X6/jv/G88R4lHujKOmVdbVFw+Wsh9JcRm7YBhL9v3XJD7gF2Yzl+3Dst9EZn\\n"
-                                            + "T1fEkf2cmatxKCzcHENqJ7q/nZbaThHSVZ6p9b13wkdzRVHd5ZIRXh8R/hAKtXPT\\n"
-                                            + "8PeVsIPWmMmtFQdwytOGB/K6Zt3azd73MezRIIQmVTKzAxXMAI/20eiiKVTSC+/4\\n"
-                                            + "Y/sb9jp/6QlKm7+XItXgH7Us3e1TrFU0hJ3pXskBuDdFTsM4BnXBSh8DAgMBAAGj\\n"
-                                            + "RTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYDVR0PAQH/BAQDAgFGMB0GA1UdDgQW\\n"
-                                            + "BBRUPtrEw+QIsXMuw9jkngUmzBR3QjANBgkqhkiG9w0BAQsFAAOCAgEAE65LEkhz\\n"
-                                            + "acwPiKhnTAWXGNANTYN2vbo+RxolqEbIfFWp0mQNYPZG9KwpR7r5R7U9yOjgQgMd\\n"
-                                            + "9jC6rbJiFmu8IhLUvWuuhDAQqw+FaUFyvswmUVKXbsxt9Y1uzgBhAbyS5Cqxcmlv\\n"
-                                            + "0b/emiiUO/wBiar2SJzJ+YNAW54ncllYdEU6m/rxpTujW4SV9fIzPngHyaQza4Y7\\n"
-                                            + "hH6H8qF/FBT9ljcTdTcZFPpjJn6EFhdf8rCSDe5VQ6SpKUzR7R/cSJWKrfsp40aw\\n"
-                                            + "jRj2oVPVPs1mAHummr8Ti7m6ozkfsrO2p0cX8xImKvr7AGenRu4cMk1iSH3GHCDC\\n"
-                                            + "/x2Bmw0uIQqh8dFU22273LvWEfyAdbjsTvCjlG04aUHPyKHAluUo5FdJBTZ33uMp\\n"
-                                            + "R0C3cKK2is9tHc3d9kTtQpA3dhvgx6CR4ZHSY0++YRyx5RA/RyxWNx1xsj0G6tAr\\n"
-                                            + "iOJGyea1H1IP3GWnDDFMmlGl5WwabGO3PB5crvWEyd1fZz3PZHszuKerR4VgQT7z\\n"
-                                            + "tNifnqUcmvxrXBKZ6PEJX9YDNShnmmKpiN0laZzsegC/f5t+i6GGBSuxDgQqyWkp\\n"
-                                            + "jSP6sJG/ji3EHCaPJi4ATvYsM5/JXIlyDdp4DwFF0dhP/6GbJJR29Hf2zFXPuq3h\\n"
-                                            + "H3I4sgD+sG9mrIOo2mrK3aQOD2j7YVxcgB8=\\n"
-                                            + "-----END CERTIFICATE-----";
-
-    private static final String POST_ONPREM_BODY_CR_VALID_CERT = "{\n"
-                                           + "  \"name\": \"OnPrem\",\n"
-                                           + "  \"type\": \"ON_PREM\",\n"
-                                           + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                           + "  \"vcenter\": {\n"
-                                           + "    \"url\": \"www.vcenter.com\",\n"
-                                           + "    \"username\": \"admin\",\n"
-                                           + "    \"password\": \"password\"\n"
-                                           + "  },\n"
-                                           + "  \"resource_pool\": \"pool\",\n"
-                                           + "  \"storage\": \"datastore\",\n"
-                                           + "  \"folder\": \"folder\",\n"
-                                           + "  \"network\": {\n"
-                                           + "    \"name\": \"Network 1\",\n"
-                                           + "    \"ip_pool\": [\n"
-                                           + "      \"10.1.1.16-10.1.1.64\",\n"
-                                           + "      \"10.1.1.100-10.1.1.200\"\n"
-                                           + "    ],\n"
-                                           + "    \"gateway\": \"10.1.1.1\",\n"
-                                           + "    \"subnet\": \"24\",\n"
-                                           + "    \"name_servers\": [\n"
-                                           + "      \"10.1.1.3\"\n"
-                                           + "    ]\n"
-                                           + "  },\n"
-                                           + "  \"outbound_proxy\": {\n"
-                                           + "    \"http_host\": \"localhost\",\n"
-                                           + "    \"http_port\": 8080\n"
-                                           + "  },\n"
-                                           + "  \"container_repo\": {\n"
-                                           + "    \"url\": \"https://docker-repo.com\",\n"
-                                           + "    \"username\": \"user\",\n"
-                                           + "    \"password\": \"docker\",\n"
-                                           + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                           + "  },\n"
-                                           + "  \"wavefront\": {\n"
-                                           + "    \"url\": \"https://wavefront.com\",\n"
-                                           + "    \"token\": \"token\"\n"
-                                           + "  },\n"
-                                           + "  \"notary_server\": {\n"
-                                           + "    \"url\": \"https://notary.test.com\"\n"
-                                           + " },\n"
-                                           + "  \"log_managements\": [{\n"
-                                           + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                           + "    \"address\": \"10.78.20.10\",\n"
-                                           + "    \"port\": 9000,\n"
-                                           + "    \"username\": \"foo\",\n"
-                                           + "    \"password\": \"bar\"\n"
-                                           + "  }]\n"
-                                           + "}";
-
-    private static final String POST_ONPREM_BODY_CR_INVALID_CERT = "{\n"
-                                             + "  \"name\": \"OnPrem\",\n"
-                                             + "  \"type\": \"ON_PREM\",\n"
-                                             + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                             + "  \"vcenter\": {\n"
-                                             + "    \"url\": \"www.vcenter.com\",\n"
-                                             + "    \"username\": \"admin\",\n"
-                                             + "    \"password\": \"password\"\n"
-                                             + "  },\n"
-                                             + "  \"resource_pool\": \"pool\",\n"
-                                             + "  \"storage\": \"datastore\",\n"
-                                             + "  \"folder\": \"folder\",\n"
-                                             + "  \"network\": {\n"
-                                             + "    \"name\": \"Network 1\",\n"
-                                             + "    \"ip_pool\": [\n"
-                                             + "      \"10.1.1.16-10.1.1.64\",\n"
-                                             + "      \"10.1.1.100-10.1.1.200\"\n"
-                                             + "    ],\n"
-                                             + "    \"gateway\": \"10.1.1.1\",\n"
-                                             + "    \"subnet\": \"24\",\n"
-                                             + "    \"name_servers\": [\n"
-                                             + "      \"10.1.1.3\"\n"
-                                             + "    ]\n"
-                                             + "  },\n"
-                                             + "  \"outbound_proxy\": {\n"
-                                             + "    \"http_host\": \"localhost\",\n"
-                                             + "    \"http_port\": 8080\n"
-                                             + "  },\n"
-                                             + "  \"container_repo\": {\n"
-                                             + "    \"url\": \"https://docker-repo.com\",\n"
-                                             + "    \"username\": \"user\",\n"
-                                             + "    \"password\": \"docker\",\n"
-                                             + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
-                                             + "  },\n"
-                                             + "  \"wavefront\": {\n"
-                                             + "    \"url\": \"https://wavefront.com\",\n"
-                                             + "    \"token\": \"token\"\n"
-                                             + "  },\n"
-                                             + "  \"notary_server\": {\n"
-                                             + "    \"url\": \"https://notary.test.com\"\n"
-                                             + " },\n"
-                                             + "  \"log_managements\": [{\n"
-                                             + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                             + "    \"address\": \"10.78.20.10\",\n"
-                                             + "    \"port\": 9000,\n"
-                                             + "    \"username\": \"foo\",\n"
-                                             + "    \"password\": \"bar\"\n"
-                                             + "  }]\n"
-                                             + "}";
-
-    private static final String POST_ONPREM_BODY_NOTARY_VALID_CERT = "{\n"
-                                               + "  \"name\": \"OnPrem\",\n"
-                                               + "  \"type\": \"ON_PREM\",\n"
-                                               + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                               + "  \"vcenter\": {\n"
-                                               + "    \"url\": \"www.vcenter.com\",\n"
-                                               + "    \"username\": \"admin\",\n"
-                                               + "    \"password\": \"password\"\n"
-                                               + "  },\n"
-                                               + "  \"resource_pool\": \"pool\",\n"
-                                               + "  \"storage\": \"datastore\",\n"
-                                               + "  \"folder\": \"folder\",\n"
-                                               + "  \"network\": {\n"
-                                               + "    \"name\": \"Network 1\",\n"
-                                               + "    \"ip_pool\": [\n"
-                                               + "      \"10.1.1.16-10.1.1.64\",\n"
-                                               + "      \"10.1.1.100-10.1.1.200\"\n"
-                                               + "    ],\n"
-                                               + "    \"gateway\": \"10.1.1.1\",\n"
-                                               + "    \"subnet\": \"24\",\n"
-                                               + "    \"name_servers\": [\n"
-                                               + "      \"10.1.1.3\"\n"
-                                               + "    ]\n"
-                                               + "  },\n"
-                                               + "  \"outbound_proxy\": {\n"
-                                               + "    \"http_host\": \"localhost\",\n"
-                                               + "    \"http_port\": 8080\n"
-                                               + "  },\n"
-                                               + "  \"container_repo\": {\n"
-                                               + "    \"url\": \"https://docker-repo.com\",\n"
-                                               + "    \"username\": \"user\",\n"
-                                               + "    \"password\": \"docker\"\n"
-                                               + "  },\n"
-                                               + "  \"wavefront\": {\n"
-                                               + "    \"url\": \"https://wavefront.com\",\n"
-                                               + "    \"token\": \"token\"\n"
-                                               + "  },\n"
-                                               + "  \"notary_server\": {\n"
-                                               + "    \"url\": \"https://notary.test.com\",\n"
-                                               + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                               + " },\n"
-                                               + "  \"log_managements\": [{\n"
-                                               + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                               + "    \"address\": \"10.78.20.10\",\n"
-                                               + "    \"port\": 9000,\n"
-                                               + "    \"username\": \"foo\",\n"
-                                               + "    \"password\": \"bar\"\n"
-                                               + "  }]\n"
-                                               + "}";
-
-    private static final String POST_ONPREM_BODY_NOTARY_INVALID_CERT = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"www.vcenter.com\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"localhost\",\n"
-                                                + "    \"http_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"notary_server\": {\n"
-                                                + "    \"url\": \"https://notary.test.com\",\n"
-                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
-                                                + " },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_ONPREM_BODY_NO_NOTARY_URL_BUT_CERT = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"www.vcenter.com\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"localhost\",\n"
-                                                + "    \"http_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"notary_server\": {\n"
-                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                                + " },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_ONPREM_BODY_CR_NOTARY_VALID_CERT = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"www.vcenter.com\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"localhost\",\n"
-                                                + "    \"http_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\",\n"
-                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"notary_server\": {\n"
-                                                + "    \"url\": \"https://notary.test.com\",\n"
-                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                                + " },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_ONPREM_BODY_INVALID_CR_VALID_NOTARY_CERT = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"www.vcenter.com\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"localhost\",\n"
-                                                + "    \"http_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\",\n"
-                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"notary_server\": {\n"
-                                                + "    \"url\": \"https://notary.test.com\",\n"
-                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                                + " },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_ONPREM_BODY_VALID_CR_INVALID_NOTARY_CERT = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"www.vcenter.com\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"localhost\",\n"
-                                                + "    \"http_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\",\n"
-                                                + "    \"tls_certificate_data\": \"" + VALID_TLS_CERT_DATA + "\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"notary_server\": {\n"
-                                                + "    \"url\": \"https://notary.test.com\",\n"
-                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
-                                                + " },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_ONPREM_BODY_CR_NOTARY_INVALID_CERT = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"www.vcenter.com\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"localhost\",\n"
-                                                + "    \"http_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\",\n"
-                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"notary_server\": {\n"
-                                                + "    \"url\": \"https://notary.test.com\",\n"
-                                                + "    \"tls_certificate_data\": \"" + INVALID_TLS_CERT_DATA + "\"\n"
-                                                + " },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_MANGO_BODY = "{\n"
-                                                   + "  \"name\": \"Mango\",\n"
-                                                   + "  \"type\": \"Mango\",\n"
-                                                   + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                   + "  \"vcenter\": {\n"
-                                                   + "    \"url\": \"http://vcenter\",\n"
-                                                   + "    \"username\": \"admin\",\n"
-                                                   + "    \"password\": \"password\"\n"
-                                                   + "  },\n"
-                                                   + "  \"resource_pool\": \"pool\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"folder\": \"folder\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"container_repo\": {\n"
-                                                   + "    \"url\": \"https://docker-repo.com\",\n"
-                                                   + "    \"username\": \"user\",\n"
-                                                   + "    \"password\": \"docker\"\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  },\n"
-                                                   + "  \"log_managements\": [{\n"
-                                                   + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                   + "    \"address\": \"10.78.20.10\",\n"
-                                                   + "    \"port\": 9000,\n"
-                                                   + "    \"username\": \"foo\",\n"
-                                                   + "    \"password\": \"bar\"\n"
-                                                   + "  }]\n"
-                                                   + "}";
-
-    private static final String PATCH_VMC_AWS_BODY = "{\n"
-                                                + "  \"name\": \"Mango\",\n"
-                                                + "  \"type\": \"VMC_AWS\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"http://vcenter\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\"\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String PATCH_ONPREM_BODY = "{\n"
-                                                + "  \"name\": \"OnPrem\",\n"
-                                                + "  \"type\": \"ON_PREM\",\n"
-                                                + "  \"org_id\": \"5e5ff1c8-34b9-4fa3-9924-83eb14354d4c\",\n"
-                                                + "  \"vcenter\": {\n"
-                                                + "    \"url\": \"http://vcenter\",\n"
-                                                + "    \"username\": \"admin\",\n"
-                                                + "    \"password\": \"password\"\n"
-                                                + "  },\n"
-                                                + "  \"resource_pool\": \"pool\",\n"
-                                                + "  \"storage\": \"datastore\",\n"
-                                                + "  \"folder\": \"folder\",\n"
-                                                + "  \"network\": {\n"
-                                                + "    \"name\": \"Network 1\",\n"
-                                                + "    \"ip_pool\": [\n"
-                                                + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                + "    ],\n"
-                                                + "    \"gateway\": \"10.1.1.1\",\n"
-                                                + "    \"subnet\": \"24\",\n"
-                                                + "    \"name_servers\": [\n"
-                                                + "      \"10.1.1.3\"\n"
-                                                + "    ]\n"
-                                                + "  },\n"
-                                                + "  \"container_repo\": {\n"
-                                                + "    \"url\": \"https://docker-repo.com\",\n"
-                                                + "    \"username\": \"user\",\n"
-                                                + "    \"password\": \"docker\"\n"
-                                                + "  },\n"
-                                                + "  \"outbound_proxy\": {\n"
-                                                + "    \"http_host\": \"HTTP_HOST\",\n"
-                                                + "    \"http_port\": 8080,\n"
-                                                + "    \"https_host\": \"HTTPS_HOST\",\n"
-                                                + "    \"https_port\": 8080\n"
-                                                + "  },\n"
-                                                + "  \"wavefront\": {\n"
-                                                + "    \"url\": \"https://wavefront.com\",\n"
-                                                + "    \"token\": \"token\"\n"
-                                                + "  },\n"
-                                                + "  \"log_managements\": [{\n"
-                                                + "    \"destination\": \"LOG_INSIGHT\",\n"
-                                                + "    \"address\": \"10.78.20.10\",\n"
-                                                + "    \"port\": 9000,\n"
-                                                + "    \"username\": \"foo\",\n"
-                                                + "    \"password\": \"bar\"\n"
-                                                + "  }]\n"
-                                                + "}";
-
-    private static final String POST_NO_ORG_BODY = "{\n"
-                                                   + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"type\": \"ON_PREM\",\n"
-                                                   + "  \"vcenter\": {\n"
-                                                   + "    \"url\": \"http://vcenter\",\n"
-                                                   + "    \"username\": \"admin\",\n"
-                                                   + "    \"password\": \"password\"\n"
-                                                   + "  },\n"
-                                                   + "  \"resource_pool\": \"pool\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"folder\": \"folder\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  },\n"
-                                                   + "  \"container_repo\": {\n"
-                                                   + "    \"url\": \"https://docker-repo.com\",\n"
-                                                   + "    \"username\": \"user\",\n"
-                                                   + "    \"password\": \"docker\"\n"
-                                                   + "  }\n"
-                                                   + "}";
-
-    private static final String POST_NO_VCENTER_BODY = "{\n"
-                                                   + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"type\": \"ON_PREM\",\n"
-                                                   + "  \"resource_pool\": \"pool\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"folder\": \"folder\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  },\n"
-                                                   + "  \"container_repo\": {\n"
-                                                   + "    \"url\": \"https://docker-repo.com\",\n"
-                                                   + "    \"username\": \"user\",\n"
-                                                   + "    \"password\": \"docker\"\n"
-                                                   + "  }\n"
-                                                   + "}";
-
-    private static final String POST_NO_NETWORK_BODY = "{\n"
-                                                       + "  \"name\": \"OnPrem\",\n"
-                                                       + "  \"type\": \"ON_PREM\",\n"
-                                                       + "  \"vcenter\": {\n"
-                                                       + "    \"url\": \"http://vcenter\",\n"
-                                                       + "    \"username\": \"admin\",\n"
-                                                       + "    \"password\": \"password\"\n"
-                                                       + "  },\n"
-                                                       + "  \"resource_pool\": \"pool\",\n"
-                                                       + "  \"storage\": \"datastore\",\n"
-                                                       + "  \"folder\": \"folder\",\n"
-                                                      + "  \"wavefront\": {\n"
-                                                      + "    \"url\": \"https://wavefront.com\",\n"
-                                                      + "    \"token\": \"token\"\n"
-                                                      + "  },\n"
-                                                       + "  \"container_repo\": {\n"
-                                                       + "    \"url\": \"https://docker-repo.com\",\n"
-                                                       + "    \"username\": \"user\",\n"
-                                                       + "    \"password\": \"docker\"\n"
-                                                       + "  }\n"
-                                                       + "}";
-
-    private static final String POST_NO_FOLDER_BODY = "{\n"
-                                                   + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"type\": \"ON_PREM\",\n"
-                                                   + "  \"vcenter\": {\n"
-                                                   + "    \"url\": \"http://vcenter\",\n"
-                                                   + "    \"username\": \"admin\",\n"
-                                                   + "    \"password\": \"password\"\n"
-                                                   + "  },\n"
-                                                   + "  \"resource_pool\": \"pool\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  },\n"
-                                                   + "  \"container_repo\": {\n"
-                                                   + "    \"url\": \"https://docker-repo.com\",\n"
-                                                   + "    \"username\": \"user\",\n"
-                                                   + "    \"password\": \"docker\"\n"
-                                                   + "  }\n"
-                                                   + "}";
-
-    private static final String POST_EMPTY_FOLDER_BODY = "{\n"
-                                                         + "  \"name\": \"OnPrem\",\n"
-                                                         + "  \"type\": \"ON_PREM\",\n"
-                                                         + "  \"vcenter\": {\n"
-                                                         + "    \"url\": \"http://vcenter\",\n"
-                                                         + "    \"username\": \"admin\",\n"
-                                                         + "    \"password\": \"password\"\n"
-                                                         + "  },\n"
-                                                         + "  \"resource_pool\": \"pool\",\n"
-                                                         + "  \"storage\": \"datastore\",\n"
-                                                         + "  \"folder\": \"  \",\n"
-                                                         + "  \"network\": {\n"
-                                                         + "    \"name\": \"Network 1\",\n"
-                                                         + "    \"ip_pool\": [\n"
-                                                         + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                         + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                         + "    ],\n"
-                                                         + "    \"gateway\": \"10.1.1.1\",\n"
-                                                         + "    \"subnet\": \"24\",\n"
-                                                         + "    \"name_servers\": [\n"
-                                                         + "      \"10.1.1.3\"\n"
-                                                         + "    ]\n"
-                                                         + "  },\n"
-                                                         + "  \"wavefront\": {\n"
-                                                         + "    \"url\": \"https://wavefront.com\",\n"
-                                                         + "    \"token\": \"token\"\n"
-                                                         + "  },\n"
-                                                         + "  \"container_repo\": {\n"
-                                                         + "    \"url\": \"https://docker-repo.com\",\n"
-                                                         + "    \"username\": \"user\",\n"
-                                                         + "    \"password\": \"docker\"\n"
-                                                         + "  }\n"
-                                                         + "}";
-
-    private static final String POST_NO_CONTAINER_BODY = "{\n"
-                                                   + "  \"name\": \"OnPrem\",\n"
-                                                   + "  \"type\": \"ON_PREM\",\n"
-                                                   + "  \"vcenter\": {\n"
-                                                   + "    \"url\": \"http://vcenter\",\n"
-                                                   + "    \"username\": \"admin\",\n"
-                                                   + "    \"password\": \"password\"\n"
-                                                   + "  },\n"
-                                                   + "  \"resource_pool\": \"pool\",\n"
-                                                   + "  \"storage\": \"datastore\",\n"
-                                                   + "  \"folder\": \"folder\",\n"
-                                                   + "  \"network\": {\n"
-                                                   + "    \"name\": \"Network 1\",\n"
-                                                   + "    \"ip_pool\": [\n"
-                                                   + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                   + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                   + "    ],\n"
-                                                   + "    \"gateway\": \"10.1.1.1\",\n"
-                                                   + "    \"subnet\": \"24\",\n"
-                                                   + "    \"name_servers\": [\n"
-                                                   + "      \"10.1.1.3\"\n"
-                                                   + "    ]\n"
-                                                   + "  },\n"
-                                                   + "  \"wavefront\": {\n"
-                                                   + "    \"url\": \"https://wavefront.com\",\n"
-                                                   + "    \"token\": \"token\"\n"
-                                                   + "  }\n"
-                                                   + "}";
-
-    private static final String POST_NO_CONTAINER_BODY_BUT_NOTARY = "{\n"
-                                                         + "  \"name\": \"OnPrem\",\n"
-                                                         + "  \"type\": \"ON_PREM\",\n"
-                                                         + "  \"vcenter\": {\n"
-                                                         + "    \"url\": \"http://vcenter\",\n"
-                                                         + "    \"username\": \"admin\",\n"
-                                                         + "    \"password\": \"password\"\n"
-                                                         + "  },\n"
-                                                         + "  \"resource_pool\": \"pool\",\n"
-                                                         + "  \"storage\": \"datastore\",\n"
-                                                         + "  \"folder\": \"folder\",\n"
-                                                         + "  \"network\": {\n"
-                                                         + "    \"name\": \"Network 1\",\n"
-                                                         + "    \"ip_pool\": [\n"
-                                                         + "      \"10.1.1.16-10.1.1.64\",\n"
-                                                         + "      \"10.1.1.100-10.1.1.200\"\n"
-                                                         + "    ],\n"
-                                                         + "    \"gateway\": \"10.1.1.1\",\n"
-                                                         + "    \"subnet\": \"24\",\n"
-                                                         + "    \"name_servers\": [\n"
-                                                         + "      \"10.1.1.3\"\n"
-                                                         + "    ]\n"
-                                                         + "  },\n"
-                                                         + "  \"notary_server\": {\n"
-                                                         + "    \"url\": \"https://notary.test.com\"\n"
-                                                         + "  },\n"
-                                                         + "  \"wavefront\": {\n"
-                                                         + "    \"url\": \"https://wavefront.com\",\n"
-                                                         + "    \"token\": \"token\"\n"
-                                                         + "  }\n"
-                                                         + "}";
-
-    private static final String POST_ZONE_BODY = "{\n"
-                                                 + "  \"name\": \"OnPrem\",\n"
-                                                 + "  \"latitude\": \"45.5946\",\n"
-                                                 + "  \"longitude\": \"-121.1787\",\n"
-                                                 + "  \"type\": \"VMC_AWS\",\n"
-                                                 + "  \"wavefront\": {\n"
-                                                 + "    \"url\": \"https://wavefront.com\",\n"
-                                                 + "    \"token\": \"token\"\n"
-                                                 + "  }\n"
-                                                 + "}";
-
     @Autowired
     WebApplicationContext context;
 
@@ -1522,7 +368,7 @@ class ZoneControllerTest {
     void testPostOnPrem() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_ONPREM_BODY))
+                                .content(ZoneJsonObjects.POST_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, OnPremGetResponse.class);
@@ -1540,7 +386,7 @@ class ZoneControllerTest {
     void testPostOnPremBadRequest() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_ONPREM_BODY_BAD_REQUEST))
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_BAD_REQUEST))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1548,7 +394,7 @@ class ZoneControllerTest {
     void testPostOnPremBadVcenter() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_ONPREM_BODY_BAD_VCENTER))
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_BAD_VCENTER))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1556,7 +402,7 @@ class ZoneControllerTest {
     void testPostOnPremMissingName() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_ONPREM_BODY_MISSING_NAME))
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_MISSING_NAME))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1564,7 +410,7 @@ class ZoneControllerTest {
     void testPostOnPremBadNetwork() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_ONPREM_BODY_BAD_NETWORK))
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_BAD_NETWORK))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1572,7 +418,7 @@ class ZoneControllerTest {
     void testPostOnPremMissingResourcePool() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(POST_ONPREM_BODY_MISSING_RESOURCE_POOL))
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_MISSING_RESOURCE_POOL))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1580,7 +426,7 @@ class ZoneControllerTest {
     void testPostMango() throws Exception {
         mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_MANGO_BODY))
+                                .content(ZoneJsonObjects.POST_MANGO_BODY))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1588,7 +434,7 @@ class ZoneControllerTest {
     void testPostOnPremNoOrg() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_NO_ORG_BODY))
+                                                   .content(ZoneJsonObjects.POST_NO_ORG_BODY))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
@@ -1604,7 +450,7 @@ class ZoneControllerTest {
     void testPostOnPremSysadmin() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(systemAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
@@ -1618,7 +464,7 @@ class ZoneControllerTest {
     void testPostOnPremSysadminNoOrg() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(systemAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_NO_ORG_BODY))
+                                                   .content(ZoneJsonObjects.POST_NO_ORG_BODY))
                 .andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
         ZoneResponse zone = objectMapper.readValue(body, ZoneResponse.class);
@@ -1644,7 +490,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
     }
 
@@ -1664,7 +510,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_NO_CONTAINER_BODY))
+                                                   .content(ZoneJsonObjects.POST_NO_CONTAINER_BODY))
                 .andExpect(status().isOk()).andReturn();
     }
 
@@ -1684,7 +530,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_NO_NOTARY_URL_BUT_CERT))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY_NO_NOTARY_URL_BUT_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1704,7 +550,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_NO_CONTAINER_BODY_BUT_NOTARY))
+                                                   .content(ZoneJsonObjects.POST_NO_CONTAINER_BODY_BUT_NOTARY))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1724,7 +570,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_CR_VALID_CERT))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY_CR_VALID_CERT))
                 .andExpect(status().isOk()).andReturn();
     }
 
@@ -1744,7 +590,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_CR_INVALID_CERT))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY_CR_INVALID_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1764,7 +610,8 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_NOTARY_VALID_CERT))
+                                                   .content(ZoneJsonObjects
+                                                           .POST_ONPREM_BODY_NOTARY_VALID_CERT))
                 .andExpect(status().isOk()).andReturn();
     }
 
@@ -1784,7 +631,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_NOTARY_INVALID_CERT))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY_NOTARY_INVALID_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1804,7 +651,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_CR_NOTARY_VALID_CERT))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY_CR_NOTARY_VALID_CERT))
                 .andExpect(status().isOk()).andReturn();
     }
 
@@ -1824,7 +671,8 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_VALID_CR_INVALID_NOTARY_CERT))
+                                                   .content(ZoneJsonObjects
+                                                           .POST_ONPREM_BODY_VALID_CR_INVALID_NOTARY_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1844,7 +692,8 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_INVALID_CR_VALID_NOTARY_CERT))
+                                                   .content(ZoneJsonObjects
+                                                           .POST_ONPREM_BODY_INVALID_CR_VALID_NOTARY_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1864,7 +713,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY_CR_NOTARY_INVALID_CERT))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY_CR_NOTARY_INVALID_CERT))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
@@ -1884,7 +733,7 @@ class ZoneControllerTest {
         mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_NO_VCENTER_BODY))
+                                                   .content(ZoneJsonObjects.POST_NO_VCENTER_BODY))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1904,7 +753,7 @@ class ZoneControllerTest {
         mockMvc.perform(post("/api/blockchains/zones?action=test")
                                 .with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_NO_NETWORK_BODY))
+                                .content(ZoneJsonObjects.POST_NO_NETWORK_BODY))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1924,7 +773,7 @@ class ZoneControllerTest {
         mockMvc.perform(post("/api/blockchains/zones?action=test")
                                 .with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_NO_FOLDER_BODY))
+                                .content(ZoneJsonObjects.POST_NO_FOLDER_BODY))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1944,7 +793,7 @@ class ZoneControllerTest {
         mockMvc.perform(post("/api/blockchains/zones?action=test")
                                 .with(authentication(adminAuth))
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(POST_EMPTY_FOLDER_BODY))
+                                .content(ZoneJsonObjects.POST_EMPTY_FOLDER_BODY))
                 .andExpect(status().isBadRequest());
     }
 
@@ -1964,7 +813,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(post("/api/blockchains/zones?action=test")
                                                    .with(authentication(adminAuth))
                                                    .contentType(MediaType.APPLICATION_JSON)
-                                                   .content(POST_ONPREM_BODY))
+                                                   .content(ZoneJsonObjects.POST_ONPREM_BODY))
 
                 .andExpect(status().is5xxServerError()).andReturn();
     }
@@ -1992,7 +841,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + OP_SITE)
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_ONPREM_BODY))
+                .content(ZoneJsonObjects.PATCH_ONPREM_BODY))
                 .andExpect(status().isOk()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -2010,7 +859,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + MISSING_ZONE)
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_ONPREM_BODY))
+                .content(ZoneJsonObjects.PATCH_ONPREM_BODY))
                 .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -2025,7 +874,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + NOT_FOUND_ZONE)
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_ONPREM_BODY))
+                .content(ZoneJsonObjects.PATCH_ONPREM_BODY))
                 .andExpect(status().isNotFound()).andReturn();
 
         String body = result.getResponse().getContentAsString();
@@ -2153,7 +1002,7 @@ class ZoneControllerTest {
         MvcResult result = mockMvc.perform(patch("/api/blockchains/zones/" + OP_SITE2)
                 .with(authentication(adminAuth))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(PATCH_VMC_AWS_BODY))
+                .content(ZoneJsonObjects.PATCH_VMC_AWS_BODY))
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
