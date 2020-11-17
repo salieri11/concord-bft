@@ -327,3 +327,9 @@
     runWithGenericTests: false
     baseCommand: '${MAIN_PYTEST} suites/helen/vmsize_test.py --blockchainLocation onprem --blockchainType daml --clientSize "${client_size}" --clientMemory "${client_memory}" --clientCpu "${client_cpu}" --clientStorage "${client_storage}" --replicaSize "${replica_size}" --replicaMemory "${replica_memory}" --replicaCpu "${replica_cpu}" --replicaStorage "${replica_storage}"'
     testModule: 'suites/helen/vmsize_test.py'
+- BackupRestoreTests:
+    enabled: true
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    runWithGenericTests: false
+    baseCommand: '${MAIN_PYTEST} suites/backup_restore_tests.py --blockchainLocation onprem --blockchainType daml --numReplicas "${no_of_committers}" --numParticipants "${no_of_participants}" --numGroups "${no_of_groups}"'
+    testModule: 'suites/backup_restore_tests.py'
