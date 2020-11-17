@@ -15,6 +15,7 @@ FEATURE_time_service: true
 key_exchange_on_start: true
 key_view_path: /tmp
 preexecution_enabled: true
+pruning_enabled: true
 signing_key_path: /concord/signing_keys
 insecure_thin_replica_server: false
 thin_replica_tls_cert_path: /concord/trs_trc_tls_certs

@@ -11,11 +11,12 @@
 // terms and conditions of the sub-component's license, as noted in the LICENSE
 // file.
 
+#include <iomanip>
+#include <iostream>
 #include <memory>
-#include <string>
-
 #include <nlohmann/json.hpp>
-#include "utils/httplib/httplib.h"
+#include <sstream>
+#include <string>
 
 #include "Logger.hpp"
 #include "bftclient/bft_client.h"
@@ -25,6 +26,7 @@
 #include "config.h"
 #include "kvstream.h"
 #include "operations.hpp"
+#include "utils/httplib/httplib.h"
 
 using namespace httplib;
 using namespace bft::communication;
@@ -162,6 +164,83 @@ void startServer(concord::op::Operations& ops) {
     LOG_ERROR(logger,
               "An exception occurred while trying to svr.Put: "
               "\"/concord/wedge/stop\" "
+              "exception message: "
+                  << e.what());
+  }
+
+  try {
+    svr.Get(
+        "/concord/prune/latestPruneableBlock",
+        [&ops, &logger](const Request& req, Response& res) {
+          auto timeout = std::stoi(req.params.find("timeout")->second);
+          if (timeout <= 0) {
+            LOG_WARN(logger,
+                     "received invalid timeout, the request won't be executed"
+                         << KVLOG(timeout));
+            return;
+          }
+          concord::op::Response result =
+              ops.latestPruneableBlock(std::chrono::seconds(timeout));
+          json j;
+          for (auto& rsi : result.rsis) {
+            concord::messages::LatestPrunableBlock response_;
+            auto data = std::get<1>(rsi).data();
+            concord::messages::deserialize(
+                std::vector<uint8_t>(data.begin(), data.end()), response_);
+            auto sig_str =
+                concord::op::Utils::stringToByteString(response_.signature);
+            j[std::to_string(std::get<0>(rsi).val)] = {
+                {"block_id", std::to_string(response_.block_id)},
+                {"signautre", sig_str}};
+          }
+          res.set_content(j.dump(), "application/json");
+          LOG_INFO(logger, "done running prunelatestPruneableBlock command");
+        });
+  } catch (std::exception& e) {
+    LOG_ERROR(logger,
+              "An exception occurred while trying to svr.Get: "
+              "\"/concord/prune/latestPruneableBlock\" "
+              "exception message: "
+                  << e.what());
+  }
+
+  try {
+    svr.Put("/concord/prune/execute", [&ops, &logger](const Request& req,
+                                                      Response& res) {
+      auto timeout = std::stoi(req.params.find("timeout")->second);
+      if (timeout <= 0) {
+        LOG_WARN(logger,
+                 "received invalid timeout, the request won't be executed"
+                     << KVLOG(timeout));
+        return;
+      }
+      concord::op::Response result =
+          ops.latestPruneableBlock(std::chrono::seconds(timeout));
+      std::vector<concord::messages::LatestPrunableBlock>
+          latest_pruneable_blocks;
+      for (auto& rsi : result.rsis) {
+        concord::messages::LatestPrunableBlock response_;
+        auto& data = std::get<1>(rsi).data();
+        concord::messages::deserialize(
+            std::vector<uint8_t>(data.begin(), data.end()), response_);
+        latest_pruneable_blocks.push_back(response_);
+      }
+
+      result = ops.initiatePrune(std::chrono::seconds(timeout),
+                                 latest_pruneable_blocks);
+
+      json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
+      if (result.res.reconfiguration_sm_response().has_additionaldata()) {
+        j["additional_data"] =
+            result.res.reconfiguration_sm_response().additionaldata();
+      }
+      res.set_content(j.dump(), "application/json");
+      LOG_INFO(logger, "done running prune/exeute command");
+    });
+  } catch (std::exception& e) {
+    LOG_ERROR(logger,
+              "An exception occurred while trying to svr.Put: "
+              "\"/concord/prune/exeute\" "
               "exception message: "
                   << e.what());
   }

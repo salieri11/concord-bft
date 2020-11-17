@@ -36,6 +36,16 @@ def wedge_impl(args):
     res = requests.put(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
     pprint(json.loads(res.text))
 
+def latestPruneableBlockRequest_impl(args):
+    url = base_url + "/prune/latestPruneableBlock"
+    res = requests.get(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
+    pprint(json.loads(res.text))
+
+def executePrune_impl(args):
+    url = base_url + "/prune/execute"
+    res = requests.put(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
+    pprint(json.loads(res.text))
+
 def args_parser():
     parser = argparse.ArgumentParser(description="Concord Operator CLI")
     subparsers = parser.add_subparsers()
@@ -88,6 +98,26 @@ def args_parser():
 
     init_wedge.set_defaults(func=wedge_impl)
 
+    prune = subparsers.add_parser("prune",
+                                    help="Send prune commands")
+    prune_subparsers = prune.add_subparsers()
+    lastPruneableBlockRequest = prune_subparsers.add_parser("latestPruneableBlock", help="Send a latestPruneableBlockRequest to all replicas."
+                                                                                      "returns a list of {replica, latestPruneableBlock}")
+    lastPruneableBlockRequest.add_argument("--timeout",
+                                        type=int,
+                                        help="Optional request timeout in seconds. The timeout for the bft layer is smaller in 1 second"
+                                             " than this value",
+                                        default=5)
+    lastPruneableBlockRequest.set_defaults(func=latestPruneableBlockRequest_impl)
+
+    executePrune = prune_subparsers.add_parser("execute", help="Initiate a full prune request, this command gets the "
+                                                             "latest pruneable blocks from the replicas and then initiates a prune reuqest")
+    executePrune.add_argument("--timeout",
+                                           type=int,
+                                           help="Optional request timeout in seconds. The timeout for the bft layer is smaller in 1 second"
+                                                " than this value",
+                                           default=5)
+    executePrune.set_defaults(func=executePrune_impl)
     return parser
 
 

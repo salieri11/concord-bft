@@ -134,7 +134,9 @@ bool ReconfigurationSMDispatcher::validateReconfigurationSmRequest(
   if (!holds_alternative<GetVersionCommand>(request.command) &&
       !holds_alternative<DownloadCommand>(request.command) &&
       !holds_alternative<WedgeCommand>(request.command) &&
-      !holds_alternative<UpgradeCommand>(request.command)) {
+      !holds_alternative<UpgradeCommand>(request.command) &&
+      !holds_alternative<LatestPrunableBlockRequest>(request.command) &&
+      !holds_alternative<PruneRequest>(request.command)) {
     LOG_WARN(logger_,
              "Reconfiguration request validation failed: No command set");
     return false;

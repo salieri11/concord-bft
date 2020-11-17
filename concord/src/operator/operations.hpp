@@ -14,7 +14,10 @@
 #pragma once
 
 #include <chrono>
+#include <iomanip>
+#include <iostream>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -28,6 +31,7 @@
 #include "utils/openssl_crypto_utils.hpp"
 
 namespace concord::op {
+
 struct Response {
   std::vector<
       std::tuple<bft::client::ReplicaId,
@@ -38,6 +42,12 @@ struct Response {
   Response(const bft::client::Reply& reply);
 };
 
+class Utils {
+ public:
+  typedef std::function<std::ios_base&(std::ios_base&)> BytesStringBase;
+  static std::string stringToByteString(const std::string& orig, int width = 2,
+                                        char separator = ':');
+};
 class Operations {
   /*
    * Here we will implement the actual operator actions.
@@ -51,6 +61,12 @@ class Operations {
   Response initiateHasSwVersion(std::chrono::milliseconds timeout);
   Response initiateInstallSwVersion(std::chrono::milliseconds timeout,
                                     std::string version);
+  Response initiateInstallSwVersion(std::chrono::milliseconds timeout);
+  Response latestPruneableBlock(std::chrono::milliseconds timeout);
+  Response initiatePrune(
+      std::chrono::milliseconds timeout,
+      const std::vector<concord::messages::LatestPrunableBlock>&
+          latestPruneableBlocks);
 
  private:
   /*

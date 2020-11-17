@@ -180,6 +180,41 @@ concord::op::Response concord::op::Operations::initiateInstallSwVersion(
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
 }
 
+concord::op::Response concord::op::Operations::latestPruneableBlock(
+    std::chrono::milliseconds timeout) {
+  auto span =
+      opentracing::Tracer::Global()->StartSpan("LastPruenableBLockRequest");
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::LatestPrunableBlockRequest{
+      config_.client_config.id.val};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+  com::vmware::concord::ConcordRequest conc_req;
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+
+  std::string cid = "operator-latestPruneableBlockRequest-command";
+  return initiateReadRequest(conc_req, All{}, timeout, cid, "");
+}
+concord::op::Response concord::op::Operations::initiatePrune(
+    std::chrono::milliseconds timeout,
+    const std::vector<concord::messages::LatestPrunableBlock>&
+        latestPruneableBlocks) {
+  auto span = opentracing::Tracer::Global()->StartSpan("PruneRequest");
+  concord::messages::ReconfigurationRequest rreq;
+  rreq.command = concord::messages::PruneRequest{config_.client_config.id.val,
+                                                 latestPruneableBlocks};
+  signRequest(rreq);
+  std::vector<uint8_t> serialized_req;
+  serialize(serialized_req, rreq);
+  com::vmware::concord::ConcordRequest conc_req;
+  conc_req.mutable_reconfiguration_sm_request()->set_data(
+      std::string(serialized_req.begin(), serialized_req.end()));
+  std::string cid = "operator-PruneRequest-command";
+  return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
+}
+
 concord::op::Response::Response(const bft::client::Reply& reply) {
   for (auto& rsi : reply.rsi) {
     com::vmware::concord::ConcordReplicaSpecificInfoResponse rsi_res;
@@ -187,4 +222,20 @@ concord::op::Response::Response(const bft::client::Reply& reply) {
     rsis.emplace_back(rsi.first, rsi_res);
   }
   res.ParseFromArray(reply.matched_data.data(), reply.matched_data.size());
+}
+
+std::string concord::op::Utils::stringToByteString(const std::string& orig,
+                                                   int width, char separator) {
+  std::stringstream ss;
+  auto size = orig.size();
+  auto c_str = orig.c_str();
+  for (int i = 0; i < size; i++) {
+    if (i > 0) {
+      ss << separator;
+    }
+    auto bytes = int(c_str[i]);
+    bytes < 0 ? bytes = -1 * bytes : bytes;
+    ss << std::hex << std::setfill('0') << std::setw(width) << bytes;
+  }
+  return ss.str();
 }
