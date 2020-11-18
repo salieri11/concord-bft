@@ -736,7 +736,7 @@ public class BlockchainControllerTest {
         Map<String, String> r = objectMapper.readValue(body, new TypeReference<Map<String, String>>() {});
         Assertions.assertEquals(TASK_ID.toString(), r.get("task_id"));
         Assertions.assertEquals("SUCCEEDED", r.get("state"));
-        Assertions.assertEquals("Operation finished", r.get("message"));
+        Assertions.assertEquals("Operation successful. Blockchain successfully deployed.", r.get("message"));
         Assertions.assertEquals(BC_NEW.toString(), r.get("resource_id"));
         Blockchain blockchain = blockchainResultAnswer.getResult();
         Assertions.assertEquals(BC_NEW, blockchain.getId());
@@ -893,7 +893,52 @@ public class BlockchainControllerTest {
         Map<String, String> r = objectMapper.readValue(body, new TypeReference<Map<String, String>>() {});
         Assertions.assertEquals(TASK_ID.toString(), r.get("task_id"));
         Assertions.assertEquals("SUCCEEDED", r.get("state"));
-        Assertions.assertEquals("Operation finished", r.get("message"));
+        Assertions.assertEquals("Operation successful. Blockchain successfully deployed.", r.get("message"));
+        Assertions.assertEquals(BC_NEW.toString(), r.get("resource_id"));
+        Blockchain blockchain = blockchainResultAnswer.getResult();
+        Assertions.assertEquals(BC_NEW, blockchain.getId());
+        Assertions.assertEquals(BlockchainType.DAML, blockchain.getType());
+    }
+
+    @Test
+    void testBlockchainDeploymentFailed() throws Exception {
+        setStreamCluster(i -> {
+            StreamObserver ob = i.getArgument(1);
+            ob.onNext(buildEvent(DeployedResource.newBuilder().setNodeId(NODE_1.toString()).build(),
+                    DeploymentExecutionEvent.Type.ACKNOWLEDGED, Status.ACTIVE));
+            ob.onNext(buildEvent(DeployedResource.newBuilder().setNodeId(NODE_1.toString()).build(),
+                    DeploymentExecutionEvent.Type.COMPLETED, Status.FAILURE));
+            ob.onCompleted();
+            return null;
+        });
+
+        // If client grouping feature is not in use, we use client node Id as client group Id.
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                "cert",  "pass", BC_DAML, SITE_1, CLIENT_NODE_ID, null,
+                "pem", "crt", "cacrt");
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+        MvcResult result = mockMvc.perform(post("/api/blockchains").with(authentication(consortiumAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(BlockchainJsonObjects.BC_DAML_NO_CLIENT_GROUPING)
+                .characterEncoding("utf-8"))
+                .andExpect(status().isAccepted()).andReturn();
+        String body = result.getResponse().getContentAsString();
+
+        BlockchainTaskResponse t = objectMapper.readValue(body, BlockchainTaskResponse.class);
+        Assertions.assertEquals(TASK_ID, t.getTaskId());
+
+        result = mockMvc.perform(get("/api/tasks/" + TASK_ID.toString())
+                .with(authentication(consortiumAuth))
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn();
+
+        body = result.getResponse().getContentAsString();
+        Map<String, String> r = objectMapper.readValue(body, new TypeReference<Map<String, String>>() {});
+        Assertions.assertEquals(TASK_ID.toString(), r.get("task_id"));
+        Assertions.assertEquals("FAILED", r.get("state"));
+        Assertions.assertEquals("Operation failed. Blockchain could not be deployed.", r.get("message"));
         Assertions.assertEquals(BC_NEW.toString(), r.get("resource_id"));
         Blockchain blockchain = blockchainResultAnswer.getResult();
         Assertions.assertEquals(BC_NEW, blockchain.getId());
