@@ -77,6 +77,8 @@ public class ComputeHelper {
             } else if (node.getType() == NodeType.CLIENT) {
                 modelSpecBuilder.setNodeType(ConcordModelSpecification.NodeType.DAML_PARTICIPANT);
             }
+        } else {
+            modelSpecBuilder.setNodeType(ConcordModelSpecification.NodeType.CONCORD);
         }
         var computeRequest = new OrchestratorData.CreateComputeResourceRequestV2(blockchainId,
                                                                                  nodeId,

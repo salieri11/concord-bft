@@ -32,6 +32,7 @@ import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.Endpoint;
+import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.OutboundProxyInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
 import com.vmware.blockchain.deployment.v1.TransportSecurity;
@@ -64,45 +65,12 @@ public class CloudInitConfiguration {
     private boolean noLaunch;
     private boolean newDisk;
     private boolean mountNewDiskToPrimary;
+    private NodeType nodeType;
 
     /** Container network name alias.
      * TODO: This could be unified across agent and provisioning service and sent via agent request.
      **/
     private static final String CONTAINER_NETWORK_NAME = "blockchain-fabric";
-
-    /**
-     * Constructor.
-     */
-    @Deprecated
-    public CloudInitConfiguration(Endpoint containerRegistry,
-                                  ConcordModelSpecification model,
-                                  String ipAddress,
-                                  String gateway,
-                                  List<String> nameServers,
-                                  int subnet,
-                                  ConcordClusterIdentifier clusterId,
-                                  String nodeIdString,
-                                  ConfigurationSessionIdentifier configGenId,
-                                  Endpoint configServiceRestEndpoint,
-                                  OutboundProxyInfo outboundProxy,
-                                  String vmPassword,
-                                  boolean noLaunch,
-                                  boolean newDisk) {
-        this.containerRegistry = containerRegistry;
-        this.model = model;
-        this.ipAddress = ipAddress;
-        this.gateway = gateway;
-        this.nameServers = nameServers;
-        this.subnet = subnet;
-        this.clusterId = clusterId;
-        this.nodeIdString = nodeIdString;
-        this.configGenId = configGenId;
-        this.configServiceRestEndpoint = configServiceRestEndpoint;
-        this.outboundProxy = outboundProxy;
-        this.vmPassword = vmPassword;
-        this.noLaunch = noLaunch;
-        this.newDisk = newDisk;
-    }
 
     /**
      * Constructor.
@@ -414,6 +382,14 @@ public class CloudInitConfiguration {
         return diskCmd;
     }
 
+    private String coreDumpCommand() {
+        if (model.getNodeType() == ConcordModelSpecification.NodeType.DAML_COMMITTER
+            || model.getNodeType() == ConcordModelSpecification.NodeType.CONCORD) {
+            return "sysctl kernel.core_pattern=/concord/cores/core.%e.%h.%s.%t > /dev/null";
+        }
+        return "";
+    }
+
     /**
      * User data initializer.
      * @return info.
@@ -441,7 +417,8 @@ public class CloudInitConfiguration {
                     .replace("{{dockerDns}}", dockerDnsSetupCommand())
                     .replace("{{setupOutboundProxy}}", setupOutboundProxy())
                     .replace("{{blockchainNetwork}}", CONTAINER_NETWORK_NAME)
-                    .replace("{{diskSetupCommand}}", diskSetupCommand());
+                    .replace("{{diskSetupCommand}}", diskSetupCommand())
+                    .replace("{{coreDumpCommand}}", coreDumpCommand());
 
             return content;
         } catch (Exception e) {
