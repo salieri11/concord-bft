@@ -187,6 +187,29 @@ public class CloudInitConfigurationTest {
     }
 
     @Test
+    void testDefaultWithProxyWithReplica() throws IOException {
+        when(outboundProxy.getHttpHost()).thenReturn("http://outbound");
+        when(outboundProxy.getHttpsHost()).thenReturn("https://outbound");
+        when(outboundProxy.getHttpPort()).thenReturn(1234);
+        when(outboundProxy.getHttpsPort()).thenReturn(12345);
+        when(model.getNodeType()).thenReturn(ConcordModelSpecification.NodeType.DAML_COMMITTER);
+
+        CreateComputeResourceRequestV2.CloudInitData cloudInitData =
+                mock(CreateComputeResourceRequestV2.CloudInitData.class);
+        when(cloudInitData.getModel()).thenReturn(model);
+        when(request.getCloudInitData()).thenReturn(cloudInitData);
+
+        String output = cloudInitConfiguration.userData();
+        Assert.assertNotNull(output);
+
+        File file = new File(getClass().getClassLoader()
+                                     .getResource("userdata/user-data-with-proxy-replica.txt").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assert.assertEquals(expected, output);
+    }
+
+    @Test
     void testInsecureRegistry() throws IOException {
         when(containerRegistry.getAddress()).thenReturn("http://containerRegistry.com");
         when(nameServers.isEmpty()).thenReturn(true);

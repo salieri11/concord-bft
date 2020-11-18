@@ -5,7 +5,7 @@ echo -e "[Match]\nName=eth0\n\n[Network]\nAddress=10.0.0.10/24\nGateway=10.0.0.1
 
 sed -i 's_/usr/bin/dockerd.*_/usr/bin/dockerd --dns  -H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock _g' /lib/systemd/system/docker.service
 
-
+export http_proxy=http://outbound:1234;export https_proxy=https://outbound:12345;mkdir /etc/systemd/system/docker.service.d;echo -e '[Service]\nEnvironment="HTTP_PROXY=http://http://outbound:1234"\nEnvironment="HTTPS_PROXY=http://outbound:12345"\nEnvironment="NO_PROXY=localhost,127.0.0.1"' > /etc/systemd/system/docker.service.d/http-proxy.conf
 systemctl daemon-reload
 
 mkdir -p /etc/docker
@@ -39,7 +39,7 @@ touch /etc/vmware-tools/tools.conf
 printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
 /usr/bin/vmware-toolbox-cmd info update network
 
-
+sysctl kernel.core_pattern=/concord/cores/core.%e.%h.%s.%t > /dev/null
 
 # Retry logic to pull an image.
 retry=0

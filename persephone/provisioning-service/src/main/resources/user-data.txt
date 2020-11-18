@@ -38,6 +38,8 @@ touch /etc/vmware-tools/tools.conf
 printf '[guestinfo]\nprimary-nics=eth*\nexclude-nics=docker*,veth*' > /etc/vmware-tools/tools.conf
 /usr/bin/vmware-toolbox-cmd info update network
 
+{{coreDumpCommand}}
+
 # Retry logic to pull an image.
 retry=0
 until [ $retry -ge 3 ]
