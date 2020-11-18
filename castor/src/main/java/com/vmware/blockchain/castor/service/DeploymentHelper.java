@@ -362,6 +362,22 @@ public class DeploymentHelper {
         if (infrastructureDescriptorModel.getOrganization().isGenerateDamlDbPassword()) {
             propertiesBuilder.putValues(DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name(), "True");
         }
+
+        // Check if notary server details are provided for any of the zone
+        Boolean enableNotaryFeature = false;
+        if (infrastructureDescriptorModel.getZones() != null) {
+            for (InfrastructureDescriptorModel.Zone zone: infrastructureDescriptorModel.getZones()) {
+                if (zone.getNotaryServer() != null && zone.getNotaryServer().getUrl() != null
+                    && StringUtils.hasText(zone.getNotaryServer().getUrl().toString())) {
+                    enableNotaryFeature = true;
+                    break;
+                }
+            }
+        }
+        if (enableNotaryFeature) {
+            propertiesBuilder.putValues(DeploymentAttributes.NOTARY_VERIFICATION_ENABLED.name(), "true");
+        }
+
         return propertiesBuilder.build();
     }
 
