@@ -211,10 +211,11 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                                                   rawBlockchain.type, rawBlockchain.getMetadata());
 
         final Task task = taskService.get(taskId);
-        task.setMessage("Operation finished");
         if (status == DeploymentExecutionEvent.Status.SUCCESS) {
+            task.setMessage("Operation successful. Blockchain successfully deployed.");
             task.setState(Task.State.SUCCEEDED);
         } else {
+            task.setMessage("Operation failed. Blockchain could not be deployed.");
             blockchain.state = Blockchain.BlockchainState.FAILED;
             task.setState(Task.State.FAILED);
         }
