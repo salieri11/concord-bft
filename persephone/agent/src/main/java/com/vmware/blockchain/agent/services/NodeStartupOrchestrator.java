@@ -408,13 +408,6 @@ public class NodeStartupOrchestrator {
             hostConfig.withLinks(containerParam.getLinks());
         }
 
-        if (containerParam == DamlCommitterConfig.DAML_CONCORD
-                || containerParam == EthereumConfig.CONCORD) {
-            // TODO Evaluate this with security.
-            log.warn("Setting privilege mode");
-            hostConfig.withPrivileged(true);
-        }
-
         if (containerParam.getMemory() != null) {
             hostConfig.withMemory(containerParam.getMemory());
         }
