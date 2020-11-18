@@ -49,8 +49,8 @@ public class VsphereSessionAuthenticationInterceptor extends RequestAuthenticati
      * Constructor.
      */
     public VsphereSessionAuthenticationInterceptor(String vsphereUrl, String username, String password,
-                                                   Boolean useSelfSignedCertForVSphere,
-                                                   KeyStore selfSignedCertKeyStore) {
+                                                   boolean handleCertsForVSphere,
+                                                   KeyStore certKeyStore) {
         this.vsphereUrl = vsphereUrl;
         this.username = username;
         this.password = password;
@@ -63,11 +63,11 @@ public class VsphereSessionAuthenticationInterceptor extends RequestAuthenticati
 
         RestClientBuilder authRestClientBuilder = new RestClientBuilder();
 
-        if (useSelfSignedCertForVSphere) {
+        if (handleCertsForVSphere) {
             HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils
-                    .getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
+                    .getHttpRequestFactoryGivenKeyStore(certKeyStore);
 
-            // Utilizes above created factory using the selfSignedCertKeyStore
+            // Utilizes above created factory using the certKeyStore
             authRestClientBuilder = authRestClientBuilder.withRequestFactory(factory);
         }
 
