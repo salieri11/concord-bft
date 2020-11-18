@@ -36,11 +36,13 @@ import com.vmware.blockchain.deployment.v1.ConfigurationServiceGrpc.Configuratio
 import com.vmware.blockchain.deployment.v1.ConfigurationServiceRequestV2;
 import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
-import com.vmware.blockchain.deployment.v1.IdentityComponent;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationRequest;
 import com.vmware.blockchain.deployment.v1.NodeConfigurationResponse;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
+import com.vmware.blockchain.server.util.ConfigurationServiceUtil;
+import com.vmware.blockchain.server.util.IdentityComponentsLists;
+import com.vmware.blockchain.server.util.IdentityManagementUtil;
 
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -194,11 +196,17 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 .getOrDefault(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "False")
                 .equalsIgnoreCase("True");
 
+        boolean isTrsTrcTlsEnabled = request.getGenericProperties().getValuesMap()
+                .getOrDefault(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name(), "False")
+                .equalsIgnoreCase("True");
+
         // Set pre-execution, split config and bft enabled states.
         // Capture features on this blockchain.
         BlockchainFeatures bcFeatures = BlockchainFeatures.builder()
                 .isPreExecutionDeployment(isPreexecutionDeployment)
-                .isSplitConfig(isSplitConfig).isObjectStoreEnabled(isObjStoreEnabled)
+                .isSplitConfig(isSplitConfig)
+                .isObjectStoreEnabled(isObjStoreEnabled)
+                .isTrcTlsEnabled(isTrsTrcTlsEnabled)
                 .build();
 
         Map<String, Map<String, String>> concordConfig = null;
@@ -215,6 +223,10 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         log.info("Generated concord configurations for session Id : {}", sessionId);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
+        // TODO: There is inconsistency here wrt nodesInfo != deploymentAttributes.
+        // Although, provisioning service takes care of it but CS is inconsistent in itself.
+        // Eg: ConcordConfigUtil considers bcFeatures instead of nodesInfo, unlike in here.
+        // Thus, a common feature may not be present in both these cases.
         try {
             request.getNodesMap().forEach((nodeType, nodesInfo) -> nodesInfo
                     .getEntriesList().forEach(eachNode -> configByNodeId.put(eachNode.getId(),
@@ -234,25 +246,16 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         log.info("Generated node independent configurations for session Id : {}", sessionId);
 
         var certGen = new ConcordEcCertificatesGenerator();
+        IdentityManagementUtil identityManagementUtil = new IdentityManagementUtil(nodeList,
+                bcFeatures, request.getBlockchainId());
 
         log.info("Creating secrets for session Id {}", sessionId);
-        Map<String, List<IdentityComponent>> allNodeIdentities = new HashMap<>();
+        IdentityComponentsLists identityComponentsLists;
         try {
-            // Get TLS identities for all nodes.
-            // bftClientConfigUtil.nodePrincipal would be empty if Blockchain type is NOT DAML.
-            allNodeIdentities = ConfigurationServiceUtil
-                    .getTlsNodeIdentities(configUtil.nodePrincipal, bftClientConfigUtil.nodePrincipal, certGen,
-                                          nodeList, bcFeatures, clientProxyPerParticipant);
-            if (allNodeIdentities == null) {
-                throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_FAILURE,
-                                                 "Failed to get TLS node identities.");
-            }
-
-            log.info("Node identities count: {}.", allNodeIdentities.size());
-        } catch (ConfigServiceException e) {
-            throw e;
+            identityComponentsLists = identityManagementUtil.getAllTlsNodeIdentities(configUtil.nodePrincipal,
+                    bftClientConfigUtil.nodePrincipal, certGen, clientProxyPerParticipant);
         } catch (Exception e) {
-            var msg = "Trouble generating TLS node identities for session Id : " + sessionId;
+            var msg = "Trouble generating concord bft TLS node identities for session Id : " + sessionId;
             log.error(msg, e);
             throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_FAILURE, msg, e);
         }
@@ -262,13 +265,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         try {
             // Need these copy objects to satisfy lambda function.
             Map<String, Map<String, String>> finalConcordConfig = concordConfig;
-            Map<String, List<IdentityComponent>> finalAllNodeIdentities = allNodeIdentities;
             configByNodeId.forEach((nodeId, componentList) -> {
                 String key = String.join(separator, sessionId.getId(), nodeId);
                 log.info("Persisting configurations for session: {}, node: {} in memory...", sessionId, nodeId);
                 cacheByNodeId.put(key, configurationServiceHelper.buildNodeConfigs(nodeId, componentList, certGen,
                                                                                     finalConcordConfig, bftClientConfig,
-                                                                                    finalAllNodeIdentities));
+                                                                                    identityComponentsLists));
             });
         } catch (ConfigServiceException e) {
             throw e;

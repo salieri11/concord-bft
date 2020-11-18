@@ -5,6 +5,7 @@
 package com.vmware.blockchain.configuration.generateconfig;
 
 import com.google.common.base.Strings;
+import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
 import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
@@ -53,8 +54,7 @@ public class DamlLedgerApiUtil {
                        + "-XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log\"");
         builder.append(System.lineSeparator());
 
-        builder.append("export THIN_REPLICA_SETTINGS=\"--use-thin-replica --jaeger-agent-address jaeger-agent:6831\"");
-        builder.append(System.lineSeparator());
+        buildThinReplicaSettings(builder, nodeInfo.getProperties());
 
         addProperties(builder, nodeInfo);
         builder.append("export BFT_CLIENT_SETTINGS=\"--use-bft-client --bft-client-config-path=/config"
@@ -87,12 +87,12 @@ public class DamlLedgerApiUtil {
             builder.append("export AUTH_SETTINGS=\"--auth-jwt-rs256-jwks " + authToken + "\"");
             builder.append(System.lineSeparator());
         }
-        addClientGroupId(builder, nodeInfo, properties);
+        addClientGroupId(builder, nodeInfo.getId(), properties);
         addPreexecutionThreshold(builder, properties);
         addTlsCredentials(builder, properties);
     }
 
-    private void addClientGroupId(StringBuilder builder, NodesInfo.Entry nodeInfo, Properties properties) {
+    private void addClientGroupId(StringBuilder builder, String nodeId, Properties properties) {
         // Add client group id
         var clientGroupId = properties.getValuesMap().get(NodeProperty.Name.CLIENT_GROUP_ID.name());
         if (!Strings.isNullOrEmpty(clientGroupId)) {
@@ -100,7 +100,7 @@ public class DamlLedgerApiUtil {
             builder.append("export PARTICIPANT_ID=" + convertToParticipantId(clientGroupId));
             builder.append(System.lineSeparator());
         } else {
-            builder.append("export PARTICIPANT_ID=" + convertToParticipantId(nodeInfo.getId()));
+            builder.append("export PARTICIPANT_ID=" + convertToParticipantId(nodeId));
             builder.append(System.lineSeparator());
         }
     }
@@ -139,6 +139,18 @@ public class DamlLedgerApiUtil {
             builder.append(tlsSettingsValue);
             builder.append(System.lineSeparator());
         }
+    }
+
+    private void buildThinReplicaSettings(StringBuilder builder, Properties properties) {
+        builder.append("export THIN_REPLICA_SETTINGS=\"--use-thin-replica --jaeger-agent-address jaeger-agent:6831");
+        if (properties.getValuesMap()
+                .getOrDefault(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name(), "False")
+                .equalsIgnoreCase("True")) {
+            builder.append(" --insecure-thin-replica-client=False --thin-replica-tls-cert-path="
+                    + CertificatesGenerator.IDENTITY_PATH_PREFIX + CertificatesGenerator.TRC_TLS_IDENTITY_PATH);
+        }
+        builder.append("\"");
+        builder.append(System.lineSeparator());
     }
 
     /**

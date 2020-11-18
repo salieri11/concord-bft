@@ -54,6 +54,8 @@ public class ConfigUtilHelpers {
     enum ConfigProperty {
         F_VAL("f_val"),
         C_VAL("c_val"),
+        TLS_CERTIFICATES_FOLDER_PATH("tls_certificates_folder_path"),
+        TRS_TLS_CERTIFICATES_FOLDER_PATH("thin_replica_tls_cert_path"),
         DAML_ENABLED("daml_enable"),
         ETHEREUM_ENABLED("eth_enable"),
         HLF_ENABLED("hlf_enable"),
@@ -75,7 +77,8 @@ public class ConfigUtilHelpers {
         PREEXECUTION_ENABLED("preexecution_enabled"),
         OBJ_STORE_RO_NODE("ro_node"),
         OBJ_STORE_NUM_RO_REPLICAS("num_ro_replicas"),
-        OBJ_STORE_RO_NODE_TEMPLATE("ro_node__TEMPLATE");
+        OBJ_STORE_RO_NODE_TEMPLATE("ro_node__TEMPLATE"),
+        INSECURE_TRC_SERVER("insecure_thin_replica_server");
 
         String name;
 

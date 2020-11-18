@@ -20,6 +20,7 @@ import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerato
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConfigurationComponent;
 import com.vmware.blockchain.deployment.v1.IdentityComponent;
+import com.vmware.blockchain.server.util.IdentityComponentsLists;
 
 /**
  * Test for ConfigurationServiceHelper.
@@ -165,7 +166,7 @@ public class ConfigurationServiceHelperTest {
     static List<ConfigurationComponent> componentList = new ArrayList<>();
     static Map<String, Map<String, String>> concordConfig = new HashMap<>();
     static Map<String, String> bftClientConfig = new HashMap<>();
-    static Map<String, List<IdentityComponent>> allNodeIdentityComponents = new HashMap<>();
+    static IdentityComponentsLists identityComponentsList;
     static Map<String, String> replicaNodeConfig = new HashMap<>();
     List<String> nodes = List.of("fc3b4725-c6c2-49d1-adcb-312156ede59f", "8818735f-873c-47d4-80c5-9c5bf5276524");
     ConfigurationServiceHelper helper =
@@ -234,12 +235,22 @@ public class ConfigurationServiceHelperTest {
                 IdentityComponent.newBuilder().setType(IdentityComponent.Type.KEY).setBase64Value(keyData)
                         .setUrl("file:/daml-ledger-api/config-local/cert/0/server/client.cert").build();
 
-        allNodeIdentityComponents.put("fc3b4725-c6c2-49d1-adcb-312156ede59f",
-                                      List.of(replicaIdentityComponent1, replicaIdentityComponent2,
-                                              replicaIdentityComponent3, replicaIdentityComponent4));
-        allNodeIdentityComponents.put("8818735f-873c-47d4-80c5-9c5bf5276524",
-                                      List.of(clientIdentityComponent1, clientIdentityComponent2,
-                                              clientIdentityComponent3, clientIdentityComponent4));
+        Map<String, List<IdentityComponent>> replicaIdentityComponentList = Map.of(
+                "fc3b4725-c6c2-49d1-adcb-312156ede59f",
+                List.of(replicaIdentityComponent1, replicaIdentityComponent2,
+                        replicaIdentityComponent3, replicaIdentityComponent4));
+        Map<String, List<IdentityComponent>> clientIdentityComponentList = Map.of(
+                "8818735f-873c-47d4-80c5-9c5bf5276524",
+                List.of(clientIdentityComponent1, clientIdentityComponent2,
+                        clientIdentityComponent3, clientIdentityComponent4));
+
+        identityComponentsList = IdentityComponentsLists.builder()
+                .concordIdentityComponents(replicaIdentityComponentList)
+                .bftIdentityComponents(clientIdentityComponentList)
+                .trsIdentityComponents(new HashMap<>())
+                .trcIdentityComponents(new HashMap<>())
+                .build();
+
     }
 
     @AfterAll
@@ -252,7 +263,7 @@ public class ConfigurationServiceHelperTest {
         nodes.forEach(nodeId -> {
             List<ConfigurationComponent> nodeConfig =
                     helper.buildNodeConfigs(nodeId, componentList, certGen, concordConfig, bftClientConfig,
-                                            allNodeIdentityComponents);
+                            identityComponentsList);
             Assertions.assertTrue(nodeConfig.size() >= 9);
         });
     }
@@ -263,7 +274,7 @@ public class ConfigurationServiceHelperTest {
         nodes.forEach(nodeId -> {
             List<ConfigurationComponent> nodeConfig =
                     helper.buildNodeConfigs(nodeId, componentList, certGen, concordConfig, bftClientConfig,
-                                            allNodeIdentityComponents);
+                            identityComponentsList);
             Assertions.assertTrue(nodeConfig.size() == 4);
         });
     }

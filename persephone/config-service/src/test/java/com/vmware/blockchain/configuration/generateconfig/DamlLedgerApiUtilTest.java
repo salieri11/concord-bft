@@ -210,6 +210,24 @@ public class DamlLedgerApiUtilTest {
     }
 
     @Test
+    public void testHappyPathWithTrsTrcTlsEnabled() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(ImmutableMap.of(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name(), "True",
+                        DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True")).build();
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder().setId("TEST-NODE")
+                .setProperties(properties).build();
+
+        String actual = new DamlLedgerApiUtil().generateConfig(nodeInfo);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleDamlLedgerApiConfigWithTrsTrcTlsEnabled.txt")
+                .getFile());
+        String expected = new String(Files.readAllBytes(file.toPath()));
+
+        Assertions.assertThat(actual.equals(expected)).isTrue();
+    }
+
+    @Test
     public void testPath() {
         Assertions.assertThat(DamlLedgerApiUtil.envVarPath.equals("/daml-ledger-api/environment-vars")).isTrue();
     }

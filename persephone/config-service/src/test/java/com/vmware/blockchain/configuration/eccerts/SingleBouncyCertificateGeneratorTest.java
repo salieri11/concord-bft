@@ -56,23 +56,20 @@ class SingleBouncyCertificateGeneratorTest {
             assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getBase64Value().getBytes());
-            X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-            cert.checkValidity(new Date());
-            cert.verify(cert.getPublicKey());
-            assert cert.getPublicKey().getAlgorithm().equalsIgnoreCase("EC");
-            assert cert.getSigAlgName().equalsIgnoreCase("SHA256WITHECDSA");
-            assert cert.getIssuerDN().getName().equalsIgnoreCase(
-                    "CN=test-cn, OU=test-ou, O=NA, L=NA, ST=NA, C=NA");
+            testCerts(ks);
+        });
+    }
 
-            byte[] keyBytes = ks.getKey().getBase64Value().getBytes();
-            KeyFactory factory = KeyFactory.getInstance("ECDSA", "BC");
-            ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp384r1");
-            ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(1, keyBytes), spec);
-            PrivateKey privateKey = factory.generatePrivate(ecPrivateKeySpec);
-            // TODO: Check private key wrt certificate (ECDSA is not straight forward)
-            assert privateKey.getAlgorithm().equalsIgnoreCase("ECDSA");
+    @Test
+    public void testCertificateGenerationWithCertName() {
+        assertDoesNotThrow(() -> {
+            Identity ks = SingleBouncyCertificateGenerator
+                    .generateIdentity(filePath, "myCert.cert", "myKey.pem", "test-cn", "test-ou");
+
+            assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/myCert.cert");
+            assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/myKey.pem");
+
+            testCerts(ks);
         });
     }
 
@@ -139,5 +136,25 @@ class SingleBouncyCertificateGeneratorTest {
             cert1.verify(cert2.getPublicKey());
             cert2.verify(cert1.getPublicKey());
         });
+    }
+
+    private void testCerts(Identity ks) throws Exception {
+        CertificateFactory fact = CertificateFactory.getInstance("X.509");
+        InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getBase64Value().getBytes());
+        X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
+        cert.checkValidity(new Date());
+        cert.verify(cert.getPublicKey());
+        assert cert.getPublicKey().getAlgorithm().equalsIgnoreCase("EC");
+        assert cert.getSigAlgName().equalsIgnoreCase("SHA256WITHECDSA");
+        assert cert.getIssuerDN().getName().equalsIgnoreCase(
+                "CN=test-cn, OU=test-ou, O=NA, L=NA, ST=NA, C=NA");
+
+        byte[] keyBytes = ks.getKey().getBase64Value().getBytes();
+        KeyFactory factory = KeyFactory.getInstance("ECDSA", "BC");
+        ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec("secp384r1");
+        ECPrivateKeySpec ecPrivateKeySpec = new ECPrivateKeySpec(new BigInteger(1, keyBytes), spec);
+        PrivateKey privateKey = factory.generatePrivate(ecPrivateKeySpec);
+        // TODO: Check private key wrt certificate (ECDSA is not straight forward)
+        assert privateKey.getAlgorithm().equalsIgnoreCase("ECDSA");
     }
 }

@@ -5,7 +5,9 @@
 package com.vmware.blockchain.configuration.util;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import lombok.Builder;
@@ -59,7 +61,7 @@ public class BlockchainNodeList {
         }
         var nodeIdList = new ArrayList<String>();
         nodeIdList.addAll(nodes.stream().filter(node -> node != null).map(node -> node.getId())
-                                  .collect(Collectors.toList()));
+                .collect(Collectors.toList()));
         return nodeIdList;
     }
 
@@ -123,5 +125,22 @@ public class BlockchainNodeList {
         var nodeIds = new ArrayList<String>();
         nodeIds.addAll(getIds(replicas));
         return nodeIds;
+    }
+
+    /**
+     * Gets all nodes' id and ip in a map.
+     * @return map of node id vs node ip
+     */
+    public Map<String, String> getAllNodesIdsAndIps() {
+        Map<String, String> nodeIpAndIdMap = new HashMap<>();
+        replicas.forEach(node -> nodeIpAndIdMap.put(node.getId(), node.getIp()));
+
+        if (clients != null) {
+            clients.forEach(node -> nodeIpAndIdMap.put(node.getId(), node.getIp()));
+        }
+        if (readReplicas != null) {
+            readReplicas.forEach(node -> nodeIpAndIdMap.put(node.getId(), node.getIp()));
+        }
+        return nodeIpAndIdMap;
     }
 }

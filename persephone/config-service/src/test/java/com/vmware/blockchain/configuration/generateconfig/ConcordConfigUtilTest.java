@@ -107,8 +107,7 @@ public class ConcordConfigUtilTest {
         BlockchainFeatures bcFeatures = BlockchainFeatures.builder().isPreExecutionDeployment(false).build();
         Assertions.assertThat(
                 util.generateInputConfigYaml(nodeList, filePath, ConcordModelSpecification.BlockchainType.DAML,
-                                             0, bcFeatures)
-        ).isTrue();
+                                             0, bcFeatures)).isTrue();
     }
 
     @Test
@@ -125,8 +124,7 @@ public class ConcordConfigUtilTest {
         BlockchainFeatures bcFeatures = BlockchainFeatures.builder().isPreExecutionDeployment(false).build();
         Assertions.assertThat(
                 util.generateInputConfigYaml(nodeList, filePath, ConcordModelSpecification.BlockchainType.DAML,
-                                             0, bcFeatures)
-        ).isTrue();
+                                             0, bcFeatures)).isTrue();
     }
 
     @Test
@@ -143,8 +141,7 @@ public class ConcordConfigUtilTest {
         BlockchainFeatures bcFeatures = BlockchainFeatures.builder().isPreExecutionDeployment(true).build();
         Assertions.assertThat(
                 util.generateInputConfigYaml(nodeList, filePath, ConcordModelSpecification.BlockchainType.DAML,
-                                             0, bcFeatures)
-        ).isTrue();
+                                             0, bcFeatures)).isTrue();
     }
 
     @Test

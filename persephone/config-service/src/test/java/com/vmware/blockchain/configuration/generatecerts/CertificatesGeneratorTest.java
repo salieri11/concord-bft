@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.Security;
+import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.List;
@@ -21,13 +22,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.configuration.eccerts.TrsTrcTlsSingleCertificateGenerator;
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
 import com.vmware.blockchain.deployment.v1.Identity;
+import com.vmware.blockchain.deployment.v1.IdentityFactors;
 
 /**
  * test for {@link CertificatesGenerator}.
  */
-class ConcordEcCertificatesGeneratorTest {
+class CertificatesGeneratorTest {
 
     @BeforeAll
     static void setup() {
@@ -40,7 +43,7 @@ class ConcordEcCertificatesGeneratorTest {
     }
 
     @Test
-    void testgenerateTlsSelfSignedCertificates() {
+    void testGenerateConcordSelfSignedCertificates() {
         assertDoesNotThrow(() -> {
             CertificatesGenerator certGen = new ConcordEcCertificatesGenerator();
             List<Identity> certList = certGen.generateSelfSignedCertificates(3,
@@ -55,42 +58,37 @@ class ConcordEcCertificatesGeneratorTest {
                 Identity server = serverList.get(index);
 
                 assert server.getCertificate().getUrl().equalsIgnoreCase(
-                        String.format("%s/%s/server/server.cert", certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
+                        String.format("%s/%s/server/server.cert",
+                                certGen.FILE_PREFIX + certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
                 assert server.getKey().getUrl().equalsIgnoreCase(String.format("%s/%s/server/pk.pem",
-                        certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
+                        certGen.FILE_PREFIX + certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
 
-                CertificateFactory fact = CertificateFactory.getInstance("X.509");
-                InputStream inputStream = new ByteArrayInputStream(server.getCertificate().getBase64Value().getBytes());
-                X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-                assert cert.getIssuerDN().getName().equalsIgnoreCase(
-                        "CN=node" + index + "ser, OU=" + index + ", O=NA, L=NA, ST=NA, C=NA");
+                testCertificate(server, "node" + index + "ser", String.valueOf(index));
             }
 
             for (int index = 0; index < clientList.size(); index++) {
                 Identity client = clientList.get(index);
 
                 assert client.getCertificate().getUrl().equalsIgnoreCase(
-                        String.format("%s/%s/client/client.cert", certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
+                        String.format("%s/%s/client/client.cert",
+                                certGen.FILE_PREFIX + certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
                 assert client.getKey().getUrl()
                         .equalsIgnoreCase(String.format("%s/%s/client/pk.pem",
-                                certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
+                                certGen.FILE_PREFIX + certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
 
-                CertificateFactory fact = CertificateFactory.getInstance("X.509");
-                InputStream inputStream = new ByteArrayInputStream(client.getCertificate().getBase64Value().getBytes());
-                X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-                assert cert.getIssuerDN().getName().equalsIgnoreCase(
-                        "CN=node" + index + "cli, OU=" + index + ", O=NA, L=NA, ST=NA, C=NA");
+                testCertificate(client, "node" + index + "cli", String.valueOf(index));
             }
         });
     }
 
     @Test
-    void testgenerateEthRpcSelfSignedCertificates() {
+    void testGenerateEthRpcSelfSignedCertificates() {
         assertDoesNotThrow(() -> {
             int numCerts = 3;
             CertificatesGenerator certGen = new ConcordEcCertificatesGenerator();
             List<String> paths = IntStream.range(0, numCerts).boxed()
-                    .map(entry -> String.join("/", certGen.CONCORD_ETHRPC_SECURITY_IDENTITY_PATH,
+                    .map(entry -> String.join("/",
+                            certGen.FILE_PREFIX + certGen.CONCORD_ETHRPC_SECURITY_IDENTITY_PATH,
                             String.valueOf(entry)))
                     .collect(Collectors.toList());
             List<Identity> certList = certGen.generateSelfSignedCertificates(numCerts,
@@ -106,21 +104,57 @@ class ConcordEcCertificatesGeneratorTest {
                 assert identity.getKey().getUrl().equalsIgnoreCase(
                         String.format("%s/pk.pem", paths.get(index)));
 
-                CertificateFactory fact = CertificateFactory.getInstance("X.509");
-                InputStream inputStream = new ByteArrayInputStream(identity.getCertificate()
-                        .getBase64Value().getBytes());
-                X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
-                assert cert.getIssuerDN().getName().equalsIgnoreCase(
-                        "CN=node" + index + ", OU=" + index + ", O=NA, L=NA, ST=NA, C=NA");
+                testCertificate(identity, "node" + index, String.valueOf(index));
             }
+        });
+    }
+
+    @Test
+    void testTrsTrcTlsCertificates() {
+        assertDoesNotThrow(() -> {
+            String id = "myId";
+            String cn = "myCN";
+            String ou = "myOU";
+            CertificatesGenerator certGen = new TrsTrcTlsSingleCertificateGenerator(id);
+            var actual = certGen.generateSelfSignedCertificates(1, ServiceType.CONCORD, cn, ou);
+            assert (actual.size() == 1);
+            Identity identity = actual.get(0);
+            testCertificate(identity, cn, ou);
+            assert (identity.getCertificate().getUrl().equals(CertificatesGenerator.FILE_PREFIX
+                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + id + "/server.cert"));
+            assert (identity.getKey().getUrl().equals(CertificatesGenerator.FILE_PREFIX
+                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + id + "/pk.pem"));
+
+            actual = certGen.generateSelfSignedCertificates(1, ServiceType.DAML_LEDGER_API, cn, ou);
+            assert (actual.size() == 1);
+            identity = actual.get(0);
+            testCertificate(identity, cn, ou);
+            assert (identity.getCertificate().getUrl().equals(CertificatesGenerator.FILE_PREFIX
+                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + id + "/client.cert"));
+            assert (identity.getKey().getUrl().equals(CertificatesGenerator.FILE_PREFIX
+                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + id + "/pk.pem"));
         });
     }
 
     @Test
     void testIdentityFactors() {
         CertificatesGenerator certGen = new ConcordEcCertificatesGenerator();
-        var identityFactor = certGen.getIdentityFactor();
+        testIdentityFactor(certGen.getIdentityFactor());
 
+        certGen = new TrsTrcTlsSingleCertificateGenerator("myId");
+        testIdentityFactor(certGen.getIdentityFactor());
+    }
+
+    private void testCertificate(Identity identity, String cn, String ou) throws CertificateException {
+        CertificateFactory fact = CertificateFactory.getInstance("X.509");
+        InputStream inputStream = new ByteArrayInputStream(identity.getCertificate()
+                .getBase64Value().getBytes());
+        X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
+        assert cert.getIssuerDN().getName().equalsIgnoreCase(
+                "CN=" + cn + ", OU=" + ou + ", O=NA, L=NA, ST=NA, C=NA");
+    }
+
+    private void testIdentityFactor(IdentityFactors identityFactor) {
         assert identityFactor.getAlgorithm().equalsIgnoreCase("ECDSA");
         assert identityFactor.getCurve().equalsIgnoreCase("secp384r1");
         assert identityFactor.getSigningAlgorithm().equalsIgnoreCase("SHA384WITHECDSA");

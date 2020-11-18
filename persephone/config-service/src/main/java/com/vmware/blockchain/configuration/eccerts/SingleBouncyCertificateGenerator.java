@@ -59,9 +59,23 @@ public class SingleBouncyCertificateGenerator {
      * @return : {@link Identity}
      */
     static Identity generateIdentity(String path, String cn, String ou) {
+        String certName = path.substring(path.lastIndexOf("/") + 1) + ".cert";
+        return generateIdentity(path, certName, "pk.pem", cn, ou);
+    }
+
+    /**
+     * Generates the X509Certificate and private key pair.
+     * @param path : string path to where it should be generated in
+     * @param certName : Name of the certificate
+     * @param keyName : Name of the private key
+     * @param cn : subject cn value
+     * @param ou : subject ou value
+     * @return : {@link Identity}
+     */
+    static Identity generateIdentity(String path, String certName, String keyName, String cn, String ou) {
         KeyPair keyPair = generateEcKeyPair();
         X509Certificate certificate = generateSelfSignedCertificate(keyPair, cn, ou);
-        return getIdentity(keyPair, certificate, path);
+        return getIdentity(keyPair, certificate, path, certName, keyName);
     }
 
     /**
@@ -144,11 +158,14 @@ public class SingleBouncyCertificateGenerator {
      * @param keyPair : {@link KeyPair}
      * @param  certificate : {@link X509Certificate}
      * @param path root path to dump certs and keys
+     * @param certName : Name of the certificate
+     * @param keyName : Name of the private key
      * @return {@link Identity}
      */
-    private static Identity getIdentity(KeyPair keyPair, X509Certificate certificate, String path) {
+    private static Identity getIdentity(KeyPair keyPair, X509Certificate certificate,
+                                        String path, String certName, String keyName) {
         // get string private key
-        String keyPath = String.join("/", path, "pk.pem");
+        String keyPath = String.join("/", path, keyName);
         String key = returnPemString(keyPair.getPrivate());
 
         IdentityComponent keyIdentity = IdentityComponent.newBuilder()
@@ -158,8 +175,7 @@ public class SingleBouncyCertificateGenerator {
                 .build();
 
         // get string cert
-        String certPath = String.join("/", path,
-                path.substring(path.lastIndexOf("/") + 1) + ".cert");
+        String certPath = String.join("/", path, certName);
         String cert = returnPemString(certificate);
 
         IdentityComponent certIdentity = IdentityComponent.newBuilder()
