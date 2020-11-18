@@ -12,15 +12,15 @@
     "persephone-configuration"
   ],
   "test_suites": [
-    "ChessPlusTests",
+    "ChessPlusTestsOnPredeployedBlockchain",
     "EthCoreVmTests",
     "DamlTests",
     "ClientPoolDamlTests",
     "EvilTimeTests",
     "EthJsonRpcTests",
     "EthRegressionTests",
-    "PerformanceTests",
-    "PersephoneTestsNew",
+    "PerformanceSmoke",
+    "PersephoneSmokeNew",
     "HelenDeployDAMLToSDDC",
     "SampleSuite",
     "SimpleStateTransferTest",
