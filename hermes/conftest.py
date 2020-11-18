@@ -481,6 +481,14 @@ def pytest_addoption(parser):
                      help="Concurrency")
     parser.addoption("--noOfRequests", default=chessplus_helper.DEFAULT_NO_OF_REQUESTS,
                      help="No. of requests from chess+")
+    parser.addoption("--chessplusTradesArrivalRate", default=chessplus_helper.DEFAULT_ARRIVAL_RATE,
+                        help="Number of fixed trades per second")
+    parser.addoption("--chessplusRunDuration", default=chessplus_helper.DEFAULT_DURATION,
+                        help="Duration for running simulation")
+    parser.addoption("--chessplusTimeUnits", default=chessplus_helper.DEFAULT_UNIT,
+                        help="Time unit for running simulations")
+    parser.addoption("--chessplusOperation", default=chessplus_helper.DEFAULT_OPERATION,
+                        help="Simulation to generate stream of trades")
     parser.addoption("--dockerHubUser", default="blockchainrepositoryreader",
                      help="DockerHub user which has read access to the digitalasset private repos. "
                      "Only needed if the DAML SDK version is not one of {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))

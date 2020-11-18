@@ -18,6 +18,11 @@ DEFAULT_MARKET_FLAVOR = "sample"
 DEFAULT_CONCURRENCY = "3"
 DEFAULT_NO_OF_REQUESTS = "1"
 CHESSPLUS_TEST_LAUNCHER = "util/chessplus/chessplus_test_launcher.sh"
+DEFAULT_TEST_TIMEOUT_UNIT = "seconds"
+DEFAULT_ARRIVAL_RATE = "1"
+DEFAULT_OPERATION = "TradesAtFixedRate"
+DEFAULT_UNIT = "seconds"
+DEFAULT_DURATION = "600"
 chess_plus_run_timeout = {
    DEFAULT_MARKET_FLAVOR: DEFAULT_TEST_TIMEOUT,
    "nfr": "432000"
@@ -52,7 +57,7 @@ def run_chess_plus(args, participant_ip):
                                                            args.dockerHubPassword)
       log.debug("spider image tag: {}".format(spider_image_tag))
       if spider_image_tag:
-         daml_helper.download_spider_app(spider_image_tag)
+         daml_helper.download_spider_app(args.dockerHubUser, args.dockerHubPassword, spider_image_tag)
       else:
          raise Exception("No Spider image tag.")
 
@@ -68,8 +73,11 @@ def run_chess_plus(args, participant_ip):
       "--marketFlavor", args.marketFlavor,
       "--damlSDKVersion", daml_sdk_version,
       "--concurrency", args.concurrency,
-      "--noOfRequests", args.noOfRequests,
       "--resultsDir", args.resultsDir,
+      "--chessplusTradesArrivalRate", args.chessplusTradesArrivalRate,
+      "--chessplusRunDuration", args.chessplusRunDuration,
+      "--chessplusTimeUnits", args.chessplusTimeUnits,
+      "--chessplusOperation", args.chessplusOperation,
       "--logLevel", str(args.logLevel)
    ]
 
