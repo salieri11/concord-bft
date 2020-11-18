@@ -309,7 +309,7 @@ def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSe
     # run daml sanity
     log.info("Running daml sanity tests to validate health of the deployed blockchain")
     daml_sanity_status = helper.run_daml_sanity(ledger_api_hosts=client_nodes, results_dir=castorOutputDir,
-                                                run_all_tests=True)
+                                                run_all_tests=False)
     assert daml_sanity_status, "Daml Sanity test did not pass, deployment is failed"
 
 
@@ -415,7 +415,7 @@ def _verify_docker_containers_in_each_node(fxHermesRunSettings, node_info_list):
         while (time.time() - start_time) <= max_timeout and not docker_images_found:
             count += 1
             log.debug("Verifying docker containers (attempt: {})".format(count))
-            ssh_output = helper.ssh_connect(node, username, password, command_to_run)
+            ssh_output = helper.durable_ssh_connect(node, username, password, command_to_run)
             log.debug("SSH output: {}".format(ssh_output))
             for container_name in containers_to_verify:
                 if container_name not in ssh_output:
@@ -454,7 +454,7 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
     max_timeout = 180  # 3 mins
     start_time = time.time()
     while (time.time() - start_time) <= max_timeout and ssh_result is None:
-        ssh_result = helper.ssh_connect(ip, username, password, "hostname", log_mode="WARNING")
+        ssh_result = helper.durable_ssh_connect(ip, username, password, "hostname", log_mode="WARNING")
         if ssh_result:
             log.debug("SSH enabled within {} mins".format((time.time() - start_time) / 60))
             status = True
@@ -480,7 +480,7 @@ def _verify_ssh_connectivity(ip, username, password, mode=None):
             validation_message_success = "Marker file '{}' found".format(marker_file)
             validation_message_fail = "Cannot find marker file '{}'".format(marker_file)
 
-        ssh_output = helper.ssh_connect(ip, username, password, command_to_run)
+        ssh_output = helper.durable_ssh_connect(ip, username, password, command_to_run)
         log.debug("SSH output: {}".format(ssh_output))
         if ssh_output:
             if ssh_output.rstrip() == marker_file:
