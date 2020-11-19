@@ -17,6 +17,12 @@ RUN set -ex; \
     apt-get install -y --no-install-recommends postgresql-client; \
     rm -rf /var/lib/apt/lists/*
 
+# Download buf
+ENV BUF_VERSION v0.31.1
+RUN set -ex; \
+    curl -fsSL -o /usr/local/bin/buf "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/buf-$(uname -s)-$(uname -m)"; \
+    chmod +x /usr/local/bin/buf
+
 # Download SBT separately from the DAML dependencies.
 RUN set -ex; \
     mkdir /tmp/sbt; \
@@ -45,6 +51,10 @@ COPY daml/execution-engine/src/main/resources/logback.xml /doc/daml/execution-en
 RUN sbt execution_engine/scalafmtCheck execution_engine/stage
 
 RUN sbt execution_engine/test
+
+# Verify that the protobufs are compatible.
+COPY daml/buf-test.sh /doc/daml/
+RUN /doc/daml/buf-test.sh
 
 EXPOSE 55000
 
