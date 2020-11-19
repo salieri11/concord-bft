@@ -325,7 +325,7 @@ void write1(const IStorageFactory::DatabaseSet *dbset) {
 
     lastBlockId = dbset->dbAdapter->addBlock(write_set);
     write_set.clear();
-    if (++count % 50 == 0) cout << "Written " << count << " blocks" << endl;
+    if (++count % 1000 == 0) cout << "Written " << count << " blocks" << endl;
   }
 
   const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
