@@ -8,7 +8,7 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
       [
         {
           "type": "replica",
-          "no_of_cpus": "2",
+          "no_of_cpus": "4",
           "storage_in_gigs": "64",
           "memory_in_gigs": "16"
         },
@@ -61,7 +61,7 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
   {
     "no_of_cpus": 
     {
-      "min": 2,
+      "min": 4,
       "max": 32
     },
     "storage_in_gigs": 

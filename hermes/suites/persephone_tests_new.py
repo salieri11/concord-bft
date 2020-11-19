@@ -669,6 +669,7 @@ def ssh_connect_node(ip, username, password, mode=None):
 
     if not status:
         log.error("SSH connection to {} could not be established within {} mins".format(ip, max_timeout / 60))
+        raise
     else:  # Mark node as logged in
         status = False  # setting status to False for this portion
         marker_file = "/tmp/{}".format(ip)

@@ -440,39 +440,48 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True, 
 
    resp = None
    ssh = None
-   try:
-      ssh = paramiko.SSHClient()
-      ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-      ssh.connect(host, username=username, password=password, timeout=60)
-      ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
-                                                           get_pty=True)
-      outlines = ssh_stdout.readlines()
-      # Hack for new security hardened OVA 1.0 that adds an extra line in SSH output
-      # "/etc/bash.bashrc: line 42: TMOUT: readonly variable"
-      for i in range(len(outlines)):
-         if "TMOUT: readonly variable" in outlines[i]:
-            del outlines[i]
-            break
-      resp = ''.join(outlines)
-      if log_response:
-         log.debug(resp)
-   except paramiko.AuthenticationException as e:
-      log.error("Authentication failed when connecting to {}".format(host))
-      raise
-   except EOFError as e:
-      if "Error reading SSH protocol banner" in str(e):
-         log.error("SSH failure, most likely due to network congestion.")
-      raise
-   except Exception as e:
-      if verbose:
-         if log_mode == "WARNING":
-            log.warning("Could not connect to {}".format(host))
-         else:
-            log.error("Could not connect to {}: {}".format(host, e))
-      raise
-   finally:
-      if ssh:
-         ssh.close()
+   retry_attempt = 1
+   while retry_attempt <= 3:
+      try:
+         log.debug("SSH connect attempt {}/3".format(retry_attempt))
+         ssh = paramiko.SSHClient()
+         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+         ssh.connect(host, username=username, password=password, timeout=60)
+         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
+                                                              get_pty=True)
+         outlines = ssh_stdout.readlines()
+         # Hack for new security hardened OVA 1.0 that adds an extra line in SSH output
+         # "/etc/bash.bashrc: line 42: TMOUT: readonly variable"
+         for i in range(len(outlines)):
+            if "TMOUT: readonly variable" in outlines[i]:
+               del outlines[i]
+               break
+         resp = ''.join(outlines)
+         if log_response:
+            log.debug(resp)
+         break
+      except paramiko.AuthenticationException as e:
+         log.error("Authentication failed when connecting to {} with exception: {}".format(host, e))
+         if retry_attempt == 3:
+            raise
+      except EOFError as e:
+         if "Error reading SSH protocol banner" in str(e):
+            log.error("SSH failure, most likely due to network congestion.")
+         if retry_attempt == 3:
+            raise
+      except Exception as e:
+         if verbose:
+            if log_mode == "WARNING":
+               log.warning("Could not connect to {}".format(host))
+            else:
+               log.error("Could not connect to {}: {}".format(host, e))
+         if retry_attempt == 3:
+            raise
+      finally:
+         if ssh:
+            ssh.close()
+         retry_attempt += 1
+
    return work_around_bc_5021(resp)
 
 def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
