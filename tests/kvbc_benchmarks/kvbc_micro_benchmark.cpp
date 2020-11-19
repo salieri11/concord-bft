@@ -33,7 +33,7 @@ using namespace concord::kvbc::v2MerkleTree;
 using namespace concordUtils;
 
 uint num_of_reader_threads = 4;
-atomic<uint> num_of_requests = 10000;
+atomic<uint> num_of_requests = 100000000;
 atomic<uint> curr_request = 0;
 
 mutex q_mutex;
@@ -364,15 +364,15 @@ int main(int argc, char **argv) {
 
   logging::initLogger("log4cplus.properties");
 
-  IStorageFactory *factory = new RocksDBStorageFactory("rocksdbdata1");
+  IStorageFactory *factory = new RocksDBStorageFactory("/media/ssd1/rocksdbdata_base");
   auto dbset = factory->newDatabaseSet();
 
   cout << "generating data..." << endl;
   // generate_data();
   // create_db(&dbset);
 
-  /*num_of_requests = 1000;
-  int num_of_cores = 3;
+  /*
+  int num_of_cores = 4;
   vector<thread> threads;
   threads.reserve(num_of_cores);
   uint numThreads = num_of_cores;
@@ -382,7 +382,9 @@ int main(int argc, char **argv) {
     uint c = min(chunkSize, num_of_requests - (i * chunkSize));
     cout << c << endl;
     threads.emplace_back(generate_blocks, c);
-  }*/
+  }
+  */
+  // write(&dbset);
   write1(&dbset);
   // for (auto &t : threads) t.join();
   return 0;
