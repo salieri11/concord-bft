@@ -48,7 +48,7 @@ public interface DeploymentDescriptorModel {
         private String authUrlJwt;
         private String providedIp;
         private String groupName;
-        private TlsLedgerData ledgerTls;
+        private TlsLedgerData tlsLedgerData;
         private String damlDbPassword;
     }
 

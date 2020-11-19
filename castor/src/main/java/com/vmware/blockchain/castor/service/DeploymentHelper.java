@@ -263,15 +263,15 @@ public class DeploymentHelper {
                 }
             }
 
-            if (client.getLedgerTls() != null) {
+            if (client.getTlsLedgerData() != null) {
                 // TODO Add validation
-                propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), client.getLedgerTls().getPem());
-                propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), client.getLedgerTls().getCrt());
-                propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), client.getLedgerTls().getCacrt());
+                propBuilder.putValues(NodeProperty.Name.TLS_PEM.name(), client.getTlsLedgerData().getPem());
+                propBuilder.putValues(NodeProperty.Name.TLS_CRT.name(), client.getTlsLedgerData().getCrt());
+                propBuilder.putValues(NodeProperty.Name.TLS_CACRT.name(), client.getTlsLedgerData().getCacrt());
 
-                if (!Strings.isNullOrEmpty(client.getLedgerTls().getClientAuth().toString())) {
+                if (!Strings.isNullOrEmpty(client.getTlsLedgerData().getClientAuth().toString())) {
                     propBuilder.putValues(NodeProperty.Name.TLS_CLIENT_AUTH.name(),
-                            client.getLedgerTls().getClientAuth().toString());
+                            client.getTlsLedgerData().getClientAuth().toString());
                 } else {
                     // Client auth is require by default
                     propBuilder.putValues(NodeProperty.Name.TLS_CLIENT_AUTH.name(),

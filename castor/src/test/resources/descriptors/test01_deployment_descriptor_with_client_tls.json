@@ -22,7 +22,7 @@
     {
       "zoneName": "test-zone-1 - A",
       "groupName": "Group1",
-      "ledgerTls": {
+      "tlsLedgerData": {
         "pem" : "pem1",
         "crt" : "crt1",
         "cacrt": "cacrt1",
@@ -32,7 +32,7 @@
     {
       "zoneName": "test-zone-1 - A",
       "groupName": "Group2",
-      "ledgerTls": {
+      "tlsLedgerData": {
         "pem" : "pem1",
         "crt" : "crt1",
         "cacrt": "cacrt1",
@@ -42,7 +42,7 @@
     {
       "zoneName": "test-zone-1 - A",
       "groupName": "Group1",
-      "ledgerTls": {
+      "tlsLedgerData": {
         "pem" : "pem1",
         "crt" : "crt1",
         "cacrt": "cacrt1",
