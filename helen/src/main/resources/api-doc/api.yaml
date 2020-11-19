@@ -52,7 +52,6 @@ paths:
                       enum:
                         - ETHEREUM
                         - DAML
-                        - HLF
                       description: Type of blockchain node
                     blockchain_state:
                       type: string
@@ -2208,7 +2207,6 @@ components:
                 enum:
                   - ETHEREUM
                   - DAML
-                  - HLF
                 description: Type of blockchain node
               blockchain_state:
                 type: string

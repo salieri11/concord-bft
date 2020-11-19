@@ -44,7 +44,6 @@ public class ValidationUtil {
                 }
                 break;
             case ETHEREUM:
-            case HLF:
                 if (nodeList.getReplicaSize() <= 0) {
                     return false;
                 }

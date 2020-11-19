@@ -58,7 +58,6 @@ public class ConfigUtilHelpers {
         TRS_TLS_CERTIFICATES_FOLDER_PATH("thin_replica_tls_cert_path"),
         DAML_ENABLED("daml_enable"),
         ETHEREUM_ENABLED("eth_enable"),
-        HLF_ENABLED("hlf_enable"),
         NODE("node"),
         PARTICIPANT_NODES("participant_nodes"),
         PARTICIPANT_NODE("participant_node"),

@@ -42,7 +42,7 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument(
         "--type",
         default="DAML",
-        choices=["ETHEREUM", "DAML", "HLF"],
+        choices=["ETHEREUM", "DAML"],
         help="Type of concord"
     )
     return vars(parser.parse_args())
@@ -62,8 +62,6 @@ def get_blockchain_type(blockchain_type: str) -> core.BlockchainType:
         return core.BlockchainType.ETHEREUM
     elif blockchain_type.upper() == "DAML":
         return core.BlockchainType.DAML
-    elif blockchain_type == "HLF":
-        return core.BlockchainType.HLF
 
 
 def main():

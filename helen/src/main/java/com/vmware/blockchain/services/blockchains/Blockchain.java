@@ -50,8 +50,7 @@ public class Blockchain extends AbstractEntity {
      */
     public enum BlockchainType {
         ETHEREUM,
-        DAML,
-        HLF
+        DAML
     }
 
     /**
