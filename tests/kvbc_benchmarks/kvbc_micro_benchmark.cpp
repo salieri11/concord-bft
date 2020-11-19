@@ -300,7 +300,6 @@ void read_read_write_test(Histogram &write_hist,
   collect_and_wait(workers, threads, read_hist, out_read_count, out_read_size);
 }
 
-
 void write1(const IStorageFactory::DatabaseSet *dbset) {
   uint64_t count = 0;
   BlockId lastBlockId;
@@ -324,9 +323,8 @@ void write1(const IStorageFactory::DatabaseSet *dbset) {
       write_set.emplace(Sliver{write_key, write_key_length}, Sliver{write_value, write_value_length});
     }
 
-    SetOfKeyValuePairs& block = blocks.front();
-    lastBlockId = dbset->dbAdapter->addBlock(block);
-    blocks.pop();
+    lastBlockId = dbset->dbAdapter->addBlock(write_set);
+    write_set.clear();
     if (++count % 50 == 0) cout << "Written " << count << " blocks" << endl;
   }
 
@@ -338,8 +336,6 @@ void write1(const IStorageFactory::DatabaseSet *dbset) {
   cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
 }
 
-
-
 void write(const IStorageFactory::DatabaseSet *dbset) {
   uint64_t count = 0;
   BlockId lastBlockId;
@@ -348,7 +344,7 @@ void write(const IStorageFactory::DatabaseSet *dbset) {
       this_thread::sleep_for(1s);
       continue;
     }
-    SetOfKeyValuePairs& block = blocks.front();
+    SetOfKeyValuePairs &block = blocks.front();
     lastBlockId = dbset->dbAdapter->addBlock(block);
     blocks.pop();
     if (++count % 50 == 0) cout << "Written " << count << " blocks" << endl;
@@ -375,7 +371,8 @@ int main(int argc, char **argv) {
   // generate_data();
   // create_db(&dbset);
 
-  int num_of_cores = 70;
+  /*num_of_requests = 1000;
+  int num_of_cores = 3;
   vector<thread> threads;
   threads.reserve(num_of_cores);
   uint numThreads = num_of_cores;
@@ -385,10 +382,9 @@ int main(int argc, char **argv) {
     uint c = min(chunkSize, num_of_requests - (i * chunkSize));
     cout << c << endl;
     threads.emplace_back(generate_blocks, c);
-  }
-  write(&dbset);
-  for(auto &t : threads)
-    t.join();
+  }*/
+  write1(&dbset);
+  // for (auto &t : threads) t.join();
   return 0;
 
   Histogram writer_hist;
