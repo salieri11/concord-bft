@@ -193,7 +193,11 @@ class DBAdapter : public IDbAdapter {
   std::optional<std::pair<Key, Value>> getLeafKeyValAtMostVersion(const Key &key,
                                                                   const sparse_merkle::Version &version) const;
 
+  void deleteGenesisBlock();
+
   void deleteKeysForBlock(const KeysVector &keys, BlockId blockId) const;
+
+  BlockId loadGenesisBlockId() const;
 
   BlockId loadLastReachableBlockId() const;
 
@@ -218,6 +222,7 @@ class DBAdapter : public IDbAdapter {
 
   logging::Logger logger_;
   std::shared_ptr<storage::IDBClient> db_;
+  BlockId genesisBlockId_{0};
   BlockId lastReachableBlockId_{0};
   std::optional<BlockId> latestBlockId_;
   sparse_merkle::Tree smTree_;

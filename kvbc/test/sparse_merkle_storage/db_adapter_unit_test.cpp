@@ -1017,6 +1017,15 @@ TEST_P(db_adapter_custom_blockchain, delete_on_an_empty_blockchain) {
   ASSERT_NO_THROW(adapter.deleteBlock(1));
 }
 
+TEST_P(db_adapter_custom_blockchain, delete_block_0_on_non_empty_chain_is_not_an_error) {
+  auto adapter = DBAdapter{GetParam()->newEmptyDb()};
+  const auto key = Sliver{"k"};
+
+  ASSERT_EQ(adapter.addBlock(SetOfKeyValuePairs{std::make_pair(key, Sliver{"v1"})}), 1);
+
+  ASSERT_NO_THROW(adapter.deleteBlock(0));
+}
+
 TEST_P(db_adapter_custom_blockchain, delete_single_st_block) {
   auto adapter = DBAdapter{GetParam()->newEmptyDb()};
 
@@ -1075,6 +1084,46 @@ TEST_P(db_adapter_custom_blockchain, delete_genesis_block) {
   const auto value = adapter.getValue(key, 2);
   ASSERT_EQ(value.second, 1);
   ASSERT_EQ(value.first, Sliver{"v1"});
+}
+
+TEST_P(db_adapter_custom_blockchain, block_ids_are_persisted_after_deletes) {
+  auto db = GetParam()->newEmptyDb();
+  auto adapter = std::make_unique<DBAdapter>(db);
+
+  const auto key = Sliver{"k"};
+
+  // Add blockchain blocks.
+  ASSERT_EQ(adapter->addBlock(SetOfKeyValuePairs{std::make_pair(key, Sliver{"v1"})}), 1);
+  ASSERT_EQ(adapter->addBlock(SetOfKeyValuePairs{}), 2);
+  ASSERT_EQ(adapter->addBlock(SetOfKeyValuePairs{std::make_pair(key, Sliver{"v3"})}), 3);
+
+  // Add ST temporary blocks.
+  ASSERT_NO_THROW(adapter->addRawBlock(
+      block::detail::create(SetOfKeyValuePairs{std::make_pair(key, Sliver{"v8"})}, BlockDigest{}, Hash{}), 8));
+  ASSERT_NO_THROW(adapter->addRawBlock(
+      block::detail::create(SetOfKeyValuePairs{std::make_pair(key, Sliver{"v9"})}, BlockDigest{}, Hash{}), 9));
+
+  // Verify before deletion.
+  ASSERT_EQ(adapter->getGenesisBlockId(), 1);
+  ASSERT_EQ(adapter->getLastReachableBlockId(), 3);
+  ASSERT_EQ(adapter->getLatestBlockId(), 9);
+
+  // Delete genesis, last reachable and a ST temporary blocks.
+  adapter->deleteBlock(1);  // genesis
+  adapter->deleteBlock(3);  // last reachable
+  adapter->deleteBlock(9);  // ST temp
+
+  // Verify after deletion.
+  ASSERT_EQ(adapter->getGenesisBlockId(), 2);
+  ASSERT_EQ(adapter->getLastReachableBlockId(), 2);
+  ASSERT_EQ(adapter->getLatestBlockId(), 8);
+
+  // Create a new adapter instance, simulating a system restart, and verify.
+  adapter.reset();
+  adapter = std::make_unique<DBAdapter>(db);
+  ASSERT_EQ(adapter->getGenesisBlockId(), 2);
+  ASSERT_EQ(adapter->getLastReachableBlockId(), 2);
+  ASSERT_EQ(adapter->getLatestBlockId(), 8);
 }
 
 TEST_P(db_adapter_custom_blockchain, get_value_from_deleted_block) {
