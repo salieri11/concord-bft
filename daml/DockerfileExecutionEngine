@@ -4,15 +4,26 @@
 
 FROM ubuntu:18.04
 
-ENV SBT_VERSION 1.3.0
+ENV SBT_VERSION 1.3.3
 
-RUN apt update && apt install -y curl && \
-    curl -L -o sbt-$SBT_VERSION.deb https://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb && \
-    dpkg -i sbt-$SBT_VERSION.deb && \
-    rm sbt-$SBT_VERSION.deb && \
-    apt update && apt install -y openjdk-8-jdk-headless sbt && \
-    apt install -y --no-install-recommends postgresql-client && \
+RUN set -ex; \
+    apt-get update; \
+    apt-get install -y curl; \
+    curl -fsSL -o sbt-$SBT_VERSION.deb https://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb; \
+    dpkg -i sbt-$SBT_VERSION.deb; \
+    rm sbt-$SBT_VERSION.deb; \
+    apt-get update; \
+    apt-get install -y openjdk-8-jdk-headless sbt; \
+    apt-get install -y --no-install-recommends postgresql-client; \
     rm -rf /var/lib/apt/lists/*
+
+# Download SBT separately from the DAML dependencies.
+RUN set -ex; \
+    mkdir /tmp/sbt; \
+    cd /tmp/sbt; \
+    sbt --sbt-create update; \
+    cd /; \
+    rm -rf /tmp/sbt
 
 COPY daml/build.sbt /doc/daml/
 COPY daml/project /doc/daml/project
@@ -42,4 +53,3 @@ RUN chmod 755 /doc/daml/entrypoint.sh
 ENTRYPOINT ["/doc/daml/entrypoint.sh"]
 
 CMD ["-J-Xmx4G"]
-
