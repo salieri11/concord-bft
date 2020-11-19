@@ -17,15 +17,23 @@ RUN apt update && apt install -y curl nano vim mc cmake build-essential && \
     apt install -y --no-install-recommends postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 
+# Download SBT separately from the DAML dependencies.
+RUN set -ex; \
+    mkdir /tmp/sbt; \
+    cd /tmp/sbt; \
+    sbt --sbt-create update; \
+    cd /; \
+    rm -rf /tmp/sbt
+
 # daml_ledger_api
 
 COPY daml/build.sbt /doc/daml/
 COPY daml/project /doc/daml/project
-COPY daml/.scalafmt.conf /doc/daml/
 WORKDIR /doc/daml
 RUN sbt update
 
-COPY daml/entrypoint.sh /doc/daml/entrypoint.sh
+COPY daml/.scalafmt.conf /doc/daml/
+COPY daml/entrypoint.sh /doc/daml/
 COPY concord/proto /doc/concord/proto
 COPY communication/src/main/proto /doc/communication/src/main/proto
 COPY daml/common /doc/daml/common
