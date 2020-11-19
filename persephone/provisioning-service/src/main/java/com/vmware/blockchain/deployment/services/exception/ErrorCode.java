@@ -42,6 +42,6 @@ public final class ErrorCode {
     public static final String VM_POWER_STATE_UPDATE_ERROR = "Unable to update VM power state: {0}";
     public static final String VM_START_ERROR = "Error creating/starting the VM";
     public static final String VMC_ORCHESTRATION_CREATION_FAILURE = "Error creating VMC orchestrator: {0}";
-
-
+    public static final String SERVER_NOT_FUNCTIONAL = "Server is not reachable or is unhealthy: {0}";
+    public static final String INVALID_CREDENTIALS = "Access credentials are invalid: {0}";
 }

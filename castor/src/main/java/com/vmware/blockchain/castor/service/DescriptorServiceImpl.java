@@ -45,6 +45,7 @@ public class DescriptorServiceImpl implements DescriptorService {
         gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.IDENTITY).create();
 
         typeToDeploymentDescriptorMap = new HashMap<>();
+        typeToDeploymentDescriptorMap.put(CastorDeploymentType.VALIDATE, ProvisionDescriptorDescriptorModel.class);
         typeToDeploymentDescriptorMap.put(CastorDeploymentType.PROVISION, ProvisionDescriptorDescriptorModel.class);
         typeToDeploymentDescriptorMap.put(CastorDeploymentType.RECONFIGURE, ReconfigurationDescriptorModel.class);
     }

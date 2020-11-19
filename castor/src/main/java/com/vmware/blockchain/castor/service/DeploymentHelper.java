@@ -398,7 +398,13 @@ public class DeploymentHelper {
         return orchestrationSite;
     }
 
-    private static OrchestrationSiteInfo toOrchestrationSiteInfo(
+    /**
+     * Construct an orchestration site.
+     * @param zoneName the zone name
+     * @param infrastructureDescriptorModel the infra model that describes zone properties
+     * @return the orchestration info message
+     */
+    public static OrchestrationSiteInfo toOrchestrationSiteInfo(
             String zoneName, InfrastructureDescriptorModel infrastructureDescriptorModel) {
 
         Optional<InfrastructureDescriptorModel.Zone> zoneDescriptorOpt =

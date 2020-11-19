@@ -12,8 +12,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
+import com.vmware.blockchain.deployment.services.exception.InternalFailurePersephoneException;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
@@ -39,6 +43,7 @@ public class VSphereOrchestrator implements Orchestrator {
     private VSphereDatacenterInfo datacenterInfo;
     private IpamClient ipamClient;
     private VSphereHttpClient vSphereHttpClient;
+    private String vCenterUrl;
 
     private OrchestratorSiteInformation orchestratorSiteInformation;
 
@@ -50,6 +55,7 @@ public class VSphereOrchestrator implements Orchestrator {
                                IpamClient ipamClient) {
         this.datacenterInfo = info;
         this.ipamClient = ipamClient;
+        this.vCenterUrl = vCenter.getAddress();
 
         // Create new vSphere client.
         VSphereHttpClient.Context context = new VSphereHttpClient.Context(
@@ -63,6 +69,27 @@ public class VSphereOrchestrator implements Orchestrator {
 
     @Override
     public void populate() {
+
+        // First ensure that the server is functional, otherwise there is no point in checking further.
+        try {
+            HttpStatus healthStatus = vSphereHttpClient.getHealth();
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.error("Server credentials invalid: {}", vCenterUrl);
+            throw new BadRequestPersephoneException(ErrorCode.INVALID_CREDENTIALS, vCenterUrl);
+        } catch (InternalFailurePersephoneException e) {
+            // This exception is thrown when the server is unreachable.
+            if (e.getHttpStatus() == HttpStatus.INTERNAL_SERVER_ERROR) {
+                log.error("Unreachable vCenter: {}", e);
+                throw new BadRequestPersephoneException(ErrorCode.SERVER_NOT_FUNCTIONAL, vCenterUrl);
+            } else {
+                log.error("Unknown error: {}", e);
+                throw new BadRequestPersephoneException(ErrorCode.REQUEST_EXECUTION_FAILURE, vCenterUrl);
+            }
+        } catch (Exception e) {
+            log.error("Unknown error: {}", e);
+            throw new BadRequestPersephoneException(ErrorCode.REQUEST_EXECUTION_FAILURE, vCenterUrl);
+        }
+
         val compute = datacenterInfo.getResourcePool();
         val storage = datacenterInfo.getDatastore();
         val network = datacenterInfo.getNetwork();

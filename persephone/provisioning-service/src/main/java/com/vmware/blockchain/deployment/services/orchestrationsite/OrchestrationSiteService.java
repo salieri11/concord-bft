@@ -51,16 +51,13 @@ public class OrchestrationSiteService extends OrchestrationSiteServiceGrpc.Orche
                     .setSite(request.getSite())
                     .build();
 
-
             // TODO cleanup session.
-
             log.info("Validation request: {}", request.getSite());
             responseObserver.onNext(response);
+            responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error validating orchestration site, error: ", e);
-            responseObserver.onError(e);
-        } finally {
-            responseObserver.onCompleted();
+            throw e;
         }
     }
 }

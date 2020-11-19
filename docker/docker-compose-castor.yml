@@ -1,6 +1,7 @@
 # Copyright (c) 2020 VMware, Inc. All rights reserved. VMware Confidential
 #
 # Usage: Set the following environment variables:
+# ORCHESTRATOR_DEPLOYMENT_TYPE: The type of request: VALIDATE, PROVISION, or RECONFIGURE. Defaults to PROVISION.
 # ORCHESTRATOR_DESCRIPTORS_DIR: The directory containing the infrastructure and deployment descriptor files
 # ORCHESTRATOR_OUTPUT_DIR: The directory where the information about the deployment will be logged
 # INFRA_DESC_FILENAME: The name of the infrastructure descriptor file inside the $ORCHESTRATOR_DESCRIPTORS_DIR directory

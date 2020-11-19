@@ -20,8 +20,11 @@ import com.vmware.blockchain.castor.service.ProvisionerService;
 import com.vmware.blockchain.castor.service.ProvisionerServiceImpl;
 import com.vmware.blockchain.castor.service.ReconfigurerService;
 import com.vmware.blockchain.castor.service.ReconfigurerServiceImpl;
+import com.vmware.blockchain.castor.service.SiteValidatorService;
+import com.vmware.blockchain.castor.service.SiteValidatorServiceImpl;
 import com.vmware.blockchain.castor.service.ValidatorService;
 import com.vmware.blockchain.castor.service.ValidatorServiceImpl;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 
 /**
@@ -36,6 +39,9 @@ public class CastorTestConfiguration {
 
     @Autowired
     private ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub blockingProvisioningClient;
+
+    @Autowired
+    private OrchestrationSiteServiceGrpc.OrchestrationSiteServiceBlockingStub orchestrationClient;
 
     @Autowired
     private ProvisioningServiceV2Grpc.ProvisioningServiceV2Stub asyncProvisioningClient;
@@ -90,6 +96,15 @@ public class CastorTestConfiguration {
     }
 
     /**
+     * Create a Site validation service bean. This validates against a real orchestration site, like vCenter.
+     * @return the site validator service singleton.
+     */
+    @Bean
+    public SiteValidatorService siteValidatorService() {
+        return new SiteValidatorServiceImpl(environment, orchestrationClient);
+    }
+
+    /**
      * Create a deployer service bean.
      * @return the deployer service singleton.
      */
@@ -97,6 +112,6 @@ public class CastorTestConfiguration {
     public DeployerService deployerService() {
         return new DeployerServiceImpl(
                 mockEnvironment(), descriptorService(), validatorService(),
-                provisionerService(), reconfigurerService());
+                provisionerService(), reconfigurerService(), siteValidatorService());
     }
 }
