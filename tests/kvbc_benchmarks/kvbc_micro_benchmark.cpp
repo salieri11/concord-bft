@@ -23,6 +23,8 @@
 #include <unordered_map>
 #include <condition_variable>
 #include <endianness.hpp>
+#include <queue>
+#include <mutex>
 
 using namespace std;
 using namespace concord::kvbc;
@@ -33,6 +35,9 @@ using namespace concordUtils;
 uint num_of_reader_threads = 4;
 atomic<uint> num_of_requests = 10000;
 atomic<uint> curr_request = 0;
+
+mutex q_mutex;
+queue<SetOfKeyValuePairs> blocks;
 
 uint dataset_size = num_of_requests / 10;
 vector<Key> read_keys;
@@ -167,13 +172,12 @@ void create_db(const IStorageFactory::DatabaseSet *dbset) {
   }
 }
 
-void create_db_merkle(const IStorageFactory::DatabaseSet *dbset) {
+void generate_blocks(uint blocks_count) {
   concord::storage::SetOfKeyValuePairs write_set;
   mt19937 generator(0);
   uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
 
-  BlockId lastBlockId;
-  for (uint i = 0; i < num_of_requests; ++i) {
+  for (uint i = 0; i < blocks_count; ++i) {
     uint count = 0;
     while (count++ < write_kv_count) {
       char *write_key = new char[write_key_length];
@@ -188,18 +192,12 @@ void create_db_merkle(const IStorageFactory::DatabaseSet *dbset) {
       }
       write_set.emplace(Sliver{write_key, write_key_length}, Sliver{write_value, write_value_length});
     }
-    lastBlockId = dbset->dbAdapter->addBlock(write_set);
-    write_set.clear();
-    if (i % 1000 == 0) cout << "Generated " << i << " blocks" << endl;
+
+    {
+      lock_guard<mutex> lg(q_mutex);
+      blocks.push(write_set);
+    }
   }
-
-  const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
-  const auto block =
-      SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_, concordUtils::toBigEndianStringBuffer(0L))};
-  cout << "Done. Last block id: " << lastBlockId << endl;
-  lastBlockId = dbset->dbAdapter->addBlock(block);
-
-  cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
 }
 
 template <typename T>
@@ -302,6 +300,68 @@ void read_read_write_test(Histogram &write_hist,
   collect_and_wait(workers, threads, read_hist, out_read_count, out_read_size);
 }
 
+
+void write1(const IStorageFactory::DatabaseSet *dbset) {
+  uint64_t count = 0;
+  BlockId lastBlockId;
+  concord::storage::SetOfKeyValuePairs write_set;
+  mt19937 generator(0);
+  uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
+
+  while (count < num_of_requests) {
+    uint kcount = 0;
+    while (kcount++ < write_kv_count) {
+      char *write_key = new char[write_key_length];
+      for (uint j = 0; j < write_key_length / sizeof(int); j++) {
+        auto r = distribution(generator);
+        memcpy(write_key + j * sizeof(int), &r, sizeof(int));
+      }
+      char *write_value = new char[write_value_length];
+      for (uint j = 0; j < write_value_length / sizeof(int); j++) {
+        auto r = distribution(generator);
+        memcpy(write_value + j * sizeof(int), &r, sizeof(int));
+      }
+      write_set.emplace(Sliver{write_key, write_key_length}, Sliver{write_value, write_value_length});
+    }
+
+    SetOfKeyValuePairs& block = blocks.front();
+    lastBlockId = dbset->dbAdapter->addBlock(block);
+    blocks.pop();
+    if (++count % 50 == 0) cout << "Written " << count << " blocks" << endl;
+  }
+
+  const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
+  const auto block =
+      SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_, concordUtils::toBigEndianStringBuffer(0L))};
+  cout << "Done. Last block id: " << lastBlockId << endl;
+  lastBlockId = dbset->dbAdapter->addBlock(block);
+  cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
+}
+
+
+
+void write(const IStorageFactory::DatabaseSet *dbset) {
+  uint64_t count = 0;
+  BlockId lastBlockId;
+  while (count < num_of_requests) {
+    if (blocks.empty()) {
+      this_thread::sleep_for(1s);
+      continue;
+    }
+    SetOfKeyValuePairs& block = blocks.front();
+    lastBlockId = dbset->dbAdapter->addBlock(block);
+    blocks.pop();
+    if (++count % 50 == 0) cout << "Written " << count << " blocks" << endl;
+  }
+
+  const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
+  const auto block =
+      SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_, concordUtils::toBigEndianStringBuffer(0L))};
+  cout << "Done. Last block id: " << lastBlockId << endl;
+  lastBlockId = dbset->dbAdapter->addBlock(block);
+  cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
+}
+
 int main(int argc, char **argv) {
   (void)argc;
   (void)argv;
@@ -312,9 +372,23 @@ int main(int argc, char **argv) {
   auto dbset = factory->newDatabaseSet();
 
   cout << "generating data..." << endl;
-  generate_data();
+  // generate_data();
   // create_db(&dbset);
-  create_db_merkle(&dbset);
+
+  int num_of_cores = 70;
+  vector<thread> threads;
+  threads.reserve(num_of_cores);
+  uint numThreads = num_of_cores;
+  uint chunkSize = ceil((double)num_of_requests / numThreads);
+  cout << chunkSize << endl;
+  for (uint i = 0; i < numThreads; i++) {
+    uint c = min(chunkSize, num_of_requests - (i * chunkSize));
+    cout << c << endl;
+    threads.emplace_back(generate_blocks, c);
+  }
+  write(&dbset);
+  for(auto &t : threads)
+    t.join();
   return 0;
 
   Histogram writer_hist;
