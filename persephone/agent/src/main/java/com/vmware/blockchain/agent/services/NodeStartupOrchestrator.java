@@ -40,7 +40,6 @@ import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
 import com.vmware.blockchain.agent.services.configuration.DamlCommitterConfig;
 import com.vmware.blockchain.agent.services.configuration.DamlParticipantConfig;
 import com.vmware.blockchain.agent.services.configuration.EthereumConfig;
-import com.vmware.blockchain.agent.services.configuration.HlfConfig;
 import com.vmware.blockchain.agent.services.configuration.MetricsAndTracingConfig;
 import com.vmware.blockchain.agent.services.configuration.ReadReplicaConfig;
 import com.vmware.blockchain.agent.services.configuration.VolumeBindHelper;
@@ -323,9 +322,6 @@ public class NodeStartupOrchestrator {
                         throw new AgentException(ErrorCode.DAML_NODE_MISSING, "DAML Node type not provided. ",
                                                  new RuntimeException());
                 }
-                break;
-            case HLF:
-                containerSpec = HlfConfig.valueOf(component.getServiceType().name());
                 break;
             default:
                 var message = String.format("Invalid blockchain network type(%s)", blockchainType);

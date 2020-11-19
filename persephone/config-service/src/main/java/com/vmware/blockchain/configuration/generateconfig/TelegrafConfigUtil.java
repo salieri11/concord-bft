@@ -195,8 +195,7 @@ public class TelegrafConfigUtil {
 
         // TODO change to switch case once concord name is unified.
         if (servicesList.contains(ConcordComponent.ServiceType.DAML_CONCORD)
-                || servicesList.contains(ConcordComponent.ServiceType.CONCORD)
-                || servicesList.contains(ConcordComponent.ServiceType.HLF_CONCORD)) {
+                || servicesList.contains(ConcordComponent.ServiceType.CONCORD)) {
             prometheusUrls.add("\"http://concord:9891/metrics\"");
         }
 
