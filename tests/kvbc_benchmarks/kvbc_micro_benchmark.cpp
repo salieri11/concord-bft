@@ -12,7 +12,7 @@
 // file.
 
 #include "KVBCInterfaces.h"
-#include "storage_factory_interface.h"
+// #include "storage_factory_interface.h"
 #include "merkle_tree_storage_factory.h"
 #include "histogram.hpp"
 #include <memory>
@@ -21,6 +21,8 @@
 #include <random>
 #include <iomanip>
 #include <unordered_map>
+#include <condition_variable>
+#include <endianness.hpp>
 
 using namespace std;
 using namespace concord::kvbc;
@@ -45,7 +47,7 @@ uint read_key_length = 124;
 uint read_value_length = 420;
 uint write_kv_count = 31;
 uint write_key_length = 20;
-uint write_value_length = 800;
+uint write_value_length = 840;
 uint reader_sleep_milli = 0;
 
 bool check_output = true;
@@ -62,7 +64,8 @@ class Reader {
   T on_read_func = nullptr;
 
  public:
-  Reader(IStorageFactory::DatabaseSet *dbset, uint &id, T &&on_read) : dbset_ptr{dbset}, reader_id{id}, on_read_func{on_read} {
+  Reader(IStorageFactory::DatabaseSet *dbset, uint &id, T &&on_read)
+      : dbset_ptr{dbset}, reader_id{id}, on_read_func{on_read} {
     h.Clear();
   }
 
@@ -164,9 +167,47 @@ void create_db(const IStorageFactory::DatabaseSet *dbset) {
   }
 }
 
+void create_db_merkle(const IStorageFactory::DatabaseSet *dbset) {
+  concord::storage::SetOfKeyValuePairs write_set;
+  mt19937 generator(0);
+  uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
+
+  BlockId lastBlockId;
+  for (uint i = 0; i < num_of_requests; ++i) {
+    uint count = 0;
+    while (count++ < write_kv_count) {
+      char *write_key = new char[write_key_length];
+      for (uint j = 0; j < write_key_length / sizeof(int); j++) {
+        auto r = distribution(generator);
+        memcpy(write_key + j * sizeof(int), &r, sizeof(int));
+      }
+      char *write_value = new char[write_value_length];
+      for (uint j = 0; j < write_value_length / sizeof(int); j++) {
+        auto r = distribution(generator);
+        memcpy(write_value + j * sizeof(int), &r, sizeof(int));
+      }
+      write_set.emplace(Sliver{write_key, write_key_length}, Sliver{write_value, write_value_length});
+    }
+    lastBlockId = dbset->dbAdapter->addBlock(write_set);
+    write_set.clear();
+    if (i % 1000 == 0) cout << "Generated " << i << " blocks" << endl;
+  }
+
+  const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
+  const auto block =
+      SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_, concordUtils::toBigEndianStringBuffer(0L))};
+  cout << "Done. Last block id: " << lastBlockId << endl;
+  lastBlockId = dbset->dbAdapter->addBlock(block);
+
+  cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
+}
+
 template <typename T>
-void collect_and_wait(vector<T> &workers, vector<thread> &threads,
-                      Histogram &read_hist, uint64_t &out_read_count, uint64_t &out_read_size) {
+void collect_and_wait(vector<T> &workers,
+                      vector<thread> &threads,
+                      Histogram &read_hist,
+                      uint64_t &out_read_count,
+                      uint64_t &out_read_size) {
   for (auto &w : workers) {
     w.stop();
     read_hist.Merge(w.get_histogram());
@@ -177,7 +218,9 @@ void collect_and_wait(vector<T> &workers, vector<thread> &threads,
   for (auto &t : threads) t.join();
 }
 
-void do_writes(Histogram &writer_hist, IStorageFactory::DatabaseSet &dbset, uint64_t &out_write_size,
+void do_writes(Histogram &writer_hist,
+               IStorageFactory::DatabaseSet &dbset,
+               uint64_t &out_write_size,
                function<void()> &&wait_before = nullptr) {
   std::default_random_engine generator;
   std::uniform_int_distribution<int> distribution(0, dataset_size);
@@ -191,7 +234,7 @@ void do_writes(Histogram &writer_hist, IStorageFactory::DatabaseSet &dbset, uint
       out_write_size += write_values[i].length();
     }
 
-    if(wait_before) wait_before();
+    if (wait_before) wait_before();
 
     auto write_start = chrono::steady_clock::now();
     Status s = dbset.dataDBClient->multiPut(write_batch);
@@ -203,14 +246,18 @@ void do_writes(Histogram &writer_hist, IStorageFactory::DatabaseSet &dbset, uint
   }
 }
 
-void stress_test(Histogram &write_hist, Histogram &read_hist, IStorageFactory::DatabaseSet &dbset,
-                 uint64_t &out_read_count,uint64_t &out_read_size, uint64_t &out_write_size) {
+void stress_test(Histogram &write_hist,
+                 Histogram &read_hist,
+                 IStorageFactory::DatabaseSet &dbset,
+                 uint64_t &out_read_count,
+                 uint64_t &out_read_size,
+                 uint64_t &out_write_size) {
   vector<thread> threads;
   threads.reserve(num_of_reader_threads);
   vector<Reader<std::function<void()>>> workers;
   workers.reserve(num_of_reader_threads);
   for (uint i = 0; i < num_of_reader_threads; ++i) {
-    workers.emplace_back(&dbset, i,nullptr);
+    workers.emplace_back(&dbset, i, nullptr);
   }
   for (auto &w : workers) {
     threads.emplace_back(std::ref(w));
@@ -220,9 +267,13 @@ void stress_test(Histogram &write_hist, Histogram &read_hist, IStorageFactory::D
   collect_and_wait(workers, threads, read_hist, out_read_count, out_read_size);
 }
 
-void read_read_write_test(Histogram &write_hist, Histogram &read_hist, IStorageFactory::DatabaseSet &dbset,
-                          uint64_t &out_read_count,uint64_t &out_read_size, uint64_t &out_write_size) {
-  unordered_map<uint, uint64_t> read_count; // reader id -> read done count
+void read_read_write_test(Histogram &write_hist,
+                          Histogram &read_hist,
+                          IStorageFactory::DatabaseSet &dbset,
+                          uint64_t &out_read_count,
+                          uint64_t &out_read_size,
+                          uint64_t &out_write_size) {
+  unordered_map<uint, uint64_t> read_count;  // reader id -> read done count
   vector<thread> threads;
   threads.reserve(num_of_reader_threads);
   vector<Reader<std::function<void()>>> workers;
@@ -232,9 +283,9 @@ void read_read_write_test(Histogram &write_hist, Histogram &read_hist, IStorageF
   mutex m;
   for (uint i = 0; i < num_of_reader_threads; ++i) {
     workers.emplace_back(&dbset, i, [&signalled, &m, &cv]() mutable {
-     lock_guard<mutex> lg(m);
-     ++signalled;
-     cv.notify_all();
+      lock_guard<mutex> lg(m);
+      ++signalled;
+      cv.notify_all();
     });
   }
   for (auto &w : workers) {
@@ -243,10 +294,8 @@ void read_read_write_test(Histogram &write_hist, Histogram &read_hist, IStorageF
 
   do_writes(write_hist, dbset, out_write_size, [&signalled, &cv, &m]() mutable {
     unique_lock<mutex> ul(m);
-    if(signalled < 1) {
-      cv.wait(ul, [&signalled]() {
-        return signalled > 1;
-      });
+    if (signalled < 1) {
+      cv.wait(ul, [&signalled]() { return signalled > 1; });
       --signalled;
     }
   });
@@ -256,12 +305,17 @@ void read_read_write_test(Histogram &write_hist, Histogram &read_hist, IStorageF
 int main(int argc, char **argv) {
   (void)argc;
   (void)argv;
-  IStorageFactory *factory = new RocksDBStorageFactory("rocksdb_benchmark");
+
+  logging::initLogger("log4cplus.properties");
+
+  IStorageFactory *factory = new RocksDBStorageFactory("rocksdbdata1");
   auto dbset = factory->newDatabaseSet();
 
   cout << "generating data..." << endl;
   generate_data();
-  create_db(&dbset);
+  // create_db(&dbset);
+  create_db_merkle(&dbset);
+  return 0;
 
   Histogram writer_hist;
   Histogram readers_hist;
