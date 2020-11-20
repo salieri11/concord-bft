@@ -85,13 +85,13 @@ class NodeCreator():
               "items": [
                 {
                   "type": "replica",
-                  "no_of_cpus": "2",
+                  "no_of_cpus": "4",
                   "memory_in_gigs": "16",
                   "storage_in_gigs": "64"
                 },
                 {
                   "type": "client",
-                  "no_of_cpus": "2",
+                  "no_of_cpus": "4",
                   "memory_in_gigs": "16",
                   "storage_in_gigs": "64"
                 }
@@ -151,8 +151,8 @@ class NodeCreator():
         '''
         size_obj: A sizing info data structure such as
           {
-            "no_of_cpus": "1",
-            "storage_in_gigs": "60",
+            "no_of_cpus": "4",
+            "storage_in_gigs": "64",
             "memory_in_gigs": "32”
           }
         Returns a list of replica node structures per
@@ -163,8 +163,8 @@ class NodeCreator():
             "zone_id": "84b9a0ed-c162-446a-b8c0-2e45755f3844",
             "sizing_info" :
             {
-              "no_of_cpus": "1",
-              "storage_in_gigs": "60",
+              "no_of_cpus": "4",
+              "storage_in_gigs": "64",
               "memory_in_gigs": "32"
             }
           }, ...
@@ -189,8 +189,8 @@ class NodeCreator():
         zone_ids: List of unique zone ids.
         sizing: A sizing info data structure such as
           {
-            "no_of_cpus": "1",
-            "storage_in_gigs": "60",
+            "no_of_cpus": "4",
+            "storage_in_gigs": "64",
             "memory_in_gigs": "32”
           }
         Returns a list of client node structures per
@@ -200,7 +200,7 @@ class NodeCreator():
             "auth_url_jwt": "user@server.com",
             "group_name": “Group 1”,
             "sizing_info" : {
-              "no_of_cpus": "1",
+              "no_of_cpus": "4",
               "storage_in_gigs": "100",
               "memory_in_gigs": "128"
             }
