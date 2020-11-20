@@ -6,7 +6,7 @@ set -o pipefail
 
 BUF_CONFIG='{"version": "v1beta1", "build": {"roots": ["concord/proto", "communication/src/main/proto"]}}'
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
 DAML_DIR="${ROOT_DIR}/daml"
 DAML_SDK_VERSION="$(cat "${DAML_DIR}/sdk.version")"
 DAML_INTEGRATION_KIT_VERSION="${DAML_SDK_VERSION}-$(cat "${DAML_DIR}/integration-kit-suffix.version")"
