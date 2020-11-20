@@ -69,6 +69,8 @@ public final class ErrorCodeType {
             new ErrorCodeType("helen.params.should.contains.two.elements.for.this.request.type", 0);
     public static final ErrorCodeType ELEMENTS_SPECIFIED_MORE =
             new ErrorCodeType("helen.params.must.contain.only.one.element", 0);
+    public static final ErrorCodeType EMPTY_PASSWORD_NOT_ALLOWED =
+            new ErrorCodeType("helen.password.cannot.be.empty", 0);
     public static final ErrorCodeType ENTITY_CONVERSION_UNSUCCESSFUL =
             new ErrorCodeType("helen.could.not.convert.from.db.to.entity", 1);
     public static final ErrorCodeType ENTITY_ISSUES = new ErrorCodeType("helen.issues.with.entity", 0);

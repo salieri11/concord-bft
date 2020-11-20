@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.text.MessageFormat;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.test.context.ContextConfiguration;
@@ -47,6 +49,8 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
+import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.operation.OperationContext;
@@ -517,4 +521,57 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertEquals(res.get(0).getGroupId(), CLIENT_NODE_ID);
         Assertions.assertNull(res.get(0).getGroupName());
     }
+
+    @Test
+    protected void testUpdateDamlDbPassword() throws Exception {
+        final String newPass = "new pass";
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", "pass", BC_DAML, SITE_1, CLIENT_NODE_ID, null, "pem", "crt", "cacrt");
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+        final Client clientUpdated = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", "pass", BC_DAML, SITE_1, CLIENT_NODE_ID, null, "pem", "crt", "cacrt");
+        clientUpdated.setId(CLIENT_NODE_ID);
+        clientUpdated.setDamlDbPassword(newPass);
+        when(clientService.updateClient(any(), any())).thenReturn(clientUpdated);
+
+        String clientPatch = "{\n"
+                             + "    \"daml_db_password\": \"" + newPass + "\"\n"
+                             + "}";
+
+        MvcResult result = mockMvc.perform(
+                patch("/api/blockchains/" + BC_DAML.toString() + "/clients/" + CLIENT_NODE_ID)
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(clientPatch)).andExpect(status().isAccepted()).andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        ClientController.ClientPatchResponse body =
+                objectMapper.readValue(responseBody, new TypeReference<ClientController.ClientPatchResponse>() {
+                });
+        Assertions.assertEquals(clientUpdated.getDamlDbPassword(), newPass);
+    }
+
+    @Test
+    protected void testUpdateDamlDbPasswordEmpty() throws Exception {
+
+        final Client client1 = new Client("publicIp", "privateIp", "hostName", "url",
+                                          "cert", "pass", BC_DAML, SITE_1, CLIENT_NODE_ID, null, "pem", "crt", "cacrt");
+        client1.setId(CLIENT_NODE_ID);
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client1));
+
+        String clientPatch = "{\n"
+                             + "    \"daml_db_password\": \"\"\n"
+                             + "}";
+        when(clientService.updateClient(any(), any())).thenThrow(new HelenException(HttpStatus.BAD_REQUEST,
+                                                                             ErrorCodeType.EMPTY_PASSWORD_NOT_ALLOWED));
+        mockMvc.perform(
+                patch("/api/blockchains/" + BC_DAML.toString() + "/clients/" + CLIENT_NODE_ID)
+                        .with(authentication(adminAuth))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(clientPatch)).andExpect(status().isBadRequest());
+
+    }
+
 }
