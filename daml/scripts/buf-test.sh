@@ -10,12 +10,13 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." >/dev/null 2>&1 && pwd)"
 DAML_DIR="${ROOT_DIR}/daml"
 DAML_SDK_VERSION="$(cat "${DAML_DIR}/sdk.version")"
 DAML_INTEGRATION_KIT_VERSION="${DAML_SDK_VERSION}-$(cat "${DAML_DIR}/integration-kit-suffix.version")"
+EXECUTION_ENGINE_GRPC_JAR="${DAML_DIR}/execution-engine/target/universal/stage/lib/com.digitalasset.daml.execution.engine.execution-engine-grpc-${DAML_INTEGRATION_KIT_VERSION}.jar"
 
 PROTO_DIR="$(mktemp -d)"
 trap 'rm -rf "$PROTO_DIR"' EXIT
 
 cd "$PROTO_DIR"
-unzip "${DAML_DIR}/execution-engine/target/universal/stage/lib/com.digitalasset.daml.execution.engine.execution-engine-grpc-${DAML_INTEGRATION_KIT_VERSION}.jar" daml_validator.proto
+unzip "$EXECUTION_ENGINE_GRPC_JAR" '*.proto'
 echo
 echo 'DAML proto files:'
 ls -lh
