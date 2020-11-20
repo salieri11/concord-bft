@@ -33,7 +33,7 @@ public class HelenException extends VmbcException {
      * Creating new constructors with ErrorCodeType.
      */
     public HelenException(HttpStatus httpStatus, ErrorCodeType codeType, Object... args) {
-        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
+        super(httpStatus, ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
         this.args = args;
         this.httpStatus = httpStatus;
     }

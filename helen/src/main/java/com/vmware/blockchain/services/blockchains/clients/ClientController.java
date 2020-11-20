@@ -15,11 +15,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.Strings;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
@@ -108,6 +111,52 @@ public class ClientController {
         private String cacrt;
     }
 
+    @Getter
+    @Setter
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ClientPatch {
+        private String damlDbPassword;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ClientPatchResponse {
+        private UUID id;
+        String publicIp;
+        String privateIp;
+        String password;
+        String url;
+        String authJwtUrl;
+        String damlDbPassword;
+        UUID blockchainId;
+        UUID zoneId;
+        UUID groupId;
+        String groupName;
+        String pem;
+        String crt;
+        String cacrt;
+
+        ClientPatchResponse(Client client) {
+            this.id = client.getId();
+            this.publicIp = client.getPublicIp();
+            this.privateIp = client.getPrivateIp();
+            this.password = client.getPassword();
+            this.url = client.getUrl();
+            this.authJwtUrl = client.getAuthJwtUrl();
+            this.damlDbPassword = client.getDamlDbPassword();
+            this.blockchainId = client.getBlockchainId();
+            this.zoneId = client.getZoneId();
+            this.groupId = client.getGroupId();
+            this.groupName = client.getGroupName();
+            this.pem = client.getPem();
+            this.crt = client.getCrt();
+            this.cacrt = client.getCacrt();
+        }
+    }
+
     @Deprecated
     private ReplicaService replicaService;
 
@@ -192,6 +241,25 @@ public class ClientController {
         );
 
         return new ResponseEntity<>(clientGetTlsCredentials, HttpStatus.OK);
+    }
+
+    /**
+     * Updates client, currently only DAML DB password can be updated.
+     * @param bid       Blockchain ID
+     * @param clientId  Client ID for which credentials are requested
+     * @return          202
+     */
+    @PatchMapping(path = {"/{clientId}"})
+    @PreAuthorize("@authHelper.isConsortiumParticipant()")
+    public ResponseEntity<ClientPatchResponse> updateClient(@PathVariable UUID bid, @PathVariable UUID clientId,
+                                                                   @RequestBody ClientPatch newClientDetails) {
+        safeGetBlockchain(bid);
+
+        Client client = safeClientGet(bid, clientId);
+
+        ClientPatchResponse cpr = new ClientPatchResponse(clientService.updateClient(client, newClientDetails));
+
+        return new ResponseEntity<>(cpr, HttpStatus.ACCEPTED);
     }
 
     // This could be done better, but maybe later. We need to handle errors first.

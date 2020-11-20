@@ -4,12 +4,17 @@
 
 package com.vmware.blockchain.services.blockchains.clients;
 
+import static com.vmware.blockchain.services.blockchains.clients.ClientController.ClientPatch;
+
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import com.vmware.blockchain.common.ErrorCodeType;
+import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.dao.GenericDao;
 
 /**
@@ -37,5 +42,20 @@ public class ClientService {
     // Retrieves based on fields marked @LinkedEntityId.
     public List<Client> getClientsByParentId(UUID id) {
         return genericDao.getByParentId(id, Client.class);
+    }
+
+    /**
+     * Updates a client entity, currently only DAML DB password update is implemented.
+     * */
+    public Client updateClient(Client client, ClientPatch newClientValues) {
+        String newPassword = newClientValues.getDamlDbPassword();
+        if (newPassword.isEmpty()) {
+            throw new HelenException(HttpStatus.BAD_REQUEST, ErrorCodeType.EMPTY_PASSWORD_NOT_ALLOWED);
+        }
+        if (client.getDamlDbPassword().compareTo(newPassword) != 0) {
+            client.setDamlDbPassword(newPassword);
+            return genericDao.put(client, client);
+        }
+        return client;
     }
 }
