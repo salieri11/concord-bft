@@ -8,7 +8,7 @@ ENV SBT_VERSION 1.3.3
 
 RUN set -ex; \
     apt-get update; \
-    apt-get install -y curl; \
+    apt-get install -y curl unzip; \
     curl -fsSL -o sbt-$SBT_VERSION.deb https://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb; \
     dpkg -i sbt-$SBT_VERSION.deb; \
     rm sbt-$SBT_VERSION.deb; \
@@ -16,6 +16,12 @@ RUN set -ex; \
     apt-get install -y openjdk-8-jdk-headless sbt; \
     apt-get install -y --no-install-recommends postgresql-client; \
     rm -rf /var/lib/apt/lists/*
+
+# Download buf
+ENV BUF_VERSION v0.31.1
+RUN set -ex; \
+    curl -fsSL -o /usr/local/bin/buf "https://github.com/bufbuild/buf/releases/download/${BUF_VERSION}/buf-$(uname -s)-$(uname -m)"; \
+    chmod +x /usr/local/bin/buf
 
 # Download SBT separately from the DAML dependencies.
 RUN set -ex; \
@@ -25,9 +31,8 @@ RUN set -ex; \
     cd /; \
     rm -rf /tmp/sbt
 
-COPY daml/build.sbt /doc/daml/
+COPY daml/build.sbt daml/integration-kit-suffix.version daml/sdk.version /doc/daml/
 COPY daml/project /doc/daml/project
-COPY daml/.scalafmt.conf /doc/daml/
 WORKDIR /doc/daml
 RUN sbt update
 
@@ -39,10 +44,14 @@ COPY daml/daml-execution-engine-entrypoint.sh /doc/daml/entrypoint.sh
 
 # Common logging configuration, also pointed at by path in `daml/execution-engine/src/main/resources/logback.xml`
 COPY daml/common/src/main/resources/logback-common.xml /doc/daml/execution-engine/resources/logback-common.xml
-
 COPY daml/execution-engine/src/main/resources/logback.xml /doc/daml/execution-engine/resources/logback.xml
 
+COPY daml/.scalafmt.conf /doc/daml/
 RUN sbt execution_engine/scalafmtCheck execution_engine/stage
+
+# Verify that the protobufs are compatible.
+COPY daml/scripts/buf-test.sh /doc/daml/scripts/buf-test.sh
+RUN /doc/daml/scripts/buf-test.sh
 
 RUN sbt execution_engine/test
 
