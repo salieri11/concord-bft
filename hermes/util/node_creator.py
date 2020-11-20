@@ -255,5 +255,4 @@ class NodeCreator():
 
             nodes.append(node)
 
-        log.info("client nodes {}".format(nodes))
         return nodes
