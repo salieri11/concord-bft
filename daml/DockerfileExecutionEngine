@@ -50,11 +50,11 @@ COPY daml/execution-engine/src/main/resources/logback.xml /doc/daml/execution-en
 
 RUN sbt execution_engine/scalafmtCheck execution_engine/stage
 
-RUN sbt execution_engine/test
-
 # Verify that the protobufs are compatible.
 COPY daml/buf-test.sh /doc/daml/
 RUN /doc/daml/buf-test.sh
+
+RUN sbt execution_engine/test
 
 EXPOSE 55000
 
