@@ -146,7 +146,7 @@
 
         <wiremock.version>2.27.1</wiremock.version>
 
-        <springframework.boot.version>2.3.3.RELEASE</springframework.boot.version>
+        <springframework.boot.version>2.3.5.RELEASE</springframework.boot.version>
         <kr.motd.maven.version>1.6.2</kr.motd.maven.version>
 
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
