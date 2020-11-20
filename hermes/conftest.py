@@ -519,6 +519,15 @@ def pytest_addoption(parser):
     parser.addoption("--notifyJobName",
                      help="Shortened job name running this monitoring script",
                      default=None)
+    parser.addoption("--dlrNoOfAgreements",
+                     help="No. of Agreements to run DLR simulation",
+                     default=100)
+    parser.addoption("--dlrNoOfVuser",
+                     help="No. of Users to run DLR simulation",
+                     default=10)
+    parser.addoption("--dlrLoadBatchSize",
+                     help="Batch size of agreements for an iteration",
+                     default=100)
 
     concordConfig = parser.getgroup(
         "Concord configuration", "Concord Options:")
@@ -698,7 +707,8 @@ def _get_suite_short_name(module_name):
         "WavefrontTests": "hermes.suites.wavefront_tests",
         "HelenVMSizeTests": "vmsize_test",
         "TlsDamlTests": "hermes.suites.tls_daml_tests",
-        "BackupRestoreTests": "hermes.suites.backup_restore_tests"
+        "BackupRestoreTests": "hermes.suites.backup_restore_tests",
+        "DlrTest": "hermes.suites.dlr_test"
     }
 
     short_name = list(suite_list.keys())[list(
