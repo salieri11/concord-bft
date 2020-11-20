@@ -19,6 +19,7 @@ import org.springframework.util.ResourceUtils;
 
 import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.exception.ErrorCode;
+import com.vmware.blockchain.deployment.v1.OrchestrationSiteServiceGrpc;
 import com.vmware.blockchain.deployment.v1.ProvisioningServiceV2Grpc;
 
 import io.grpc.ManagedChannel;
@@ -112,5 +113,10 @@ public class GrpcConfig {
     @Bean
     ProvisioningServiceV2Grpc.ProvisioningServiceV2BlockingStub provisioningServiceBlockingStub() {
         return ProvisioningServiceV2Grpc.newBlockingStub(provisioningServerChannel);
+    }
+
+    @Bean
+    OrchestrationSiteServiceGrpc.OrchestrationSiteServiceBlockingStub orchestrationSiteBlockingStub() {
+        return OrchestrationSiteServiceGrpc.newBlockingStub(provisioningServerChannel);
     }
 }

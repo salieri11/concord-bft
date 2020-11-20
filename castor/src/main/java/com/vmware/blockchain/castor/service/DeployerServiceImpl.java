@@ -48,6 +48,7 @@ public class DeployerServiceImpl implements DeployerService {
     private final ValidatorService validatorService;
     private final ProvisionerService provisionerService;
     private final ReconfigurerService reconfigurerService;
+    private final SiteValidatorService siteValidatorService;
 
     /**
      * Deployer service entrypoint.
@@ -61,12 +62,12 @@ public class DeployerServiceImpl implements DeployerService {
             log.info("No deployment type specified, defaulting to: {}", deploymentType);
         } else {
             if (!ObjectUtils.containsConstant(CastorDeploymentType.values(), providedValue)) {
-                log.error("Orchestrator deployment type must be one of PROVISION or RECONFIGURE");
+                log.error("Orchestrator deployment type must be one of VALIDATE or PROVISION or RECONFIGURE");
                 return;
             }
             CastorDeploymentType providedDeploymentType = CastorDeploymentType.valueOf(providedValue);
             if (providedDeploymentType == CastorDeploymentType.NONE) {
-                log.error("Orchestrator deployment type must be one of PROVISION or RECONFIGURE");
+                log.error("Orchestrator deployment type must be one of VALIDATE or PROVISION or RECONFIGURE");
                 return;
             }
             deploymentType = providedDeploymentType;
@@ -116,6 +117,11 @@ public class DeployerServiceImpl implements DeployerService {
                 ReconfigurationDescriptorModel reconfigDesc =
                         ReconfigurationDescriptorModel.class.cast(deploymentDescriptor);
                 reconfigure(infrastructureDescriptor, reconfigDesc, outputDirectoryLocation);
+                break;
+            case VALIDATE:
+                ProvisionDescriptorDescriptorModel validateDesc =
+                        ProvisionDescriptorDescriptorModel.class.cast(deploymentDescriptor);
+                validate(infrastructureDescriptor, validateDesc, outputDirectoryLocation);
                 break;
             default:
                 break;
@@ -214,6 +220,62 @@ public class DeployerServiceImpl implements DeployerService {
                 log.error("Deployment failure. Reconfiguration encountered an error", e);
             } catch (TimeoutException e) {
                 log.error("Deployment failure: timed out in {} minutes", deploymentTimeoutMinutes, e);
+            }
+            printWriter.close();
+        }
+    }
+
+    /*
+     * Validate user-provided Infrastructure properties against the actual VCenter:
+     * Validates:
+     * - Authentication / connection to vCenter
+     * - Network, Datastore, ResourcePool, Folder properties
+     */
+    private void validate(
+            InfrastructureDescriptorModel infrastructureDescriptor,
+            ProvisionDescriptorDescriptorModel validateDescriptor,
+            String outputDirectoryLocation) {
+        // This is used so the application will wait until the async validation process finishes
+        CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture = new CompletableFuture<>();
+
+        long validateTimeoutMinutes = environment.getProperty(DEPLOYMENT_TIMEOUT_MINUTES_KEY, Long.class, 30L);
+
+        String consortiumName = validateDescriptor.getBlockchain().getConsortiumName();
+        String now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String outputFileName = consortiumName + "_" + now;
+        Path outputFilePath = Paths.get(outputDirectoryLocation, outputFileName);
+        String fullOutputFileName = outputFilePath.toString();
+
+        FileOutputStream fos;
+        try {
+            fos = new FileOutputStream(fullOutputFileName, true);
+        } catch (IOException e) {
+            log.error("Could not open file for writing: {}", outputDirectoryLocation);
+            return;
+        }
+        PrintWriter printWriter = new PrintWriter(fos, true);
+
+        // Process validation against VC
+        try {
+            now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            log.info("Starting deployment type: {}, at {}", CastorDeploymentType.VALIDATE, now);
+            printWriter.printf("Starting deployment type: %s, at %s\n", CastorDeploymentType.VALIDATE, now);
+
+            siteValidatorService.siteValidationHandoff(
+                    printWriter, infrastructureDescriptor, validateDescriptor, deploymentCompletionFuture);
+        } finally {
+            try {
+                CastorDeploymentStatus result =
+                        deploymentCompletionFuture.get(validateTimeoutMinutes, TimeUnit.MINUTES);
+                log.info("Deployment completed with status: {}", result);
+                now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                printWriter.printf("Deployment finished at %s with status %s\n", now, result);
+            } catch (InterruptedException e) {
+                log.error("Deployment failure. Validation was interrupted", e);
+            } catch (ExecutionException e) {
+                log.error("Deployment failure. Validation encountered an error", e);
+            } catch (TimeoutException e) {
+                log.error("Deployment failure: timed out in {} minutes", validateTimeoutMinutes, e);
             }
             printWriter.close();
         }

@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.io.ByteArrayInputStream;
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
@@ -162,6 +163,19 @@ public class VSphereHttpClient {
         String certificateData;
     }
 
+    /**
+     * Get the health of the VC itself. If it is not reachable or is unhealthy,
+     * there is no point in processing further.
+     * @return status string returned by VC.
+     */
+    public HttpStatus getHealth() {
+        Class<?> objArrClz = Array.newInstance(Object.class, 0).getClass();
+        String uri = VsphereEndpoints.VSPHERE_HEALTH.getPath();
+        HttpEntity<Object[]> requests = new HttpEntity<>(httpHeaders);
+        ResponseEntity<? extends Object> responseEntity
+                = restTemplate.getForEntity(uri, objArrClz);
+        return responseEntity.getStatusCode();
+    }
 
     /**
      * Get ID of a specified folder based on name and type.

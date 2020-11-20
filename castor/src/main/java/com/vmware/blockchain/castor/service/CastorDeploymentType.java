@@ -10,5 +10,6 @@ package com.vmware.blockchain.castor.service;
 public enum CastorDeploymentType {
     NONE,
     PROVISION,
-    RECONFIGURE
+    RECONFIGURE,
+    VALIDATE
 }

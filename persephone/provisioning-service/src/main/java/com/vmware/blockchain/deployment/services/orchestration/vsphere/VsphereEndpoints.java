@@ -13,6 +13,8 @@ import lombok.Getter;
 public enum VsphereEndpoints {
 
     VSPHERE_AUTHENTICATION("/rest/com/vmware/cis/session"),
+    // The following API is used because it can check for liveness AND authentication
+    VSPHERE_HEALTH("/api/vcenter/namespaces/instances"),
     VSPHERE_DATASTORES("/rest/vcenter/datastore"),
     VSPHERE_FOLDERS("/rest/vcenter/folder"),
     VSPHERE_CONTENT_LIBRARY_ITEM("/rest/com/vmware/content/library/item"),
