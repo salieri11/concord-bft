@@ -341,8 +341,9 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
                                       tokenDescriptor=tokenDescriptor,
                                       service=hermes_data["hermesCmdlineArgs"].deploymentService)
             num_participants = int(hermes_data["hermesCmdlineArgs"].numParticipants)
+            skip_verify_test = hermes_data["hermesCmdlineArgs"].skipDeploymentVerificationTest
             success, daml_participant_replicas = validate_daml_participants(conAdminRequest, blockchainId, credentials,
-                                                                            num_participants)
+                                                                            num_participants, skip_verify_test)
             daml_participant_replicas = [{**replica_entry, **id_dict} for replica_entry in daml_participant_replicas]
       else:
          raise NotImplementedError("Deployment not supported for blockchain type: {}".format(blockchain_type))
@@ -407,7 +408,7 @@ def verify_daml_committers_deployment(replica_details, credentials):
     return success
 
 
-def validate_daml_participants(con_admin_request, blockchain_id, credentials, num_participants=1):
+def validate_daml_participants(con_admin_request, blockchain_id, credentials, num_participants=1, skip_verify_test=False):
     """
     Deploys participants in the given DAML blockchain
     :param con_admin_request: REST requests helper object
@@ -438,12 +439,17 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
             # io.netty.handler.codec.http2.Http2Exception: HTTP/2 client preface string missing or corrupt.
             src_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
             helper.add_ethrpc_port_forwarding(public_ip, username, password, src_port=src_port, dest_port=6865)
-            log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
-            daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))
-            log.info("Starting DAR upload verification test on participant {}".format(public_ip))
-            daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(public_ip, str(src_port))])
-            log.info("DAR upload and verification successful on participant {}".format(public_ip))
-            success = True
+
+            if skip_verify_test:
+               log.info("Skipping the deployment verification DAML test.")
+               success = True
+            else:
+               log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
+               daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port))
+               log.info("Starting DAR upload verification test on participant {}".format(public_ip))
+               daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(public_ip, str(src_port))])
+               log.info("DAR upload and verification successful on participant {}".format(public_ip))
+               success = True
 
     except Exception as e:
         log.error(e)
