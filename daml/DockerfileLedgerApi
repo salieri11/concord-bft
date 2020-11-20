@@ -30,7 +30,7 @@ RUN set -ex; \
 
 # daml_ledger_api
 
-COPY daml/build.sbt /doc/daml/
+COPY daml/build.sbt daml/integration-kit-suffix.version daml/sdk.version /doc/daml/
 COPY daml/project /doc/daml/project
 WORKDIR /doc/daml
 RUN sbt update

@@ -31,7 +31,7 @@ RUN set -ex; \
     cd /; \
     rm -rf /tmp/sbt
 
-COPY daml/build.sbt /doc/daml/
+COPY daml/build.sbt daml/integration-kit-suffix.version daml/sdk.version /doc/daml/
 COPY daml/project /doc/daml/project
 COPY daml/.scalafmt.conf /doc/daml/
 WORKDIR /doc/daml
