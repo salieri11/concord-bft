@@ -5,6 +5,9 @@ EXIT_STATUS=1
 LEDGER_HOST=localhost
 LEDGER_PORT=6865
 MARKET_FLAVOR_NFR=nfr
+DAY2="2019-12-06"
+DAY3="2019-12-09"
+MAX_DURATION="3600 seconds"
 
 TMP=/tmp
 TIME_STAMP=`date +%Y%m%d_%H%M%S`
@@ -18,7 +21,7 @@ error() {
 }
 
 check_usage() {
-    if [ -z "${LEDGER_HOST}" -o -z "${DAML_SDK_VERSION}" -o -z "${SPIDER_IMAGE_TAG}" -o -z "${MARKET_FLAVOUR}" -o -z "${NO_OF_REQUESTS}" -o -z "${CONCURRENCY}" -o -z "$WORK_DIR" ]
+    if [ -z "${LEDGER_HOST}" -o -z "${DAML_SDK_VERSION}" -o -z "${SPIDER_IMAGE_TAG}" -o -z "${MARKET_FLAVOUR}" -o -z "${CONCURRENCY}" -o -z "${WORK_DIR}" -o -z "${ARRIVAL_RATE}" -o -z "${DURATION}" -o -z "${UNIT}" -o -z "${OPERATION}" ]
     then
         error "Missing parameters"
         cat << EOF
@@ -28,8 +31,11 @@ Usage: $0 <OPTIONS>
           --marketFlavor <Market flavor>
           --damlSDKVersion <DAML SDK version>
           --concurrency <Concurrency throttles the number of in-flight trades between the submission and the response of the first hop>
-          --noOfRequests <No. of requests>
           --resultsDir <Results/log directory path>
+          --chessplus_trades_arrival_rate <Number of fixed trades per second>
+          --chessplus_run_duration <Duration for running simulation>
+          --chessplus_time_units <Time unit for running simulation>
+          --chessplus_operation <Simulation to generate stream of trades>
 EOF
 
         exit 1
@@ -37,14 +43,35 @@ EOF
 }
 
 load_spider_application() {
-    source /dev/stdin <<< "$(docker run --rm digitalasset/spider-application:${SPIDER_IMAGE_TAG} vdaml-bootstrap)"
+    source /dev/stdin <<< "$(docker run --rm digitalasset/spider-tools:${SPIDER_IMAGE_TAG} bootstrap)"
+}
+
+create_initialize_once_file() {
+    if [ ! -z "${INITIALIZE_ONCE}" ] ; then
+        touch "$1"
+    fi
+}
+
+command_execution_failure() {
+    if [ "${MAX_RETRIES}" -ne "1" ] && [ "${ATTEMPT}" -ne "${MAX_RETRIES}" ]; then
+        error "**** Command $1 execution/validation failed at attempt: ${ATTEMPT}, retrying... "
+    else
+        error "**** Command $1 execution/validation failed..."
+        trap_ctrlc
+    fi
 }
 
 execute_command() {
     INITIALIZE_ONCE=""
     VALIDATE_STRING=""
+    MAX_RETRIES=1
+    ATTEMPT=0
     while [ "$1" != "" ] ; do
         case $1 in
+            "--maxRetries")
+                shift
+                MAX_RETRIES="$1"
+                ;;
             "--commandToRun")
                 shift
                 COMMAND_TO_RUN="$1"
@@ -62,10 +89,14 @@ execute_command() {
 
     if [ -z "${COMMAND_TO_RUN}" ]
     then
-        error "execute_command(): Missing parameter '--comandToRun <command>'"
+        error "execute_command(): Missing parameter '--commandToRun <command>'"
         exit 1
     else
         CMD_AS_FILE_NAME=`echo "${COMMAND_TO_RUN}" | tr '/' '_'`
+        if [[ "${COMMAND_TO_RUN}" == *"gatling_simulations"* ]]
+        then
+            CMD_AS_FILE_NAME="gatling_simulations"
+        fi
         LOG_FILE="${WORK_SUBDIR}/${CMD_AS_FILE_NAME}".log
         IS_CMD_TO_BE_INITIALIZED_ONCE_FILE="${WORK_DIR}/../${CMD_AS_FILE_NAME}.${LEDGER_HOST}"
 
@@ -76,35 +107,36 @@ execute_command() {
             info "Tracker file ${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE} found"
             info "Skipping 2nd attempt of running command '${COMMAND_TO_RUN}' on ledger host: ${LEDGER_HOST}"
         else
-            info "Running ${COMMAND_TO_RUN}, output to ${LOG_FILE}"
-            eval "${COMMAND_TO_RUN}" > "${LOG_FILE}"
-            RC="$?"
-            if [ ! -z "${INITIALIZE_ONCE}" ]
-            then
-                touch "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
-            fi
+            while [ "${ATTEMPT}" -lt "${MAX_RETRIES}" ]; do
+                ATTEMPT=`expr ${ATTEMPT} + 1`
+                info "Attempt: ${ATTEMPT}, Running ${COMMAND_TO_RUN}, output to ${LOG_FILE}"
+                eval "${COMMAND_TO_RUN}" > "${LOG_FILE}"
+                RC="$?"
 
-            info ""
+                info ""
 
-            if [ "${RC}" == "0" ]
-            then
-                if [ ! -z "${VALIDATE_STRING}" ]
+                if [ "${RC}" == "0" ]
                 then
-                    keyword_matched=`cat "${LOG_FILE}" | grep "${VALIDATE_STRING}"`
-                    if [ ! -z "${keyword_matched}" ]
+                    if [ ! -z "${VALIDATE_STRING}" ]
                     then
-                        info "**** Command ${COMMAND_TO_RUN} execution/validation completed sucessfully"
+                        keyword_matched=`cat "${LOG_FILE}" | grep "${VALIDATE_STRING}"`
+                        if [ ! -z "${keyword_matched}" ]
+                        then
+                            info "**** Command ${COMMAND_TO_RUN} execution/validation completed successfully"
+                            create_initialize_once_file "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
+                            break
+                        else
+                            command_execution_failure "${COMMAND_TO_RUN}"
+                        fi
                     else
-                        error "**** Command ${COMMAND_TO_RUN} execution failed"
-                        trap_ctrlc
+                        info "**** Command execution completed successfully"
+                        create_initialize_once_file "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
+                        break
                     fi
                 else
-                    info "**** Command execution completed sucessfully"
+                    command_execution_failure "${COMMAND_TO_RUN}"
                 fi
-            else
-                error "**** Command execution failed"
-                trap_ctrlc
-            fi
+            done
         fi
     fi
 }
@@ -115,17 +147,37 @@ run_chess_plus_test() {
     info ""
 
     load_spider_application
-    execute_command --commandToRun vdaml_help --validateString "Commands exposed by Spider vDAML"
-    execute_command --commandToRun upload-dar --validateString "DAR upload succeeded" --initializeOnce
-    execute_command --commandToRun warm-package --validateString "{" --initializeOnce
+    execute_command --commandToRun "_manage_override_value LEDGER_HOST ${LEDGER_HOST}" --validateString "done"
+    execute_command --commandToRun "_manage_override_value LEDGER_PORT 6865" --validateString "done"
+    execute_command --commandToRun "_manage_override_value IMPORTER_OPTS -DbatchAutoResize=true -Dparallelism=3 -Dbatch=20" --validateString "done"
+    execute_command --commandToRun "dashboard_up" --validateString "done"
+    execute_command --commandToRun "upload_dar --timeout 250" --initializeOnce --maxRetries 5 --validateString "DAR upload succeeded."
     execute_command --commandToRun "echo ${DAML_SDK_IMAGE}" --validateString "${DAML_SDK_IMAGE}"
-    execute_command --commandToRun "allocate-ledger-party 00000 00001" --validateString "Allocated '00001' for '00001' at ${LEDGER_HOST}:${LEDGER_PORT}" --initializeOnce
-    execute_command --commandToRun start-spider --validateString "returned: 0"
-    execute_command --commandToRun market-genesis --validateString "Create: 1" --initializeOnce
-    execute_command --commandToRun "import-data-set ${MARKET_FLAVOUR}" --validateString "Failure: 0" --initializeOnce
-    execute_command --commandToRun "load-runner --simulation bmw.open-market" --validateString "failed[' ']*0" --initializeOnce
-    execute_command --commandToRun "load-runner --simulation fix-trade.standard --trade-file ${TRADE_FILE} --loop-file --trade-timeout 60s --requests ${NO_OF_REQUESTS} --concurrency ${CONCURRENCY} --spec" --validateString "failed[' ']*0"
-    execute_command --commandToRun stop-spider
+    execute_command --commandToRun "allocate_ledger_party pkgwrmr" --initializeOnce --validateString "Success"
+    execute_command --commandToRun "warm_package pkgwrmr" --validateString "{" --initializeOnce
+    execute_command --commandToRun "spider_market_genesis" --validateString "Create: 1" --initializeOnce
+    execute_command --commandToRun "_manage_override_value SPIDER_OPTS --disable-auto-accept-proposals"
+    execute_command --commandToRun "spider up"
+    execute_command --commandToRun "spider_proposals_off" --validateString "OK" --maxRetries 5
+    execute_command --commandToRun "spider_import_market_set ${MARKET_FLAVOUR}" --validateString "Failure: 0" --initializeOnce
+    execute_command --commandToRun "set_spider_config_overrides --nettingBatchSize ${nettingsize:-10} --batchSettlementBatchSize ${settlementsize:-10} --batchSettlementSkipPrepaymentAuth true"
+    execute_command --commandToRun "kafka_ledger_bridge_up ${CONCURRENCY}" --validateString "bmw-egress"
+    execute_command --commandToRun "spider_proposals_on" --validateString "OK" --maxRetries 5
+    # run simulation:
+    if [ "${MARKET_FLAVOUR}" = "nfr" ]
+    then
+        if [ "${OPERATION}" = "SingleDaySettlementInclNetting" ]
+        then
+            execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o sim.max.duration=${MAX_DURATION} -o date.day2=${DAY2} -o date.day3=${DAY3} -o duration=\"${DURATION} ${UNIT}\"  -o sla.bucket=\"postgres\"  -o trades.source=\"${TRADE_FILE}\"" --validateString "Simulation SingleDaySettlementInclNetting started"
+        else
+            execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o sim.max.duration=${MAX_DURATION} -o duration=\"${DURATION} ${UNIT}\" -o sla.bucket=\"postgres\" -o trades.source=\"${TRADE_FILE}\"" --validateString "Simulation TradesAtFixedRate started"
+        fi
+    else
+        execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o duration=\"${DURATION} ${UNIT}\"" --validateString "Simulation TradesAtFixedRate started"
+    fi
+    execute_command --commandToRun "kafka_ledger_bridge_down" --validateString "Going to remove spider_kafka-zookeeper"
+    execute_command --commandToRun "spider down" --validateString "Going to remove spider_application"
+    execute_command --commandToRun "dashboard_down" --validateString "Going to remove spider_"
     EXIT_STATUS=0
 }
 
@@ -173,6 +225,26 @@ while [ "$1" != "" ] ; do
             shift
             WORK_DIR="$1"
             ;;
+        "--chessplusTradesArrivalRate")
+            shift
+            ARRIVAL_RATE="$1"
+            ;;
+        "--chessplusRunDuration")
+            shift
+            DURATION="$1"
+            ;;
+        "--chessplusTimeUnits")
+            shift
+            UNIT="$1"
+            ;;
+        "--chessplusOperation")
+            shift
+            OPERATION="$1"
+            ;;
+        "--timeoutUnit")
+            shift
+            TIMEOUT_UNIT="$1"
+            ;;
         "--logLevel")
             shift
             LOG_LEVEL="$1"
@@ -199,7 +271,7 @@ then
 fi
 cd "${WORK_SUBDIR}"
 
-TRADE_FILE=/home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/fix_ae.tsv
+TRADE_FILE="data/sample/trades-20180912-WOW-10k.tsv.gzip"
 CHESS_PLUS_RUN_LOG_FILE="${WORK_SUBDIR}/run.log"
 export SPIDER_IMAGE_TAG="$SPIDER_IMAGE_TAG"
 export DAML_SDK_VERSION="$DAML_SDK_VERSION"
@@ -216,15 +288,7 @@ export SPIDER_XMX=12g
 
 if [ "${MARKET_FLAVOUR}" == "${MARKET_FLAVOR_NFR}" ]
 then
-    export DAY_T1=2019-12-06
-    export DAY_T2=2019-12-09
-    export DAY_T3=2019-12-10
-    export DAY_T4=2019-12-11
-    export DAY_T5=2019-12-12
-    export DAY_T6=2019-12-13
-    export DAY_T7=2019-12-16
-
-    TRADE_FILE=/home/dlt/app/spider-load-tests/data/${MARKET_FLAVOUR}/20191205_Trades.zip
+    TRADE_FILE="data/nfr-replicated/20191205_Trades_10M.tsv.gzip"
 fi
 
 run_chess_plus_test 2>&1 > "${CHESS_PLUS_RUN_LOG_FILE}"
