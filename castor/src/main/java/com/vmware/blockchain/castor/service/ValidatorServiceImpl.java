@@ -5,12 +5,15 @@
 package com.vmware.blockchain.castor.service;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -126,13 +129,16 @@ public class ValidatorServiceImpl implements ValidatorService {
             infrastructureDescriptor.getZones().stream().forEach(zone -> {
                 if (StringUtils.hasText(zone.getVCenter().getTlsCertificateData())) {
                     try {
-                        // Implicitly checks for the Certificate Parsing and Encoding Exceptions
-                        X509Certificate tlsCertificate = (X509Certificate) CertificateFactory.getInstance("X.509")
-                                .generateCertificate(new ByteArrayInputStream(zone.getVCenter()
-                                                                                      .getTlsCertificateData()
-                                                                                      .getBytes()));
-                        // Throws exception if certificate has expired or not yet valid
-                        tlsCertificate.checkValidity();
+                        InputStream in = new ByteArrayInputStream(zone.getVCenter().getTlsCertificateData().getBytes());
+                        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+                        // Implicitly checks for the Certificate Parsing and Encoding Exceptions for all the cert(s)
+                        Collection c = certificateFactory.generateCertificates(in);
+                        Iterator i = c.iterator();
+                        while (i.hasNext()) {
+                            X509Certificate certForVSphere = (X509Certificate) i.next();
+                            // Throws exception if certificate has expired or not yet valid
+                            certForVSphere.checkValidity();
+                        }
                     } catch (Exception e) {
                         String error = "vcenter.certificate.invalid";
                         ValidationError validationError = ValidationError.builder()
