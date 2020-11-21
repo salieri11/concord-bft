@@ -41,7 +41,7 @@
     </repositories>
 
     <properties>
-        <springframework.boot.version>2.1.13.RELEASE</springframework.boot.version>
+        <springframework.boot.version>2.1.18.RELEASE</springframework.boot.version>
         <maven.plugin.protobuf>0.6.1</maven.plugin.protobuf>
         <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
         <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
