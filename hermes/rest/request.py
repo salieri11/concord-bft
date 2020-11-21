@@ -270,10 +270,10 @@ class Request():
         "consortium_id": "04e4f62d-5364-4363-a582-b397075b65a3",
         "blockchain_type": "DAML",
         "replica_nodes": [
-          {“zone_id”: “84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
-          {“zone_id”: "84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
-          {“zone_id”: "275638a3-8860-4925-85de-c73d45cb7232", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
-          {“zone_id”: "84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "1", "storage_in_gigs": "60", "memory_in_gigs": "32”}}
+          {“zone_id”: “84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "4", "storage_in_gigs": "64", "memory_in_gigs": "32”}}
+          {“zone_id”: "84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "4", "storage_in_gigs": "64", "memory_in_gigs": "32”}}
+          {“zone_id”: "275638a3-8860-4925-85de-c73d45cb7232", "sizing_info" : {"no_of_cpus": "4", "storage_in_gigs": "64", "memory_in_gigs": "32”}}
+          {“zone_id”: "84b9a0ed-c162-446a-b8c0-2e45755f3844", "sizing_info" : {"no_of_cpus": "4", "storage_in_gigs": "64", "memory_in_gigs": "32”}}
         ],
         "client_nodes": [
           {
@@ -281,7 +281,7 @@ class Request():
             "auth_url_jwt": "user@server.com",
             "group_name": “Group 1”,
             "sizing_info" : {
-              "no_of_cpus": "1",
+              "no_of_cpus": "4",
               "storage_in_gigs": "100",
               "memory_in_gigs": "128"
             }
