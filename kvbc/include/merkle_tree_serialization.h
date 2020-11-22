@@ -23,6 +23,7 @@
 #include "sparse_merkle/keys.h"
 #include "storage/db_types.h"
 #include "string.hpp"
+#include "SimpleThreadPool.hpp"
 
 #include <cstdint>
 #include <iterator>
@@ -124,6 +125,7 @@ inline std::string serializeImp(const sparse_merkle::BatchedInternalNode &intNod
 
   const auto &children = intNode.children();
   std::string serializedChildren;
+  serializedChildren.reserve(children.size() * 1000);
   auto mask = BatchedInternalMaskType{0};
   for (auto i = 0u; i < children.size(); ++i) {
     const auto &child = children[i];
@@ -165,14 +167,16 @@ inline std::string serializeImp(const block::detail::Node &node) {
   buf.append(reinterpret_cast<const char *>(node.stateHash.data()), node.stateHash.size());
 
   // State root version.
-  buf.append(concordUtils::toBigEndianStringBuffer(node.stateRootVersion.value()));
+  auto t = node.stateRootVersion.value();
+  buf.append(concordUtils::toBigEndianStringBuffer(t));
 
   // Keys in [key data, length, key] encoding.
   for (const auto &keyData : node.keys) {
     // At the moment, only the delete flag is supported. Additional data can be packed in this single byte in the
     // future.
     buf += keyData.second.deleted ? char{1} : char{0};
-    buf += concordUtils::toBigEndianStringBuffer(static_cast<block::detail::KeyLengthType>(keyData.first.length()));
+    auto tt = static_cast<block::detail::KeyLengthType>(keyData.first.length());
+    buf += concordUtils::toBigEndianStringBuffer(tt);
     buf.append(keyData.first.data(), keyData.first.length());
   }
 
@@ -193,7 +197,9 @@ inline std::string serializeImp(block::detail::RawBlockMerkleData data) {
 
   // Sorted deleted keys in [length, key] encoding.
   for (const auto &key : data.deletedKeys) {
-    buf += concordUtils::toBigEndianStringBuffer(static_cast<block::detail::KeyLengthType>(key.length()));
+    auto l = key.length();
+    auto t = static_cast<block::detail::KeyLengthType>(l);
+    buf += concordUtils::toBigEndianStringBuffer(t);
     buf.append(key.data(), key.length());
   }
 
@@ -214,7 +220,9 @@ inline std::string serialize() { return std::string{}; }
 
 template <typename T1, typename... T>
 std::string serialize(const T1 &v1, const T &... v) {
-  return serializeImp(v1) + serialize(v...);
+  std::string s1 = serializeImp(v1);
+  std::string s2 = serialize(v...);
+  return s1 + s2;
 }
 
 template <typename T>
@@ -235,6 +243,7 @@ inline sparse_merkle::Version deserialize<sparse_merkle::Version>(const concordU
 template <>
 inline std::vector<std::uint8_t> deserialize<std::vector<std::uint8_t>>(const concordUtils::Sliver &buf) {
   std::vector<std::uint8_t> vec;
+  vec.reserve(buf.length());
   for (auto i = 0u; i < buf.length(); ++i) {
     vec.push_back(buf[i]);
   }
@@ -283,39 +292,101 @@ inline sparse_merkle::InternalChild deserialize<sparse_merkle::InternalChild>(co
           concordUtils::Sliver{buf, sparse_merkle::Hash::SIZE_IN_BYTES, sparse_merkle::Version::SIZE_IN_BYTES})};
 }
 
+inline ::util::SimpleThreadPool tp;
+inline bool started = false;
+
+class DeserializeJob : public ::util::SimpleThreadPool::Job {
+ public:
+  inline DeserializeJob(sparse_merkle::BatchedInternalNode::Children &children,
+                        uint const &i,
+                        concordUtils::Sliver &childrenBuf,
+                        BatchedInternalNodeChildType const &type,
+                        std::function<void()> signal)
+      : children_{children}, index_{i}, buf_{childrenBuf}, type_{type}, signal_{std::move(signal)} {}
+
+  virtual inline ~DeserializeJob() {}
+
+  inline void execute() override {
+    switch (type_) {
+      case BatchedInternalNodeChildType::Leaf:
+        children_[index_] = deserialize<sparse_merkle::LeafChild>(buf_);
+        break;
+      case BatchedInternalNodeChildType::Internal:
+        children_[index_] = deserialize<sparse_merkle::InternalChild>(buf_);
+        break;
+    }
+  }
+
+  inline void release() override {
+    signal_();
+    delete this;
+  }
+
+ private:
+  sparse_merkle::BatchedInternalNode::Children children_;
+  uint index_;
+  concordUtils::Sliver buf_;
+  BatchedInternalNodeChildType type_;
+  std::function<void()> signal_;
+};
+
+inline std::condition_variable cv;
+inline std::mutex m;
+inline uint count = 0;
+
 template <>
 inline sparse_merkle::BatchedInternalNode deserialize<sparse_merkle::BatchedInternalNode>(
     const concordUtils::Sliver &buf) {
+  if (!started) {
+    tp.start(4);
+    started = true;
+  }
   if (buf.empty()) {
     return sparse_merkle::BatchedInternalNode{};
   }
 
   ConcordAssert(buf.length() >= sizeof(BatchedInternalMaskType));
   sparse_merkle::BatchedInternalNode::Children children;
-  const auto mask = concordUtils::fromBigEndianBuffer<BatchedInternalMaskType>(buf.data());
+  auto mask = concordUtils::fromBigEndianBuffer<BatchedInternalMaskType>(buf.data());
   auto childrenBuf =
       concordUtils::Sliver{buf, sizeof(BatchedInternalMaskType), buf.length() - sizeof(BatchedInternalMaskType)};
+
   for (auto i = 0u; i < sparse_merkle::BatchedInternalNode::MAX_CHILDREN; ++i) {
-    if (mask & (1 << i)) {
-      // First byte is the type as per BatchedInternalNodeChildType .
-      const auto type = getInternalChildType(childrenBuf);
-      childrenBuf = concordUtils::Sliver{childrenBuf, 1, childrenBuf.length() - 1};
-      switch (type) {
-        case BatchedInternalNodeChildType::Leaf:
-          children[i] = deserialize<sparse_merkle::LeafChild>(childrenBuf);
-          childrenBuf = concordUtils::Sliver{childrenBuf,
-                                             sparse_merkle::LeafChild::SIZE_IN_BYTES,
-                                             childrenBuf.length() - sparse_merkle::LeafChild::SIZE_IN_BYTES};
-          break;
-        case BatchedInternalNodeChildType::Internal:
-          children[i] = deserialize<sparse_merkle::InternalChild>(childrenBuf);
-          childrenBuf = concordUtils::Sliver{childrenBuf,
-                                             sparse_merkle::InternalChild::SIZE_IN_BYTES,
-                                             childrenBuf.length() - sparse_merkle::InternalChild::SIZE_IN_BYTES};
-          break;
+    if (!(mask & (1 << i))) continue;
+    const auto type = getInternalChildType(childrenBuf);
+    childrenBuf = concordUtils::Sliver{childrenBuf, 1, childrenBuf.length() - 1};
+
+    DeserializeJob *j = new DeserializeJob(children, i, childrenBuf, type, [&]() {
+      {
+        std::unique_lock<std::mutex> ul(m);
+        --count;
       }
+      cv.notify_one();
+    });
+    {
+      std::unique_lock<std::mutex> ul(m);
+      ++count;
+      tp.add(j);
+    }
+
+    switch (type) {
+      case BatchedInternalNodeChildType::Leaf:
+        childrenBuf = concordUtils::Sliver{childrenBuf,
+                                           sparse_merkle::LeafChild::SIZE_IN_BYTES,
+                                           childrenBuf.length() - sparse_merkle::LeafChild::SIZE_IN_BYTES};
+        break;
+      case BatchedInternalNodeChildType::Internal:
+        childrenBuf = concordUtils::Sliver{childrenBuf,
+                                           sparse_merkle::InternalChild::SIZE_IN_BYTES,
+                                           childrenBuf.length() - sparse_merkle::InternalChild::SIZE_IN_BYTES};
+        break;
     }
   }
+  {
+    std::unique_lock<std::mutex> ul(m);
+    cv.wait(ul, [&]() { return count == 0; });
+  }
+
   return children;
 }
 

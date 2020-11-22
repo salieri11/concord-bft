@@ -35,6 +35,8 @@ class SimpleThreadPool {
 
   SimpleThreadPool() : stopped_(true) {}
 
+  ~SimpleThreadPool() { stop(false); }
+
   /**
    * starts the thread pool with desired number of threads
    */
