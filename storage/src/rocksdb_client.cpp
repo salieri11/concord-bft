@@ -113,7 +113,7 @@ std::optional<std::vector<::rocksdb::ColumnFamilyHandle *>> Client::initDB(bool 
   options.level0_slowdown_writes_trigger = 48;
   options.level0_stop_writes_trigger = 56;
   options.bytes_per_sync = 1024 * 2048;
-
+  options.max_open_files = 15000;
   table_options.block_size = 4 * 4096;
   options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 
@@ -203,7 +203,7 @@ Status Client::get(const Sliver &_key, OUT std::string &_value) const {
   }
 
   if (!s.ok()) {
-    LOG_DEBUG(logger(), "Failed to get key " << _key << " due to " << s.ToString());
+    LOG_ERROR(logger(), "Failed to get key " << _key << " due to " << s.ToString());
     return Status::GeneralError("Failed to read key");
   }
   storage_metrics_.tryToUpdateMetrics();
@@ -362,7 +362,7 @@ Status Client::multiGet(const KeysVector &_keysVec, OUT ValuesVector &_valuesVec
     if (statuses[i].IsNotFound()) return Status::NotFound("Not found");
 
     if (!statuses[i].ok()) {
-      LOG_WARN(logger(), "Failed to get key " << _keysVec[i] << " due to " << statuses[i].ToString());
+      LOG_ERROR(logger(), "Failed to get key " << _keysVec[i] << " due to " << statuses[i].ToString());
       return Status::GeneralError("Failed to read key");
     }
     _valuesVec.push_back(Sliver(std::move(values[i])));

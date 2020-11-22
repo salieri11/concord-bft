@@ -178,7 +178,7 @@ void generate_blocks(uint blocks_count) {
 
   for (uint i = 0; i < blocks_count; ++i) {
     uint count = 0;
-    concord::storage::SetOfKeyValuePairs *write_set = new SetOfKeyValuePairs();
+    concord::storage::SetOfKeyValuePairs *write_set = new concord::storage::SetOfKeyValuePairs();
     while (count++ < write_kv_count) {
       char *write_key = new char[write_key_length];
       for (uint j = 0; j < write_key_length / sizeof(int); j++) {
@@ -193,7 +193,10 @@ void generate_blocks(uint blocks_count) {
       write_set->emplace(Sliver{write_key, write_key_length}, Sliver{write_value, write_value_length});
     }
 
-    blocks.push(write_set);
+    {
+      lock_guard<mutex> lg(q_mutex);
+      blocks.push(write_set);
+    }
   }
 }
 
@@ -299,11 +302,11 @@ void read_read_write_test(Histogram &write_hist,
 
 uint64_t write1(const IStorageFactory::DatabaseSet *dbset, Histogram &h) {
   uint64_t count = 0;
+  uint64_t dur = 0;
   BlockId lastBlockId;
   concord::storage::SetOfKeyValuePairs write_set;
   mt19937 generator(0);
   uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
-  uint64_t dur = 0;
 
   while (count < num_of_requests) {
     uint kcount = 0;
@@ -331,15 +334,13 @@ uint64_t write1(const IStorageFactory::DatabaseSet *dbset, Histogram &h) {
     if (++count % 1000 == 0) cout << "Written " << count << " blocks" << endl;
   }
 
+  const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
+  const auto block =
+      SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_, concordUtils::toBigEndianStringBuffer(0L))};
+  cout << "Done. Last block id: " << lastBlockId << endl;
+  lastBlockId = dbset->dbAdapter->addBlock(block);
+  cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
   return dur;
-
-  //  const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
-  //  const auto block =
-  //      SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_,
-  //      concordUtils::toBigEndianStringBuffer(0L))};
-  //  cout << "Done. Last block id: " << lastBlockId << endl;
-  //  lastBlockId = dbset->dbAdapter->addBlock(block);
-  //  cout << "Done. Last block after adding pruning info is: " << lastBlockId << endl;
 }
 
 uint64_t write(const IStorageFactory::DatabaseSet *dbset, Histogram &h) {
@@ -386,10 +387,10 @@ int main(int argc, char **argv) {
   // generate_data();
   // create_db(&dbset);
 
-  num_of_requests = 10000;
-  // int num_of_cores = 1;
+  /*num_of_requests = 1000;
+  int num_of_cores = 3;
   vector<thread> threads;
-  /*threads.reserve(num_of_cores);
+  threads.reserve(num_of_cores);
   uint numThreads = num_of_cores;
   uint chunkSize = ceil((double)num_of_requests / numThreads);
   cout << chunkSize << endl;
@@ -400,12 +401,12 @@ int main(int argc, char **argv) {
   }*/
   Histogram h;
   h.Clear();
-  auto d = write1(&dbset, h);
+  auto d = write(&dbset, h);
   cout << "total: " << d << " for " << num_of_requests << endl;
   cout << h.ToString() << endl;
   return 0;
 
-  for (auto &t : threads) t.join();
+  // for (auto &t : threads) t.join();
   // write1(&dbset);
   return 0;
 
