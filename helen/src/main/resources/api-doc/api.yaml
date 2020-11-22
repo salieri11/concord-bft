@@ -1053,6 +1053,52 @@ paths:
                   password:
                     type: string
                     description: Client password
+        403:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+  /blockchains/{bid}/clients/{client_id}/daml-certificates:
+    get:
+      tags:
+        - blockchains
+      summary: Get DAML Ledger API TLS certificates for given client
+      operationId: getClientCredentials
+      parameters:
+        - name: bid
+          required: true
+          in: path
+          description: Blockchain ID
+          schema:
+            type: string
+            format: uuid
+        - name: client_id
+          required: true
+          in: path
+          description: Client ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Client TLS certificates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pem:
+                    type: string
+                    description: Client pem
+                  crt:
+                    type: string
+                    description: Client crt
+                  cacrt:
+                    type: string
+                    description: Client cacrt
+        403:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
   /consortiums:
     summary: GetConsortium
     get:

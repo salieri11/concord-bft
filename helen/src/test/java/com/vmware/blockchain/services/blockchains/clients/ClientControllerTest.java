@@ -91,6 +91,7 @@ public class ClientControllerTest extends RuntimeException {
     static final UUID BC_MISSING = UUID.fromString("225aed74-f4d8-429e-9fde-8add6cff99bf");
     static final UUID BC_CLIENT_MISSING = UUID.fromString("c00719e0-8c11-42a8-8d48-ae4efde1f04c");
     static final UUID BC_NOT_FOUND = UUID.fromString("7e1e5dd0-2f96-4838-835a-8c1302c3d1ff");
+    static final UUID CLIENT_NOT_FOUND = UUID.fromString("17efdfc0-d0a1-4cff-acbf-6daeef47a2ce");
     static final UUID C2_ID = UUID.fromString("04e4f62d-5364-4363-a582-b397075b65a3");
     static final UUID C3_ID = UUID.fromString("a4b8f7ed-00b3-451e-97bc-4aa51a211288");
     static final UUID TASK_ID = UUID.fromString("c23ed97d-f29c-472e-9f63-cc6be883a5f5");
@@ -206,6 +207,8 @@ public class ClientControllerTest extends RuntimeException {
         when(blockchainService.get(BC_MISSING)).thenReturn(null);
         when(blockchainService.get(BC_NOT_FOUND)).thenThrow(new NotFoundException("Not Found"));
         when(blockchainService.get(BC_CLIENT_MISSING)).thenReturn(new Blockchain());
+
+        when(clientService.get(CLIENT_NOT_FOUND)).thenThrow(new NotFoundException("Not Found"));
 
 
         ReflectionTestUtils.setField(BlockchainUtils.class,
@@ -406,6 +409,19 @@ public class ClientControllerTest extends RuntimeException {
     }
 
     @Test
+    void testGetClientCredentialsBadAuth() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/credentials", BC_DAML.toString(), C2_ID.toString());
+
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass", BC_DAML,
+                REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(userAuth)))
+                .andExpect(status().isForbidden()).andReturn();
+    }
+
+    @Test
     void testGetClientTlsCredentials() throws Exception {
         String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
                 BC_DAML.toString(), C2_ID.toString());
@@ -465,6 +481,48 @@ public class ClientControllerTest extends RuntimeException {
         Assertions.assertEquals(null, clientTlsCredentials.getPem());
         Assertions.assertEquals(null, clientTlsCredentials.getCrt());
         Assertions.assertEquals(null, clientTlsCredentials.getCacrt());
+    }
+
+    @Test
+    void testGetClientTlsCredentialsBlockchainNotFound() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
+                BC_NOT_FOUND.toString(), C2_ID.toString());
+
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass",
+                BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isNotFound()).andReturn();
+    }
+
+    @Test
+    void testGetClientTlsCredentialsClientNotFound() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
+                BC_DAML.toString(), CLIENT_NOT_FOUND.toString());
+
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass",
+                BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(adminAuth)))
+                .andExpect(status().isNotFound()).andReturn();
+    }
+
+    @Test
+    void testGetClientTlsCredentialsBadAuth() throws Exception {
+        String url = String.format("/api/blockchains/%s/clients/%s/daml-certificates",
+                BC_DAML.toString(), C2_ID.toString());
+
+        final Client client = new Client("publicIp", "privateIp", "testPassword", "url", "cert",  "pass",
+                BC_DAML, REPLICA_1_ZONE, UUID.randomUUID(), CLIENT_GROUP_NAME, "pem", "crt", "cacrt");
+        client.setId(C2_ID);
+
+        when(clientService.getClientsByParentId(BC_DAML)).thenReturn(ImmutableList.of(client));
+        MvcResult result = mockMvc.perform(get(url).with(authentication(userAuth)))
+                .andExpect(status().isForbidden()).andReturn();
     }
 
     @Test
