@@ -442,7 +442,7 @@ BatchedInternalNode DBAdapter::Reader::get_internal(const InternalNodeKey &key) 
     status = adapter_.getDb()->get(DBKeyManipulator::genInternalDbKey(key), res);
   }
   if (!status.isOK()) {
-    throw std::runtime_error{"Failed to get the requested merkle tree internal node"};
+    throw std::runtime_error{"Failed to get the requested merkle tree internal node, st: " + status.toString()};
   }
   {
     TimeRecorder scoped_timer(*histograms.dba_deserialize_internal);
