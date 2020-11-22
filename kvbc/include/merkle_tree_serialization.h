@@ -297,7 +297,7 @@ inline bool started = false;
 
 class DeserializeJob : public ::util::SimpleThreadPool::Job {
  public:
-  inline DeserializeJob(sparse_merkle::BatchedInternalNode::Children &children,
+  inline DeserializeJob(sparse_merkle::BatchedInternalNode::Children *children,
                         uint const &i,
                         concordUtils::Sliver &childrenBuf,
                         BatchedInternalNodeChildType const &type,
@@ -309,10 +309,10 @@ class DeserializeJob : public ::util::SimpleThreadPool::Job {
   inline void execute() override {
     switch (type_) {
       case BatchedInternalNodeChildType::Leaf:
-        children_[index_] = deserialize<sparse_merkle::LeafChild>(buf_);
+        (*children_)[index_] = deserialize<sparse_merkle::LeafChild>(buf_);
         break;
       case BatchedInternalNodeChildType::Internal:
-        children_[index_] = deserialize<sparse_merkle::InternalChild>(buf_);
+        (*children_)[index_] = deserialize<sparse_merkle::InternalChild>(buf_);
         break;
     }
   }
@@ -323,7 +323,7 @@ class DeserializeJob : public ::util::SimpleThreadPool::Job {
   }
 
  private:
-  sparse_merkle::BatchedInternalNode::Children children_;
+  sparse_merkle::BatchedInternalNode::Children *children_;
   uint index_;
   concordUtils::Sliver buf_;
   BatchedInternalNodeChildType type_;
@@ -356,7 +356,7 @@ inline sparse_merkle::BatchedInternalNode deserialize<sparse_merkle::BatchedInte
     const auto type = getInternalChildType(childrenBuf);
     childrenBuf = concordUtils::Sliver{childrenBuf, 1, childrenBuf.length() - 1};
 
-    DeserializeJob *j = new DeserializeJob(children, i, childrenBuf, type, [&]() {
+    DeserializeJob *j = new DeserializeJob(&children, i, childrenBuf, type, [&]() {
       {
         std::unique_lock<std::mutex> ul(m);
         --count;
