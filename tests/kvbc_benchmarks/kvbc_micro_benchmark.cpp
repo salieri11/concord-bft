@@ -308,7 +308,7 @@ uint64_t write1(const IStorageFactory::DatabaseSet *dbset, Histogram &h) {
   mt19937 generator(0);
   uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
 
-  while (count < num_of_requests) {
+  while (count < num_of_requests++) {
     uint kcount = 0;
     while (kcount++ < write_kv_count) {
       char *write_key = new char[write_key_length];
@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
   }*/
   Histogram h;
   h.Clear();
-  auto d = write(&dbset, h);
+  auto d = write1(&dbset, h);
   cout << "total: " << d << " for " << num_of_requests << endl;
   cout << h.ToString() << endl;
   return 0;

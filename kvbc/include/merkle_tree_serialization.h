@@ -338,7 +338,7 @@ template <>
 inline sparse_merkle::BatchedInternalNode deserialize<sparse_merkle::BatchedInternalNode>(
     const concordUtils::Sliver &buf) {
   if (!started) {
-    tp.start(4);
+    tp.start(2);
     started = true;
   }
   if (buf.empty()) {
