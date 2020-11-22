@@ -4,7 +4,7 @@
 
 #include "gtest/gtest.h"
 
-#include "storage_test_common.h"
+#include "kvbc_storage_test_common.h"
 
 #include "block_digest.h"
 #include "merkle_tree_block.h"
@@ -234,27 +234,6 @@ TEST_P(db_adapter_custom_blockchain, add_block_only_with_non_provable_keys) {
 
   ASSERT_THROW(adapter.getValue(defaultSliver, numBlocks), NotFoundException);
 }
-
-// TEST_P(db_adapter_custom_blockchain, raw_block_with_non_provable_keys) {
-//   std::string key1{"key1"};
-//   std::string key2{"key2"};
-//   std::string key3{"key3"};
-//   const Sliver skey1{std::move(key1)};
-//   const Sliver skey2{std::move(key2)};
-//   const Sliver skey3{std::move(key3)};
-//   concord::kvbc::v2MerkleTree::DBAdapter::NonProvableKeySet non_provable_key_set = {skey1, skey2, skey3};
-//   auto adapter = DBAdapter{GetParam()->newEmptyDb(), true, non_provable_key_set};
-
-//   const auto updates = SetOfKeyValuePairs{{skey1, defaultSliver}, {skey2, defaultSliver}, {skey3, defaultSliver}};
-//   const auto numBlocks = 4u;
-//   for (auto i = 0u; i < numBlocks; ++i) {
-//     ASSERT_EQ(adapter.addBlock(updates), i + 1);
-//   }
-
-//   for (auto i = 0u; i < numBlocks; ++i) {
-//     ASSERT_EQ(block::detail::getData(adapter.getRawBlock(i + 1)), updates);
-//   }
-// }
 
 TEST_P(db_adapter_custom_blockchain, add_block_throws_if_deletes_contain_non_provable_keys) {
   std::string key1{"key1"};
@@ -705,6 +684,7 @@ TEST_P(db_adapter_ref_blockchain, state_transfer_reverse_order_with_blockchain_b
     const auto &referenceBlock = referenceBlockchain[i - 1];
     ASSERT_NO_THROW(
         adapter.addBlock(block::detail::getData(referenceBlock), block::detail::getDeletedKeys(referenceBlock)));
+    ASSERT_EQ(adapter.getGenesisBlockId(), 1);
     ASSERT_EQ(adapter.getLatestBlockId(), i);
     ASSERT_EQ(adapter.getLastReachableBlockId(), i);
   }
@@ -713,9 +693,11 @@ TEST_P(db_adapter_ref_blockchain, state_transfer_reverse_order_with_blockchain_b
   for (auto i = numTotalBlocks; i > numBlockchainBlocks; --i) {
     ASSERT_NO_THROW(adapter.addRawBlock(referenceBlockchain[i - 1], i));
     ASSERT_EQ(adapter.getLatestBlockId(), numTotalBlocks);
+    ASSERT_EQ(adapter.getGenesisBlockId(), 1);
     if (i == numBlockchainBlocks + 1) {
       // We link the blockchain and state transfer chains at that point.
       ASSERT_EQ(adapter.getLastReachableBlockId(), numTotalBlocks);
+      ASSERT_EQ(adapter.getLatestBlockId(), numTotalBlocks);
     } else {
       ASSERT_EQ(adapter.getLastReachableBlockId(), numBlockchainBlocks);
     }
@@ -865,6 +847,7 @@ TEST_P(db_adapter_ref_blockchain, partial_unordered_state_transfer) {
     const auto &referenceBlock = referenceBlockchain[i - 1];
     ASSERT_NO_THROW(
         adapter.addBlock(block::detail::getData(referenceBlock), block::detail::getDeletedKeys(referenceBlock)));
+    ASSERT_EQ(adapter.getGenesisBlockId(), 1);
     ASSERT_EQ(adapter.getLatestBlockId(), i);
     ASSERT_EQ(adapter.getLastReachableBlockId(), i);
   }
@@ -872,6 +855,7 @@ TEST_P(db_adapter_ref_blockchain, partial_unordered_state_transfer) {
   // Add block 8.
   {
     ASSERT_NO_THROW(adapter.addRawBlock(referenceBlockchain[7], 8));
+    ASSERT_EQ(adapter.getGenesisBlockId(), 1);
     ASSERT_EQ(adapter.getLastReachableBlockId(), numBlockchainBlocks);
     ASSERT_EQ(adapter.getLatestBlockId(), 8);
   }
@@ -879,6 +863,7 @@ TEST_P(db_adapter_ref_blockchain, partial_unordered_state_transfer) {
   // Add block 6.
   {
     ASSERT_NO_THROW(adapter.addRawBlock(referenceBlockchain[5], 6));
+    ASSERT_EQ(adapter.getGenesisBlockId(), 1);
     ASSERT_EQ(adapter.getLastReachableBlockId(), 6);
     ASSERT_EQ(adapter.getLatestBlockId(), 8);
   }

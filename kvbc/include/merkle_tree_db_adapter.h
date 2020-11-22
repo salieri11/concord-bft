@@ -224,7 +224,8 @@ class DBAdapter : public IDbAdapter {
   std::shared_ptr<storage::IDBClient> db_;
   BlockId genesisBlockId_{0};
   BlockId lastReachableBlockId_{0};
-  std::optional<BlockId> latestBlockId_;
+  // The latest ST temporary block ID. Not set if no ST temporary blocks are present in the system.
+  std::optional<BlockId> latestSTTempBlockId_;
   sparse_merkle::Tree smTree_;
   std::unique_ptr<concordMetrics::ISummary> commitSizeSummary_;
   const NonProvableKeySet nonProvableKeySet_;

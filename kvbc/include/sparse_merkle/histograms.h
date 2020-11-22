@@ -95,7 +95,6 @@ struct Recorders {
   // Used in merkle_tree_db_adapter.cpp
   std::shared_ptr<Recorder> dba_batch_to_db_updates = std::make_shared<Recorder>(1, MAX_NS * 5, 3, Unit::NANOSECONDS);
   std::shared_ptr<Recorder> dba_get_value = std::make_shared<Recorder>(1, MAX_NS * 5, 3, Unit::NANOSECONDS);
-  std::shared_ptr<Recorder> dba_get_latest_block_id = std::make_shared<Recorder>(1, MAX_NS, 3, Unit::NANOSECONDS);
   std::shared_ptr<Recorder> dba_create_block_node = std::make_shared<Recorder>(1, MAX_NS, 3, Unit::NANOSECONDS);
   std::shared_ptr<Recorder> dba_get_raw_block = std::make_shared<Recorder>(1, MAX_NS, 3, Unit::NANOSECONDS);
   std::shared_ptr<Recorder> dba_last_reachable_block_db_updates =

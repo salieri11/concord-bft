@@ -125,7 +125,7 @@ DBAdapter::DBAdapter(const std::shared_ptr<IDBClient> &db,
       db_{db},
       genesisBlockId_{loadGenesisBlockId()},
       lastReachableBlockId_{loadLastReachableBlockId()},
-      latestBlockId_{loadLatestTempSTBlockId()},
+      latestSTTempBlockId_{loadLatestTempSTBlockId()},
       smTree_{std::make_shared<Reader>(*this)},
       commitSizeSummary_{concordMetrics::StatisticsFactory::get().createSummary(
           "merkleTreeCommitSizeSummary", {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
@@ -189,8 +189,8 @@ BlockId DBAdapter::getGenesisBlockId() const { return genesisBlockId_; }
 BlockId DBAdapter::getLastReachableBlockId() const { return lastReachableBlockId_; }
 
 BlockId DBAdapter::getLatestBlockId() const {
-  if (latestBlockId_.has_value()) {
-    return *latestBlockId_;
+  if (latestSTTempBlockId_.has_value()) {
+    return *latestSTTempBlockId_;
   }
   return getLastReachableBlockId();
 }
@@ -293,18 +293,6 @@ RawBlock DBAdapter::getRawBlock(const BlockId &blockId) const {
       deletedKeys.insert(key);
     }
   }
-
-  // // loookup keys |NonProvable|blockid|
-  // // add to the keyValues
-  // const auto &non_provable_key = DBKeyManipulator::genNonProvableBlockDbKey(blockId, Sliver{});
-  // auto iter = db_->getIteratorGuard();
-
-  // for (auto kvp = iter->seekAtLeast(non_provable_key);
-  //      !kvp.first.empty() && DBKeyManipulator::getDBKeyType(kvp.first) == EDBKeyType::Key &&
-  //      DBKeyManipulator::getKeySubtype(kvp.first) == EKeySubtype::NonProvable;
-  //      kvp = iter->next()) {
-  //   keyValues[DBKeyManipulator::extractKeyFromNonProvableKey(kvp.first)] = kvp.second;
-  // }
 
   return block::detail::create(keyValues, deletedKeys, blockNode.parentDigest, blockNode.stateHash);
 }
@@ -498,8 +486,8 @@ void DBAdapter::linkSTChainFrom(BlockId blockId) {
   }
 
   // Linking has fully completed and we should not have any more ST temporary blocks left. Therefore, make sure we don't
-  // have any value for the latest block ID cache.
-  latestBlockId_.reset();
+  // have any value for the latest ST temporary block ID cache.
+  latestSTTempBlockId_.reset();
 }
 
 void DBAdapter::writeSTLinkTransaction(const Key &sTBlockKey, const Sliver &block, BlockId blockId) {
@@ -558,19 +546,20 @@ void DBAdapter::addRawBlock(const RawBlock &block, const BlockId &blockId) {
     throw std::runtime_error{msg};
   }
 
-  // Update the cached latest block ID if we receive a new block.
-  if (latestBlockId_.has_value()) {
-    if (blockId > *latestBlockId_) {
-      latestBlockId_ = blockId;
+  // Update the cached latest ST temporary block ID if we have received and persisted such a block.
+  if (latestSTTempBlockId_.has_value()) {
+    if (blockId > *latestSTTempBlockId_) {
+      latestSTTempBlockId_ = blockId;
     }
   } else {
-    latestBlockId_ = blockId;
+    latestSTTempBlockId_ = blockId;
   }
 }
 
 void DBAdapter::deleteBlock(const BlockId &blockId) {
   TimeRecorder scoped_timer(*histograms.dba_delete_block);
 
+  // Deleting blocks that don't exist is not an error.
   if (blockId < INITIAL_GENESIS_BLOCK_ID) {
     return;
   }
@@ -589,7 +578,9 @@ void DBAdapter::deleteBlock(const BlockId &blockId) {
       LOG_ERROR(logger_, msg);
       throw std::runtime_error{msg};
     }
-    latestBlockId_ = loadLatestTempSTBlockId();
+    // Since we support receiving state transfer blocks in arbitrary order, we don't have a way of knowing which is the
+    // next latest block after deleting one of them. Therefore, we load the latest one from DB.
+    latestSTTempBlockId_ = loadLatestTempSTBlockId();
     return;
   }
 
@@ -623,7 +614,7 @@ void DBAdapter::deleteLastReachableBlock() {
 }
 
 void DBAdapter::deleteGenesisBlock() {
-  // We assume there is at least one block in the system.
+  // We assume there are blocks in the system.
   ConcordAssertGE(genesisBlockId_, INITIAL_GENESIS_BLOCK_ID);
   // And we assume this is not the only block in the blockchain. That excludes ST temporary blocks as they are not yet
   // part of the blockchain.
