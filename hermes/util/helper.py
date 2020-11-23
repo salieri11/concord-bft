@@ -462,11 +462,13 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True, 
          break
       except paramiko.AuthenticationException as e:
          log.error("Authentication failed when connecting to {} with exception: {}".format(host, e))
+         time.sleep(10)
          if retry_attempt == 3:
             raise
       except EOFError as e:
          if "Error reading SSH protocol banner" in str(e):
             log.error("SSH failure, most likely due to network congestion.")
+         time.sleep(10)
          if retry_attempt == 3:
             raise
       except Exception as e:
@@ -1975,7 +1977,7 @@ def parseReplicasConfig(replicas):
   ]
   result = {} # clean up and enforce replicas structure
   if isinstance(replicasObject, dict):
-    replicasObject = json.loads(json.dumps(replicasObject)) 
+    replicasObject = json.loads(json.dumps(replicasObject))
   for nodeType in replicasObject:
     nodeWithThisType = replicasObject[nodeType]
     if nodeType == "others":
@@ -2501,7 +2503,7 @@ def extract_ip_lists_from_fxBlockchain(fxBlockchain):
    '''
    participant_ips = []
    committer_ips = []
-   
+
    if isinstance(fxBlockchain.replicas[TYPE_DAML_PARTICIPANT][0], str):
       participant_ips = fxBlockchain.replicas[TYPE_DAML_PARTICIPANT]
       committer_ips = fxBlockchain.replicas[TYPE_DAML_COMMITTER]

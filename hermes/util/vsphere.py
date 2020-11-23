@@ -2,7 +2,10 @@
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
-from pyVim.connect import SmartConnect, Disconnect
+try:
+    from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
+except ImportError:
+    from pyvim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVmomi import vim
 
 import atexit

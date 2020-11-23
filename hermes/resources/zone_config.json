@@ -2,7 +2,7 @@
   "infra":{
     "SDDC1":{
       "num": "1", "type": "vSphere", "active": true,
-      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.name>", 
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.name>",
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.az>",
       "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.location>",
@@ -15,7 +15,7 @@
     },
     "SDDC2":{
       "num": "2", "type": "vSphere", "active": true,
-      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.name>", 
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.name>",
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.az>",
       "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.location>",
@@ -27,7 +27,7 @@
     },
     "SDDC3":{
       "num": "3", "type": "vSphere", "active": true,
-      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.name>", 
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.name>",
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.az>",
       "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.location>",
@@ -39,7 +39,7 @@
     },
     "SDDC4":{
       "num": "4", "type": "vSphere", "active": true,
-      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.name>", 
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.name>",
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.az>",
       "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.location>",
@@ -52,7 +52,7 @@
     },
     "SDDC5":{
       "num": "5", "type": "vSphere", "active": true,
-      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.name>", 
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.name>",
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.az>",
       "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.location>",
@@ -65,7 +65,7 @@
     },
     "SDDC6":{
       "num": "6", "type": "vSphere", "active": true,
-      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.name>", 
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.name>",
       "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.ip>",
       "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.az>",
       "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.location>",
@@ -152,7 +152,7 @@
         "info":{
           "type":"VSPHERE",
           "labels":{
-            "name":"ONPREM SDDC 1",
+            "name":"ONPREM SDDC 4",
             "geo-latitude":"43.8041 N",
             "geo-longitude":"120.5542 W"
           }
@@ -162,8 +162,8 @@
           "credential":{
             "type":"NONE",
             "passwordCredential":{
-              "username":"<VMC_SDDC1_VC_CREDENTIALS_USERNAME>",
-              "password":"<VMC_SDDC1_VC_CREDENTIALS_PASSWORD>"
+              "username":"<VMC_SDDC4_VC_CREDENTIALS_USERNAME>",
+              "password":"<VMC_SDDC4_VC_CREDENTIALS_PASSWORD>"
             }
           }
         },
@@ -172,14 +172,14 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc1-vmware-vpn-onprem-3",
+            "name":"sddc4-vmware-vpn-onprem-3",
             "addressAllocation":"STATIC",
-            "gateway":"10.72.212.1",
+            "gateway":"10.72.238.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
             ],
-            "subnet":23
+            "subnet":24
           }
         },
         "wavefront":{
