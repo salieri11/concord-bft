@@ -130,7 +130,6 @@ async def _test_ro_replica_happy_case(bft_network):
     print(f"Verify state transfer for replica {ro_replica_id}")
     await _wait_for_st(bft_network, ro_replica_id, 150)
 
-@pytest.mark.skip(reason="Fails due to a bug: https://jira.eng.vmware.com/browse/BC-5144")
 @describe()
 def test_ro_replica_no_obj_store(fxProduct, bft_network):
    trio.run(_test_ro_replica_no_obj_store, bft_network)
@@ -181,7 +180,6 @@ async def _test_ro_replica_no_obj_store(bft_network):
     print("Verify state transfer")
     await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
 
-@pytest.mark.skip(reason="Fails due to a bug: https://jira.eng.vmware.com/browse/BC-5144")
 @describe()
 def test_ro_replica_flaky_obj_store(fxProduct, bft_network):
    trio.run(_test_ro_replica_flaky_obj_store, bft_network)
@@ -234,7 +232,6 @@ async def _test_ro_replica_flaky_obj_store(bft_network):
     print("Verify state transfer")
     await _wait_for_st(bft_network, ro_replica_id, target_seq_num)
 
-@pytest.mark.skip(reason="Fails due to a bug: https://jira.eng.vmware.com/browse/BC-5144")
 @describe()
 def test_ro_replica_not_enough_replies(fxProduct, bft_network):
    trio.run(_test_ro_replica_not_enough_replies, bft_network)
