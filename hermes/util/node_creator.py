@@ -254,5 +254,6 @@ class NodeCreator():
                 current_group_idx = 0
 
             nodes.append(node)
+            log.debug(node)
 
         return nodes
