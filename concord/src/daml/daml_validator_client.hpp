@@ -28,6 +28,11 @@ typedef std::function<std::map<std::string, ValueFingerprintPair>(
     const google::protobuf::RepeatedPtrField<std::string>&)>
     KeyValueWithFingerprintReaderFunc;
 
+typedef std::function<std::map<std::string, ValueFingerprintPair>(
+    const google::protobuf::RepeatedPtrField<
+        com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>&)>
+    KeyTypeAndValueWithFingerprintReaderFunc;
+
 // Represents a key-value pair with an associated access control list.
 // The access control list is defined as a list of thin replica IDs.
 typedef std::pair<std::string, com::vmware::concord::kvb::ValueWithTrids>
@@ -46,7 +51,7 @@ class IDamlValidatorClient {
   virtual grpc::Status PreExecute(
       const std::string& submission, const std::string& participant_id,
       const std::string& correlation_id, const opentracing::Span& parent_span,
-      KeyValueWithFingerprintReaderFunc read_from_storage,
+      KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
       com::vmware::concord::PreExecutionResult* pre_execution_result) = 0;
 
   virtual ~IDamlValidatorClient() = default;
@@ -72,7 +77,7 @@ class DamlValidatorClient : public IDamlValidatorClient {
   grpc::Status PreExecute(
       const std::string& submission, const std::string& participant_id,
       const std::string& correlation_id, const opentracing::Span& parent_span,
-      KeyValueWithFingerprintReaderFunc read_from_storage,
+      KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
       com::vmware::concord::PreExecutionResult* pre_execution_result) override;
 
  private:
@@ -88,7 +93,7 @@ class DamlValidatorClient : public IDamlValidatorClient {
   void HandleReadEventForPreExecution(
       const com::digitalasset::kvbc::PreprocessorFromEngine::ReadRequest&
           read_request,
-      KeyValueWithFingerprintReaderFunc read_from_storage,
+      KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
       com::digitalasset::kvbc::PreprocessorToEngine* reply);
 
   void SwapWriteSet(

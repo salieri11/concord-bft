@@ -99,16 +99,19 @@ message EventFromValidator {
   }
 }
 
-// Values are accompanied by fingerprint. For a given key, the fingerprint identifies a value
+// Values are accompanied by a fingerprint. For a given key, the fingerprint identifies a value
 // with overwhelming probability (e.g., unless a hash collision occurs).
 // The fingerprint itself is determined by Concord;
 // the DAML Commands Handler and the DAML Execution Engine treat it as opaque.
 // Fingerprints are used as a shorthand for the values in the read set of the pre-execution result.
+// If a key is not present in the KVBC, the KVBC should return a special fingerprint (different from all other ones).
 //
 // For illustration, a fingerprint can be the value itself, a hash of the value,
 // or the block height at which the value was written.
+// All fields are required.
 message KeyValueFingerprintTriple {
   bytes key = 1;
+  // If the value is empty, the key was not present in the KVBC.
   bytes value = 2;
   bytes fingerprint = 3;
 }
@@ -142,7 +145,7 @@ message PreprocessorToEngine {
     // Tag to match with the read request
     string tag = 1;
 
-    // The read key-value pairs.
+    // The read keys, with their values and fingerprints.
     // There exists a block height at which the requested keys have the returned values (atomic reads).
     // This block height is at least the block height at which pre-execution started on the particular replica.
     //
@@ -185,8 +188,15 @@ message PreprocessorFromEngine {
     // Tags must be unique within the stream of one Preexecute service call.
     string tag = 1;
 
-    // The keys to be read
-    repeated bytes keys = 2;
+    // The keys to be read.
+    // Note that any keys that appear in the request whose KeyType is Event may be ignored.
+    // Additionally, the lifetime of private state keys will not influence the result.
+    repeated KeyAndType keys = 2;
+  }
+
+  message KeyAndType {
+    bytes key = 1;
+    KeyType key_type = 2;
   }
 }
 
@@ -230,6 +240,35 @@ message PreExecutionOutput {
   string submitting_participant_id = 6;
 }
 
+message KeyType {
+  // Private state keys will have the ACL always set to private.
+  message PrivateState {
+    message Permanent { }
+    oneof lifetime {
+      // Permanent keys will be present in the state until manually deleted.
+      Permanent permanent = 1;
+
+      // Keys with an expiry will be present in the state until the expires_after time (as
+      // measured by the TimeContract), unless manually deleted before.
+      // Concord may delete the key at any time after the expiry time, but there is no time bound
+      // on when the deletion must happen.
+      google.protobuf.Timestamp expires_after = 2;
+    }
+  }
+
+  // Provable state keys will always have a non-private ACL.
+  message ProvableState { }
+
+  // Events are only present in the block in which they're written.
+  message Event { }
+
+  oneof type {
+    PrivateState private_state = 1;
+    ProvableState provable_state = 2;
+    Event event = 3;
+  }
+}
+
 message KeyAndFingerprint {
   bytes key = 1;
   bytes fingerprint = 2;
@@ -244,10 +283,19 @@ message WriteSet {
   repeated KeyValueAccessTriple writes = 1;
 }
 
+// Represents a key-value pair with an ACL. All fields are required.
 message KeyValueAccessTriple {
   bytes key = 1;
+
+  // If the value is empty, the key is to be deleted from the KVBC.
+  // The value may only be empty for state keys (as specified by the KeyType);
+  // for event keys, it must always be set to a non-empty value.
   bytes value = 2;
+
+  // Its value is ignored if the key is to be deleted (the "value" field is empty).
   AccessControlList access = 3;
+
+  KeyType key_type = 4;
 }
 
 message AccessControlList {
