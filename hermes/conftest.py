@@ -618,10 +618,13 @@ def pytest_addoption(parser):
     nonLocalDeployConfig.addoption("--replicaStorage",
                                    help="Ability to override the replica storage value provided by SaaS.",
                                    default=None)
-
     nonLocalDeployConfig.addoption("--propertiesString",
                                    help="The string containing comma seperated key value pairs for deployment properties.",
                                    default="")
+    nonLocalDeployConfig.addoption("--skipDeploymentVerificationTest",
+                                   help="Whether to skip the post-deployment verification tests. (Running a DAML suite.)",
+                                   default=False,
+                                   action="store_true")
 
     parser.addoption(
         "--supportBundleFile",
