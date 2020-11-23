@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <map>
 #include <string>
+#include <vector>
 #include "Logger.hpp"
 #include "concord_storage.pb.h"
 #include "sha_hash.hpp"
@@ -121,10 +122,10 @@ bool DamlKvbCommandsHandler::ExecuteRead(const da_kvbc::ReadCommand& request,
 }
 
 std::map<string, std::pair<string, BlockId>>
-DamlKvbCommandsHandler::GetFromStorage(
-    const google::protobuf::RepeatedPtrField<string>& keys) {
+DamlKvbCommandsHandler::GetFromStorage(const std::vector<std::string>& keys) {
   const BlockId latest_block_id = storage_.getLastBlock();
   std::map<string, std::pair<string, BlockId>> result;
+
   for (const auto& skey : keys) {
     Value out;
     Key key = CreateDamlKvbKey(skey);
@@ -232,9 +233,8 @@ bool DamlKvbCommandsHandler::PreExecute(
     const da_kvbc::CommitRequest& commit_request,
     const opentracing::Span& parent_span, ConcordResponse& concord_response) {
   // Callback for reading from storage.
-  KeyValueWithFingerprintReaderFunc storage_reader = [&](const auto& keys) {
-    return ReadKeys(keys);
-  };
+  KeyTypeAndValueWithFingerprintReaderFunc storage_reader =
+      [&](const auto& keys) { return ReadKeysWithType(keys); };
 
   auto start = std::chrono::steady_clock::now();
 
@@ -273,7 +273,41 @@ bool DamlKvbCommandsHandler::PreExecute(
 
 std::map<std::string, ValueFingerprintPair> DamlKvbCommandsHandler::ReadKeys(
     const google::protobuf::RepeatedPtrField<string>& keys) {
-  auto values = GetFromStorage(keys);
+  std::vector<std::string> v{(std::size_t)keys.size()};
+  for (int i = 0; i < keys.size(); i++) {
+    v[i] = std::move(keys[i]);
+  }
+  auto values = GetFromStorage(v);
+  std::map<std::string, ValueFingerprintPair> result;
+  for (auto& entry : values) {
+    result[entry.first] =
+        std::make_pair(std::move(entry.second.first),
+                       SerializeFingerprint(entry.second.second));
+  }
+  return result;
+}
+
+std::string keyTypeToString(const com::digitalasset::kvbc::KeyType& type) {
+  if (type.has_provable_state()) {
+    return "Proveable";
+  }
+  if (type.has_private_state()) {
+    return "Private";
+  }
+  return "event";
+}
+
+std::map<std::string, ValueFingerprintPair>
+DamlKvbCommandsHandler::ReadKeysWithType(
+    const google::protobuf::RepeatedPtrField<
+        com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>& keys) {
+  std::vector<std::string> v{(std::size_t)keys.size()};
+  for (int i = 0; i < keys.size(); i++) {
+    v[i] = std::move(keys[i].key());
+    LOG_DEBUG(logger_,
+              "Reading key of type " << keyTypeToString(keys[i].key_type()));
+  }
+  auto values = GetFromStorage(v);
   std::map<std::string, ValueFingerprintPair> result;
   for (auto& entry : values) {
     result[entry.first] =
@@ -302,37 +336,36 @@ bool DamlKvbCommandsHandler::PostExecute(
   if (!pre_execution_output.ParseFromString(pre_execution_result.output())) {
     LOG_ERROR(logger_, "Failed parsing pre-execution output");
     return false;
-  } else {
-    SetOfKeyValuePairs raw_write_set;
-    GenerateWriteSetForPreExecution(pre_execution_output, record_time,
-                                    raw_write_set);
-    if (enable_histograms_or_summaries) {
-      pre_execution_write_kv_set_size_summary_.Observe(raw_write_set.size());
-    }
-    for (auto& kv : raw_write_set) {
-      if (enable_histograms_or_summaries) {
-        pre_execution_write_keys_size_summary_.Observe(kv.first.length());
-        pre_execution_write_values_size_summary_.Observe(kv.second.length());
-      }
-      LOG_DEBUG(logger_, "PreExec_KV_metrics Key length: "
-                             << kv.first.length()
-                             << " Value length: " << kv.second.length());
-    }
-    auto start = std::chrono::steady_clock::now();
-    RecordTransaction(raw_write_set, storage_.getLastBlock(), correlation_id,
-                      parent_span, concord_response);
-    auto record_transaction_duration =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start);
-    LOG_INFO(
-        logger_,
-        "Done handling DAML post execution, time: "
-            << TimeUtil::ToString(record_time)
-            << ", recordTransactionDuration: "
-            << record_transaction_duration.count() << ", clock: "
-            << std::chrono::steady_clock::now().time_since_epoch().count());
-    return true;
   }
+
+  SetOfKeyValuePairs raw_write_set;
+  GenerateWriteSetForPreExecution(pre_execution_output, record_time,
+                                  raw_write_set);
+  if (enable_histograms_or_summaries) {
+    pre_execution_write_kv_set_size_summary_.Observe(raw_write_set.size());
+  }
+  for (auto& kv : raw_write_set) {
+    if (enable_histograms_or_summaries) {
+      pre_execution_write_keys_size_summary_.Observe(kv.first.length());
+      pre_execution_write_values_size_summary_.Observe(kv.second.length());
+    }
+    LOG_DEBUG(logger_, "PreExec_KV_metrics Key length: " << kv.first.length()
+                                                         << " Value length: "
+                                                         << kv.second.length());
+  }
+  auto start = std::chrono::steady_clock::now();
+  RecordTransaction(raw_write_set, storage_.getLastBlock(), correlation_id,
+                    parent_span, concord_response);
+  auto record_transaction_duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - start);
+  LOG_INFO(logger_,
+           "Done handling DAML post execution, time: "
+               << TimeUtil::ToString(record_time)
+               << ", recordTransactionDuration: "
+               << record_transaction_duration.count() << ", clock: "
+               << std::chrono::steady_clock::now().time_since_epoch().count());
+  return true;
 }
 
 bool CheckIfWithinTimeBounds(
@@ -402,9 +435,11 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
 void DamlKvbCommandsHandler::WriteSetToRawUpdates(
     const com::digitalasset::kvbc::WriteSet& input_write_set,
     SetOfKeyValuePairs& updates) const {
+  // E.L type will need to be added as well and maybe the trids
   for (const auto& entry : input_write_set.writes()) {
     auto key = CreateDamlKvbKey(entry.key());
     std::vector<string> thin_replica_ids;
+    // E.L the value will not contain the trids
     AccessControlListToThinReplicaIds(entry.access(), thin_replica_ids);
     auto value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
     if (enable_histograms_or_summaries) {
@@ -453,7 +488,11 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     SetOfKeyValuePairs& updates) {
   // Callback for reading from storage.
   DamlKvbReadFunc kvb_read = [&](const auto& keys) {
-    auto values = GetFromStorage(keys);
+    std::vector<std::string> v{(std::size_t)keys.size()};
+    for (auto& skey : keys) {
+      v.push_back(std::move(skey));
+    }
+    auto values = GetFromStorage(v);
     std::map<std::string, std::string> adapted_result;
     for (auto& entry : values) {
       adapted_result[entry.first] = std::move(entry.second.first);

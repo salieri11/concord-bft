@@ -47,7 +47,7 @@ class MockDamlValidatorClient : public IDamlValidatorClient {
   MOCK_METHOD6(PreExecute,
                grpc::Status(const std::string&, const std::string&,
                             const std::string&, const opentracing::Span&,
-                            KeyValueWithFingerprintReaderFunc,
+                            KeyTypeAndValueWithFingerprintReaderFunc,
                             com::vmware::concord::PreExecutionResult*));
 };
 

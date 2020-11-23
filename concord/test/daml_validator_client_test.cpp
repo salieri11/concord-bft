@@ -67,9 +67,11 @@ class MockReadingFromStorage {
                std::map<std::string, std::string>(
                    const google::protobuf::RepeatedPtrField<std::string>&));
 
-  MOCK_METHOD1(ReadWithFingerprints,
-               std::map<std::string, ValueFingerprintPair>(
-                   const google::protobuf::RepeatedPtrField<std::string>&));
+  MOCK_METHOD1(
+      ReadWithFingerprints,
+      std::map<std::string, ValueFingerprintPair>(
+          const google::protobuf::RepeatedPtrField<
+              com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>&));
 };
 
 auto test_span =
@@ -378,18 +380,26 @@ TEST_F(DamlValidatorClientTest,
   PreprocessorFromEngine read_request;
   std::string expected_tag = "requested tag";
   read_request.mutable_read_request()->set_tag(expected_tag);
-  std::vector<std::string> expected_keys = {"1", "2"};
+  std::vector<com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>
+      expected_keys{2};
+  expected_keys[0].set_key("1");
+  expected_keys[1].set_key("2");
+
   for (auto expected_key : expected_keys) {
-    read_request.mutable_read_request()->add_keys(expected_key);
+    read_request.mutable_read_request()->add_keys()->set_key(
+        expected_key.key());
   }
   EXPECT_CALL(*mock_stream_, Read(_))
       .WillOnce(DoAll(WithArg<0>(copy(&read_request)), Return(true)));
   // => read response
-  google::protobuf::RepeatedPtrField<std::string> actual_requested_keys;
+  google::protobuf::RepeatedPtrField<
+      com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>
+      actual_requested_keys;
   std::string expected_value = "some value";
   std::map<std::string, ValueFingerprintPair> read_result;
   for (auto expected_key : expected_keys) {
-    read_result[expected_key] = std::make_pair(expected_value, expected_key);
+    read_result[expected_key.key()] =
+        std::make_pair(expected_value, expected_key.key());
   }
   EXPECT_CALL(*mock_reader_, ReadWithFingerprints(_))
       .Times(1)
@@ -413,17 +423,18 @@ TEST_F(DamlValidatorClientTest,
                                mock_reader_, _1),
                      &ignored_result);
 
-  EXPECT_THAT(expected_keys, ElementsAreArray(actual_requested_keys.begin(),
-                                              actual_requested_keys.end()));
+  for (int i = 0; i < expected_keys.size(); ++i) {
+    EXPECT_EQ(expected_keys[i].key(), actual_requested_keys[i].key());
+  }
   EXPECT_TRUE(read_completed.has_read_result());
   auto actual_result = read_completed.read_result();
   EXPECT_EQ(expected_tag, actual_result.tag());
   EXPECT_EQ(expected_keys.size(), actual_result.key_value_pairs_size());
   for (int i = 0; i < expected_keys.size(); ++i) {
     auto actual_key_value_pair = actual_result.key_value_pairs(i);
-    EXPECT_EQ(expected_keys[i], actual_key_value_pair.key());
+    EXPECT_EQ(expected_keys[i].key(), actual_key_value_pair.key());
     EXPECT_EQ(expected_value, actual_key_value_pair.value());
-    EXPECT_EQ(expected_keys[i], actual_key_value_pair.fingerprint());
+    EXPECT_EQ(expected_keys[i].key(), actual_key_value_pair.fingerprint());
   }
 }
 

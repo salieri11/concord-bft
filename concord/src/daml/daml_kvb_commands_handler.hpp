@@ -122,6 +122,10 @@ class DamlKvbCommandsHandler
   std::map<std::string, ValueFingerprintPair> ReadKeys(
       const google::protobuf::RepeatedPtrField<string>& keys);
 
+  std::map<std::string, ValueFingerprintPair> ReadKeysWithType(
+      const google::protobuf::RepeatedPtrField<
+          com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>& keys);
+
  private:
   bool ExecuteRead(const com::digitalasset::kvbc::ReadCommand& read_cmd,
                    com::vmware::concord::ConcordResponse& concord_response);
@@ -158,8 +162,9 @@ class DamlKvbCommandsHandler
   bool ExecuteReadOnlyCommand(
       const com::vmware::concord::ConcordRequest& request,
       com::vmware::concord::ConcordResponse& response);
+
   std::map<string, std::pair<string, kvbc::BlockId>> GetFromStorage(
-      const google::protobuf::RepeatedPtrField<std::string>& keys);
+      const std::vector<std::string>& keys);
 
   void RecordTransaction(
       const kvbc::SetOfKeyValuePairs& updates,
