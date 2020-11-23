@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.web.bind.annotation.RestController;
@@ -47,6 +48,8 @@ public class BlockchainApiObjects {
         private List<ReplicaNodeRequest> replicaNodes;
 
         private List<ClientNodeRequest> clientNodes;
+
+        private List<ReadOnlyReplica> readOnlyReplicas;
     }
 
     @Getter
@@ -74,6 +77,31 @@ public class BlockchainApiObjects {
         private String crt;     // The crt file to be used as the cert chain.
         private String cacrt;   // The crt file to be used as the the trusted root CA.
     }
+
+
+    /**
+     * Optional read-only replica. Describes a read-only replica that has all the properties of a real replica,
+     * and also additional properties specific to read-only replicas.
+     */
+    @Getter
+    @Setter
+    @Valid
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ReadOnlyReplica {
+        private UUID zoneId;
+        //TODO- add node sizing to read only replica.
+        @NotBlank(message = "deployment.roreplica.access.key.invalid")
+        private String objectStoreAccessKey;
+        @NotBlank(message = "deployment.roreplica.bucket.name.invalid")
+        private String objectStoreBucketName;
+        @NotBlank(message = "deployment.roreplica.protocol.invalid")
+        private String objectStoreProtocol;
+        @NotBlank(message = "deployment.roreplica.secret.key.invalid")
+        private String objectStoreSecretKey;
+        @NotBlank(message = "deployment.roreplica.url.invalid")
+        private String objectStoreUrl;
+    }
+
 
     @Getter
     @Setter

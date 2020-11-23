@@ -42,7 +42,8 @@ public class Replica extends AbstractEntity implements NodeInterface {
         // Only dealing with either NONE or DAML_PARTICIPANT for now
         // None: Ethereum, HFL, DAML Committer
         NONE,
-        DAML_PARTICIPANT
+        DAML_PARTICIPANT,
+        READ_REPLICA
     }
 
     @Deprecated
