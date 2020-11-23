@@ -271,37 +271,37 @@
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py --numReplicas 7 --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py --numReplicas 7 --blockchainLocation onprem --blockchainType daml --zoneOverride "${on_demand_zone}"'
     testModule: 'suites/daml_regression_tests.py'
 - DamlRegBasic:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m basic --numReplicas 7 --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m basic --numReplicas 7 --blockchainLocation onprem --blockchainType daml --zoneOverride "${on_demand_zone}"'
     testModule: 'suites/daml_regression_tests.py'
 - DamlRegStgrdStrtups:
     enabled: true 
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m staggered_startups --numReplicas 7 --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m staggered_startups --numReplicas 7 --blockchainLocation onprem --blockchainType daml --zoneOverride "${on_demand_zone}"'
     testModule: 'suites/daml_regression_tests.py'
 - DamlRegViewChanges:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m view_changes --numReplicas 7 --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m view_changes --numReplicas 7 --blockchainLocation onprem --blockchainType daml --zoneOverride "${on_demand_zone}"'
     testModule: 'suites/daml_regression_tests.py'
 - DamlRegLackOfQuorum:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m lack_of_quorum --numReplicas 7 --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m lack_of_quorum --numReplicas 7 --blockchainLocation onprem --blockchainType daml --zoneOverride "${on_demand_zone}"'
     testModule: 'suites/daml_regression_tests.py'
 - DamlRegStCoincideVc:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m st_coincide_vc --numReplicas 7 --blockchainLocation onprem --blockchainType daml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_regression_tests.py -m st_coincide_vc --numReplicas 7 --blockchainLocation onprem --blockchainType daml --zoneOverride "${on_demand_zone}"'
     testModule: 'suites/daml_regression_tests.py'
 - PreexecutionSystemTests:
     enabled: false

@@ -1,3 +1,4 @@
+from daml_requests import simple_request, get_daml_url, DAML_LEDGER_API_PORT, continuous_daml_request_submission
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -15,7 +16,6 @@ import util.daml.daml_helper as daml_helper
 
 # Do not add any import after this
 sys.path.append(os.path.abspath('../daml'))
-from daml_requests import simple_request, get_daml_url, DAML_LEDGER_API_PORT, continuous_daml_request_submission
 
 log = hermes_logging.getMainLogger()
 
@@ -25,7 +25,7 @@ COMMITTER_POWER_OFF_ERROR_MSG = "Failed to power off committer node "
 PARTICIPANT_POWER_ON_ERROR_MSG = "Failed to power on participant node "
 PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node "
 CHECKPOINT_ERROR_MESSAGE = "Failed to trigger new checkpoint"
-
+DAML_ATTEMPTS = 2
 
 def format_hosts_structure(all_replicas):
     '''
@@ -78,25 +78,28 @@ def get_block_id(ip):
     container_image = helper.ssh_connect(
         ip, username, password, cmd_for_container_image)
     container_image_list = [i for i in container_image.split(" ") if i != ""]
-    concord_core_param = container_image_list[0] + ':' + container_image_list[1]
+    concord_core_param = container_image_list[0] + \
+        ':' + container_image_list[1]
 
     params = "type=bind,source=/mnt/data/rocksdbdata/,target=/concord/rocksdbdata"
     tool_path = "/concord/sparse_merkle_db_editor /concord/rocksdbdata"
     cmd = ' '.join([params, concord_core_param, tool_path])
 
     # Find last block ID
-    cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(cmd)
-    log.info("\nFinding last block ID")
+    cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(
+        cmd)
+    log.debug("\nFinding last block ID")
     result = helper.ssh_connect(
         ip, username, password, cmd_for_block_id)
     if ("Error" in str(result)):
         params = "type=bind,source=/config/concord/rocksdbdata/,target=/concord/rocksdbdata"
         cmd = ' '.join([params, concord_core_param, tool_path])
-        cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(cmd)
+        cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(
+            cmd)
         result = helper.ssh_connect(
             ip, username, password, cmd_for_block_id)
     block_id = (result.split(': \"')[1]).split('\"')[0]
-    log.info("Block ID : {}".format(block_id))
+    log.debug("Block ID : {}".format(block_id))
     return int(block_id)
 
 
@@ -110,16 +113,28 @@ def install_sdk_deploy_daml(client_host):
         None
     '''
     client_port = '6861' if client_host == 'localhost' else DAML_LEDGER_API_PORT
-    daml_sdk_path = daml_helper.install_daml_sdk()
-    log.info("\nDaml sdk path is {}".format(daml_sdk_path))
-    cmd = [daml_sdk_path, "deploy", "--host",
-           client_host, "--port", client_port]
-    party_project_dir = "util/daml/request_tool"
-    success, output = helper.execute_ext_command(
-        cmd, timeout=240, working_dir=party_project_dir, verbose=True)
-    log.info("\nSuccess and Output are {} and {}".format(success, output))
-    assert success, "DAML Error: Unable to deploy DAML app for one/more parties"
-    log.info("Daml sdk installation and deployment successful")
+    daml_sdk_path = None
+    is_daml_deployed = False
+    for i in range(0, DAML_ATTEMPTS):
+        try:
+            if i > 0:
+                time.sleep(pow(2, i))
+            if not daml_sdk_path:
+                daml_sdk_path = daml_helper.install_daml_sdk()
+                log.debug("\nDaml sdk path is {}".format(daml_sdk_path))
+            if not is_daml_deployed:
+                cmd = [daml_sdk_path, "deploy", "--host",
+                       client_host, "--port", client_port]
+                party_project_dir = "util/daml/request_tool"
+                is_daml_deployed, output = helper.execute_ext_command(
+                    cmd, timeout=240, working_dir=party_project_dir, verbose=False)
+                log.debug("\nSuccess and Output are {} and {}".format(
+                    is_daml_deployed, output))
+                assert is_daml_deployed, "DAML Error: Unable to deploy DAML app for one/more parties"
+            log.info("\n*** Daml sdk installation and deployment successful ***")
+        except Exception as e:
+            log.error(
+                "Error in DAML SDK installation or deployment for {}: {}".format(client_host, e))
 
 
 def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
@@ -141,9 +156,9 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
         intr_helper.NODE_TYPE_TO_INTERRUPT: node_type,
         intr_helper.NODE_INTERRUPTION_DETAILS: [
             {
-            intr_helper.NODE_INTERRUPTION_TYPE: interruption_type,
-            intr_helper.SKIP_MASTER_REPLICA: False,
-            intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
+                intr_helper.NODE_INTERRUPTION_TYPE: interruption_type,
+                intr_helper.SKIP_MASTER_REPLICA: False,
+                intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
                 }
             }
         ]
@@ -153,30 +168,37 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
     return intr_helper.perform_interrupt_recovery_operation(
         fxHermesRunSettings, fxBlockchain, None, node, scenario_details, scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0], mode)
 
+
 def make_daml_request(reraise, client_host, no_of_txns=1, wait_time=0.3):
     # Default port can be 6865 or 80 (helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT)
     # But after powering off and on the host, it listens on 6865 only
     # So using 6865 here
-    log.info("\nStarting process for daml transaction")
+    log.info("\n*** Submit daml transaction(s) ***")
     url = get_daml_url(client_host)
+    username, password = helper.getNodeCredentials()
+
+    if not helper.check_docker_health(client_host, username, password,\
+         helper.TYPE_DAML_PARTICIPANT, max_timeout=5, verbose=False):
+        log.warning("\n*** Unexpected crash ***")
+        return False
 
     def make_daml_request(url, no_of_txns, wait_time):
-        # set_event_loop(new_event_loop())
         simple_request(url, no_of_txns, wait_time)
-        # get_event_loop().stop()
 
     p_daml_txn = multiprocessing.Process(target=make_daml_request,
                                          args=(url, no_of_txns, wait_time))
     p_daml_txn.start()
     sleep_time = wait_time * 60 + 30
-    log.info("\nSleep time is : {}".format(sleep_time))
     time.sleep(sleep_time)
-    log.info("\nIs process alive? {}".format(p_daml_txn.is_alive()))
+    log.debug("\nIs process alive? {}".format(p_daml_txn.is_alive()))
     if p_daml_txn.is_alive():
-        reraise()
-        p_daml_txn.terminate()
-        time.sleep(0.2)
-        return False
+        time.sleep(20)
+        if p_daml_txn.is_alive():
+            reraise()
+            p_daml_txn.terminate()
+            return False
+        else:
+            return True
     else:
         return True
 
@@ -194,7 +216,7 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
     '''
     log.info("\n**** Performing sanity check after every test ****")
     try:
-        log.info("\nCheck if all the participant nodes are up")
+        log.debug("\nCheck if all the participant nodes are up, if not bring them up")
         for client_host in fixture_tuple.client_hosts:
             # Check if client host is up
             assert interrupt_node(fxHermesRunSettings, client_host,
@@ -203,7 +225,7 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
                                   intr_helper.NODE_RECOVER), \
                 "Failed to power on participant {}".format(client_host)
 
-        log.info("\nCheck if all the committer nodes are up")
+        log.debug("\nCheck if all the committer nodes are up, if not bring them up")
         for concord_host in fixture_tuple.concord_hosts:
             # Check if concord host is up
             assert interrupt_node(fxHermesRunSettings, concord_host,
@@ -221,8 +243,8 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
         cmd = "docker start concord; docker inspect --format {{.State.Status}} concord"
         helper.ssh_parallel(fixture_tuple.concord_hosts, cmd, verbose=False)
 
-        log.info("\nPerform daml transaction as final check")
-        for client_host in fixture_tuple.client_hosts: 
+        log.debug("\nPerform daml transaction as final check")
+        for client_host in fixture_tuple.client_hosts:
             assert make_daml_request(
                 reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG + "as part of sanity check"
 
@@ -252,6 +274,7 @@ def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
                               intr_helper.NODE_INTERRUPT), \
             COMMITTER_POWER_OFF_ERROR_MSG + "[{}]".format(
                 concord_host)
+    log.info("\n*** Powered off all the committers ***")
 
 
 def power_on_all_participants(fxHermesRunSettings, client_hosts):
@@ -269,7 +292,8 @@ def power_on_all_participants(fxHermesRunSettings, client_hosts):
                               intr_helper.NODE_INTERRUPT_VM_STOP_START,
                               intr_helper.NODE_RECOVER), \
             PARTICIPANT_POWER_ON_ERROR_MSG + "[{}]".format(client_host)
-        log.info("Participant no {} : {} is on".format(count + 1, client_host))
+        log.debug("Participant no {} : {} is on".format(count + 1, client_host))
+    log.info("\n*** Powered on all the participants ***")
 
 
 def staggered_start_committers(fxHermesRunSettings, concord_hosts):
@@ -291,12 +315,13 @@ def staggered_start_committers(fxHermesRunSettings, concord_hosts):
                               intr_helper.NODE_RECOVER), \
             COMMITTER_POWER_ON_ERROR_MSG + "[{}]".format(
                 concord_host)
-        log.info("Committer on index {}: {} is on".format(
+        log.debug("Committer on index {}: {} is on".format(
             concord_host_index, concord_host))
         list_of_committer_indexes.remove(concord_host_index)
         sleep_time = random.randrange(5, 10)
-        log.info("Sleeping for time {}".format(sleep_time))
+        log.debug("Sleeping for time {}".format(sleep_time))
         time.sleep(sleep_time)
+    log.info("\n*** Started all the committers in staggered manner ***")
 
 
 def stop_for_replica_list(replica_list, container_name, count):
@@ -314,7 +339,7 @@ def stop_for_replica_list(replica_list, container_name, count):
         concord_host = replica_list[i]
         assert intr_helper.stop_container(
             concord_host, container_name), "Failed to stop committer node [{}]".format(concord_host)
-    log.info("\nStopped {} replicas".format(count))
+    log.info("\n*** Stopped {} replicas ***".format(count))
 
 
 def start_for_replica_list(replica_list, container_name, count):
@@ -332,7 +357,7 @@ def start_for_replica_list(replica_list, container_name, count):
         concord_host = replica_list[i]
         assert intr_helper.start_container(
             concord_host, container_name), "Failed to start committer node [{}]".format(concord_host)
-    log.info("\nStarted {} replicas".format(count))
+    log.info("\n*** Started {} replicas ***".format(count))
 
 
 def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
@@ -347,7 +372,7 @@ def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, inter
         bool: True if view change happened successfully, False otherwise.
     '''
     try:
-        log.info("Finding new primary replica ip")
+        log.debug("Finding new primary replica ip")
         committers_mapping = blockchain_ops.map_committers_info(
             fxBlockchain, interrupted_nodes)
         new_primary_rip = committers_mapping["primary_ip"]
@@ -355,7 +380,7 @@ def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, inter
         assert new_primary_rip or new_primary_index, "Primary replica IP & index not found after view change"
 
         if init_primary_index != new_primary_index or init_primary_rip != new_primary_rip:
-            log.info("View change successful")
+            log.debug("View change successful")
             return True
         else:
             return False
@@ -372,16 +397,16 @@ def trigger_checkpoint(bc_id, client_host):
     Returns:
         boolean: True or False if checkpoint was triggered
     '''
-    no_of_txns_for_checkpoint, wait_time, duration= 170, 0, 200
+    no_of_txns_for_checkpoint, wait_time, duration = 170, 0, 200
     checkpoint_before_txns = get_last_checkpoint(bc_id)
-    log.info("Checkpoint before transactions: {}".format(checkpoint_before_txns))
+    log.debug("Checkpoint before transactions: {}".format(checkpoint_before_txns))
     p_daml_txn = multiprocessing.Process(target=continuous_daml_request_submission,
                                          args=(client_host, no_of_txns_for_checkpoint, wait_time, duration))
     p_daml_txn.start()
     p_daml_txn.join()
     p_daml_txn.terminate()
     checkpoint_after_txns = get_last_checkpoint(bc_id)
-    log.info("Checkpoint after transactions: {}".format(checkpoint_after_txns))
+    log.debug("Checkpoint after transactions: {}".format(checkpoint_after_txns))
     if checkpoint_after_txns > checkpoint_before_txns:
         return True
     else:
@@ -401,13 +426,14 @@ def get_last_checkpoint(bc_id):
     metric_name = "vmware.blockchain.concord.concordbft.last.stored.checkpoint.gauge"
     metric_query = "ts({}".format(metric_name)
     metric_query = metric_query + ",blockchain={})".format(bc_id)
-    log.info("Metric Query to Wavefront API: {}".format(metric_query))
-    log.info("Start epoch time: {} ; End epoch time: {}".format(start_epoch, end_epoch))
+    log.debug("Metric Query to Wavefront API: {}".format(metric_query))
+    log.debug("Start epoch time: {} ; End epoch time: {}".format(
+        start_epoch, end_epoch))
     time.sleep(60)
     str_output = wavefront.call_wavefront_chart_api(
         metric_query, start_epoch, end_epoch, granularity="s")
     output = json.loads(str_output)
-    checkpoints_info  = output["timeseries"][0]["data"]
+    checkpoints_info = output["timeseries"][0]["data"]
     if checkpoints_info:
         last_checkpoint = checkpoints_info[-1][1]
     else:
