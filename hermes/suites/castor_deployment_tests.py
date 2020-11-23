@@ -55,6 +55,30 @@ _CONSORTIUM_NAME = "hermes-castor-consortium"
 _NUM_NODES = 9
 _CASTOR_OUTPUT_CLIENT_NODE_PATTERN = "CLIENT_GROUP_ID"
 _COMPOSE_CONFIG_SERVICE_LOG = "docker-compose-config-service.log"
+_CONCORD_TYPE = "DAML"
+
+
+@pytest.fixture
+def run_on_failure(request, fxHermesRunSettings):
+    """
+    Capture support bundles on failure
+    """
+    yield True
+    if request.session.testsfailed:
+        collect_concord_support_bundle(fxHermesRunSettings)
+
+
+def collect_concord_support_bundle(fxHermesRunSettings):
+    """
+    Collect concord support bundle
+    """
+    try:
+        castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
+        castor_output_file = _get_castor_output_file(castorOutputDir)
+        all_nodes = _get_all_nodes(castor_output_file)[0]
+        helper.create_concord_support_bundle(all_nodes, _CONCORD_TYPE.lower(), castorOutputDir)
+    except FileNotFoundError:
+        log.info("No output file found to collect support bundle. Skipping.........")
 
 
 def match_pattern(lines, pattern):
@@ -63,6 +87,18 @@ def match_pattern(lines, pattern):
         if pattern.search(line):
             matches += 1
     return matches
+
+def _get_castor_output_file(castorOutputDir):
+    files = os.listdir(castorOutputDir)
+
+    filePatternStr = _CONSORTIUM_NAME + "*"
+    outputFileBases = fnmatch.filter(files, filePatternStr)
+    assert len(outputFileBases) == 1, "Zero/Multiple matches found for consortium: %s, %s" % (
+        _CONSORTIUM_NAME, outputFileBases)
+
+    outputFileBase = outputFileBases[0]
+    castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
+    return castorOutputFile
 
 
 def _populateDescriptorFiles(fxHermesRunSettings):
@@ -259,7 +295,7 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
 
 
 @describe("Deploy 7 node daml blockchain and verify blockchain health")
-def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings):
+def test_castor_deployment(upPrereqsDocker, upCastorDockerCompose, fxHermesRunSettings, run_on_failure):
     """
     The startup/shutdown of the Castor containers is verified by the upPrereqsDocker, upCastorDockerCompose fixture.
     If that fails, there is no point in continuing onward with this test. The test verifies the following:
