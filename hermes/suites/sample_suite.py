@@ -22,7 +22,7 @@ def sampleFixture(request):
     '''
     return {"importantNumber": 123}
 
-
+@pytest.mark.jira("BC-4532", run=False)
 @describe("Should pass with expreesion; assert 1 + 1 = 2")
 def test_example():
     '''
