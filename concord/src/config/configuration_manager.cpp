@@ -2483,6 +2483,11 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("insecure_thin_replica_server", deploymentTag);
   config.addValidator("insecure_thin_replica_server",
                       make_shared<BooleanValidator>());
+  config.declareParameter("thin_replica_tls_cert_path",
+                          "TRS-TRC TLS certificates folder path",
+                          "/concord/trs_trc_tls_certs");
+  config.tagParameter("thin_replica_tls_cert_path", publicDefaultableTags);
+  config.tagParameter("thin_replica_tls_cert_path", deploymentTag);
 
   config.declareParameter("pre_execute_all_requests",
                           "Enable pre-execution for all requests", "false");
@@ -3057,10 +3062,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("signing_key_path", "Signing key root folder path");
   config.tagParameter("signing_key_path", publicOptionalTags);
   config.tagParameter("signing_key_path", applicationTag);
-  config.declareParameter("thin_replica_tls_cert_path",
-                          "TRS-TRC TLS certificates folder path");
-  config.tagParameter("thin_replica_tls_cert_path", publicOptionalTags);
-  config.tagParameter("thin_replica_tls_cert_path", applicationTag);
 
   config.declareParameter("comm_to_use", "Default communication module");
   config.tagParameter("comm_to_use", publicInputTags);
