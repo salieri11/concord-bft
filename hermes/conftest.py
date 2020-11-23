@@ -697,6 +697,7 @@ def _get_suite_short_name(module_name):
         "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests",
         "WavefrontTests": "hermes.suites.wavefront_tests",
         "HelenVMSizeTests": "vmsize_test",
+        "TlsDamlTests": "hermes.suites.tls_daml_tests",
         "BackupRestoreTests": "hermes.suites.backup_restore_tests"
     }
 
