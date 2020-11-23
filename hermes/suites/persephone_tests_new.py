@@ -1038,7 +1038,7 @@ def test_daml_7_node_onprem(request, fxHermesRunSettings, ps_helper, file_root, 
     num_replicas = 7
     num_clients = 3
     num_groups = 2
-    deployment_properties = ""
+    deployment_properties = "TRC_TRS_TLS_ENABLED=True"
 
     # Set the deployment params for this test case
     # 7 committers, 3 clients, 2 client groups
