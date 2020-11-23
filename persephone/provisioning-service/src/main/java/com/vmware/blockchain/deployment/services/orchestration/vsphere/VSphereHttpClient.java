@@ -5,14 +5,17 @@
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.net.URI;
 import java.security.KeyStore;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -77,8 +80,8 @@ public class VSphereHttpClient {
     private VsphereSessionAuthenticationInterceptor vsphereSessionAuthenticationInterceptor;
     private LoggingInterceptor loggingInterceptor;
 
-    private Boolean useSelfSignedCertForVSphere;
-    private KeyStore selfSignedCertKeyStore;
+    private boolean handleCertsForVSphere;
+    private KeyStore certKeyStore;
 
     /**
      * Constructor.
@@ -94,20 +97,32 @@ public class VSphereHttpClient {
 
         // If self-signed certificate is populated enable useSelfSignedCertForVSphere
         if (this.context.certificateData.isEmpty()) {
-            useSelfSignedCertForVSphere = false;
+            handleCertsForVSphere = false;
         } else {
-            useSelfSignedCertForVSphere = true;
+            handleCertsForVSphere = true;
         }
 
         // Creating new Key store and populate the self-signed certificate for VSphere
-        if (useSelfSignedCertForVSphere) {
+        if (handleCertsForVSphere) {
             try {
-                selfSignedCertKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                certKeyStore = KeyStore.getInstance(KeyStore.getDefaultType());
                 // Currently have set the password to the key store as null, can be secured with password
-                selfSignedCertKeyStore.load(null, null);
-                Certificate selfSignedCertForVSphere = CertificateFactory.getInstance("X.509").generateCertificate(
-                        new ByteArrayInputStream(this.context.certificateData.getBytes()));
-                selfSignedCertKeyStore.setCertificateEntry("SelfSignedCertForVSphere", selfSignedCertForVSphere);
+                certKeyStore.load(null, null);
+
+                // Parsing through the certificateData for certs to add to keyStore for communicating with VSphere
+                // Value of this field can contain a collated cert i.e multiple certs within itself
+                // Parsing and adding the certs one by one to the required keyStore
+                if (this.context.certificateData.getBytes() != null) {
+                    InputStream in = new ByteArrayInputStream(this.context.certificateData.getBytes());
+                    CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+                    Collection c = certificateFactory.generateCertificates(in);
+                    Iterator i = c.iterator();
+                    int certNum = 1;
+                    while (i.hasNext()) {
+                        X509Certificate certForVSphere = (X509Certificate) i.next();
+                        certKeyStore.setCertificateEntry("certForVSphere" + certNum++, certForVSphere);
+                    }
+                }
             } catch (Exception e) {
                 log.error("Error in creating the keystore with certificate provided", e);
                 throw new PersephoneException(e, ErrorCode.KEYSTORE_CREATION_ERROR);
@@ -116,8 +131,8 @@ public class VSphereHttpClient {
 
         vsphereSessionAuthenticationInterceptor
                 = new VsphereSessionAuthenticationInterceptor(context.getEndpoint().toString(), context.getUsername(),
-                                                              context.getPassword(), this.useSelfSignedCertForVSphere,
-                                                              this.selfSignedCertKeyStore);
+                                                              context.getPassword(), this.handleCertsForVSphere,
+                                                              this.certKeyStore);
 
         this.restTemplate = restTemplate();
 
@@ -133,9 +148,9 @@ public class VSphereHttpClient {
     public RestTemplate restTemplate() {
         RestClientBuilder restClientBuilder = new RestClientBuilder();
 
-        if (useSelfSignedCertForVSphere) {
+        if (handleCertsForVSphere) {
             HttpComponentsClientHttpRequestFactory factory = OrchestratorUtils
-                    .getHttpRequestFactoryGivenKeyStore(selfSignedCertKeyStore);
+                    .getHttpRequestFactoryGivenKeyStore(certKeyStore);
 
             // Utilizes above created factory using the selfSignedCertKeyStore
             restClientBuilder = restClientBuilder.withRequestFactory(factory);
