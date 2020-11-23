@@ -180,6 +180,7 @@
     runAlone: true
     dockerComposeFiles: '${COMPOSE_PREFIX}-daml-preexecution.yml'
     concordConfigurationInput: '${CONCORD_PREFIX}-daml-preexecution.yaml'
+    baseCommand: '${MAIN_PYTEST} suites/daml_tests.py --suitesRealname=DamlPreexecutionTests'
     testModule: 'suites/daml_tests.py'
 - ThinReplicaServerTests:
     enabled: true
