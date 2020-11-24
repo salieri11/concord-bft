@@ -1,0 +1,412 @@
+<div class="p-2">
+  <h2 class="page-title inline-block large-title">
+    <span>{{ 'nav.deploy' | translate }}</span>
+    <!-- help button -->
+    <button #helpButton type="button" class="close help-btn" aria-label="Help" (click)="onClickToHelp('vmb_120')">
+      <clr-icon aria-hidden="true" shape="help" size="18"></clr-icon>
+    </button>
+  </h2>
+  <form clrStepper #wizard [formGroup]="form">
+    <clr-stepper-panel formGroupName="engine">
+      <clr-step-title>{{'blockchainWizard.engine.pageTitle' | translate}}</clr-step-title>
+      <clr-step-description>{{'blockchainWizard.engine.pageDesc' | translate}}</clr-step-description>
+      <clr-step-content *clrIfExpanded>
+        <div class="clr-row">
+          <div class="clr-col-12">
+            <div id="damlEngine" class="card clickable sideways" (click)="selectEngine(engines.DAML)"
+              [ngClass]="{'active': selectedEngine === engines.DAML}">
+              <div class="card-icon">
+                <img src="static/images/contract-types/daml.svg"
+                  [attr.alt]="'blockchainWizard.engine.damlTitle' | translate">
+              </div>
+              <div class="card-endorsement">
+                <h3>{{ 'blockchainWizard.engine.damlTitle' | translate }}</h3>
+                <p>{{ 'blockchainWizard.engine.damlInfo' | translate }}</p>
+              </div>
+            </div>
+            <div class="clr-row" *concordFeatureFlag="'ethereum'">
+              <div class="clr-col-12">
+                <div id="ethEngine" class="card clickable sideways" (click)="selectEngine(engines.ETH)"
+                  [ngClass]="{'active': selectedEngine === engines.ETH}">
+                  <div class="card-icon">
+                    <img src="static/images/contract-types/eth.svg"
+                      [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
+                  </div>
+                  <div class="card-endorsement">
+                    <h3>{{ 'blockchainWizard.engine.ethTitle' | translate }}</h3>
+                    <p>{{ 'blockchainWizard.engine.ethInfo' | translate }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button clrStepButton="next">{{ 'common.next' | translate }}</button>
+      </clr-step-content>
+    </clr-stepper-panel>
+
+    <clr-stepper-panel #detailPage formGroupName="details">
+      <clr-step-title>{{'blockchainWizard.details.pageTitle' | translate}}</clr-step-title>
+      <clr-step-description>{{'blockchainWizard.details.pageDesc' | translate}}</clr-step-description>
+      <clr-step-content *clrIfExpanded>
+        <div clrForm class="form-block detail-form">
+          <clr-input-container>
+            <label class="clr-col-12 clr-col-md-4">{{'blockchainWizard.common.consortiumName' | translate}}</label>
+            <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="consortium_name"
+              class="form-control clr-col-12 clr-col-md-8" size="43"
+              [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
+          </clr-input-container>
+          <clr-textarea-container>
+            <label class="clr-col-12 clr-col-md-4">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
+            <textarea clrTextarea formControlName="consortium_desc" class="clr-col-12 clr-col-md-5" rows="4"
+              [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate"></textarea>
+          </clr-textarea-container>
+        </div>
+        <button clrStepButton="next">{{ 'common.next' | translate }}</button>
+
+      </clr-step-content>
+    </clr-stepper-panel>
+
+    <clr-stepper-panel #replicaPage formGroupName="nodes">
+      <clr-step-title>{{'blockchainWizard.nodes.pageTitle' | translate}}</clr-step-title>
+      <clr-step-description>{{'blockchainWizard.nodes.pageDesc' | translate}}</clr-step-description>
+      <clr-step-content *clrIfExpanded>
+        <div clrForm class="form-block blockchain-form nodes">
+          <clr-select-container>
+            <label class="clr-col-12 clr-col-md-4"
+              for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
+            <select clrSelect id="numberOfReplicas" formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8"
+              (change)="distributeZones()">
+              <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}</option>
+            </select>
+            <clr-control-helper>{{'blockchainWizard.details.help.numberOfNodes' | translate}}</clr-control-helper>
+          </clr-select-container>
+          <div class="regions" formGroupName="zones">
+            <clr-tabs>
+              <clr-tab *ngIf="hasOnPrem">
+                <button clrTabLink (click)="zoneTabSelect(zoneType.ON_PREM)">{{'blockchainWizard.nodes.onPremTitle' | translate}}</button>
+                <ng-template  [(clrIfActive)]="onPremActive">
+                  <clr-tab-content id="onPremZones">
+                  <clr-alert [clrAlertClosable]="false">
+                    <clr-alert-item>
+                      <span class="alert-text">
+                        {{'blockchainWizard.nodes.regionInfo' | translate}}
+                      </span>
+                    </clr-alert-item>
+                  </clr-alert>
+
+                    <clr-input-container *ngFor="let zone of zones" class="show-no-helper">
+                      <label class="clr-col-12 clr-col-md-4">{{ zone.name }}</label>
+                      <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
+                    </clr-input-container>
+                  </clr-tab-content>
+                </ng-template>
+              </clr-tab>
+              <clr-tab>
+                <button clrTabLink (click)="zoneTabSelect(zoneType.VMC_AWS)">{{'blockchainWizard.nodes.cloudTitle' | translate}}</button>
+                <ng-template [(clrIfActive)]="cloudActive">
+                  <clr-tab-content id="cloudZones">
+                    <clr-alert [clrAlertClosable]="false">
+                      <clr-alert-item>
+                        <span class="alert-text">
+                          {{'blockchainWizard.nodes.regionInfo' | translate}}
+                        </span>
+                      </clr-alert-item>
+                    </clr-alert>
+
+                    <clr-input-container *ngFor="let zone of zones" class="show-no-helper">
+                      <label class="clr-col-12 clr-col-md-4">{{ zone.name }}</label>
+                      <input clrInput type="text" class="clr-col-12 clr-col-md-8" [formControlName]="zone.id" />
+                    </clr-input-container>
+                  </clr-tab-content>
+                </ng-template>
+              </clr-tab>
+            </clr-tabs>
+
+          </div>
+          <clr-control-error *ngIf="form.controls.nodes.get('numberOfNodes').value && form.controls.nodes.errors?.countIsCorrect === false"
+            class="committer-dist-error">
+            {{'blockchainWizard.nodes.distributionHelper' | translate}}
+          </clr-control-error>
+          <div class="divider"></div>
+      </div>
+        <button clrStepButton="next">{{ 'common.next' | translate }}</button>
+
+      </clr-step-content>
+    </clr-stepper-panel>
+
+    <clr-stepper-panel #clientsPage formGroupName="clients">
+      <clr-step-title>{{'blockchainWizard.clients.pageTitle' | translate}}</clr-step-title>
+      <clr-step-description>{{ 'blockchainWizard.clients.pageDesc' | translate }}</clr-step-description>
+      <clr-step-content>
+        <div #clientsForm>
+          <div *ngFor="let clientGroup of clientGroups.controls; let g = index;"
+                [ngClass]="{'client-form':1, 'as-single-client':getClientGroupMembers(g).length==1, 'as-client-group':getClientGroupMembers(g).length>1}"
+                [formGroupName]="g" [attr.id]="'deploy-page-clients-group-'+g">
+            <div class="compact-input-container group-name-container" *ngIf="alwaysGroup || getClientGroupMembers(g).length > 1">
+              <label class="short-label clr-control-label">{{ 'blockchainWizard.clients.clientGrouping' | translate }}</label>
+              <div class="clr-row columned no-height">
+                <div class="clr-col-md-6">
+                  <!-- <div class="column-label-container"><label class="column-label">{{ 'common.name' | translate }}</label></div> -->
+                </div>
+                <div class="clr-col-md-2">
+                  <div class="column-label-container"><label class="column-label">{{ 'common.countNoun' | translate }}</label></div>
+                </div>
+                <div class="clr-col-md-3"></div>
+              </div>
+              <div class="clr-row columned">
+                <div class="clr-col-md-6">
+                  <clr-input-container>
+                    <input clrInput [id]="'deploy-page-clients-group-'+g+'-name-input'" formControlName="group_name"
+                          type="text" class="group-name-input" [placeholder]="'blockchainWizard.clients.groupNamePH' | translate "/>
+                    <clr-control-error class="error-helper" *ngIf="clientGroup.controls.group_name.errors?.message">
+                      {{ clientGroup.controls.group_name.errors.message }}
+                    </clr-control-error>
+                  </clr-input-container>
+                </div>
+                <div class="clr-col-md-2">
+                  <div class="member-count">{{ getClientGroupMembers(g).length }}</div>
+                </div>
+                <div class="clr-col-md-3">
+                  <button class="btn btn-sm btn-link btn-red delete-client-group" (click)="removeClientGroup(g)"
+                          *ngIf="false && totalClientsCount() - getClientGroupMembers(g).length >= 1">
+                          {{ 'blockchainWizard.clients.deleteClientGroup' | translate }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div formGroupName="member_clients" class="compact-input-container">
+              <div *ngFor="let client of getClientGroupMembers(g).controls; let c = index;" [formGroupName]="c" class="client-node">
+                <label class="clr-control-label client-label">{{ 'blockchainWizard.clients.clientNode' | translate }} {{ clientNodeIndex(g,c)+1 }}</label>
+                <div class="clr-row columned no-height">
+                  <div class="clr-col-md-4">
+                    <div class="column-label-container"><label class="column-label">{{ 'blockchainWizard.clients.zone' | translate }}</label></div>
+                  </div>
+                  <div class="clr-col-md-6">
+                    <div class="column-label-container">
+                      <label class="column-label">
+                        {{ 'blockchainWizard.clients.authUrl' | translate }}
+                        <span class="optional-field-span">({{ 'common.optional' | translate }})</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              <div  class="clr-row columned">
+                <div class="clr-col-md-4">
+                  <clr-select-container>
+                    <select clrSelect [id]="'deploy-page-clients-group-'+g+'-client-'+c+'-zone-select'"
+                            required formControlName="zone_id" class="zone-selector">
+                      <option value="" disabled hidden [selected]="getActiveZones().length > 1 || getActiveZones().length === 0">
+                        {{ 'blockchainWizard.clients.chooseZone' | translate }}
+                      </option>
+                      <option *ngFor="let zone of getActiveZones(); let z = index;" [value]="zone.id"
+                              [selected]="getActiveZones().length === 1 && z === 0">
+                        {{ zone.name }}
+                      </option>
+                    </select>
+                  </clr-select-container>
+                </div>
+                <div class="clr-col-md-4">
+                  <clr-input-container>
+                    <input clrInput [id]="'deploy-page-clients-group-'+g+'-client-'+c+'-auth-url-input'" type="text" class="auth-input"
+                      formControlName="auth_url_jwt" [placeholder]="'blockchainWizard.clients.authUrlPH' | translate "/>
+                      <clr-control-error class="no-height">
+                        <div class="error-helper abspos no-height">
+                          {{ 'blockchainWizard.clients.authUrlInputError' | translate }}
+                        </div>
+                      </clr-control-error>
+                  </clr-input-container>
+                </div>
+                <button class="btn btn-sm btn-danger btn-link remove-col-button" (click)="removeClientNodeToGroup(g,c)" *ngIf="totalClientsCount() > 1">
+                  <clr-icon size="20" shape="times"></clr-icon>
+                </button>
+              </div>
+              <div [id]="'Client-' + c" class="clr-row columned certs" *concordFeatureFlag="'tls'">
+                <div class="clr-col-md-4">
+                  <clr-textarea-container>
+                    <label class="column-label">{{ 'blockchainWizard.clients.pem' | translate }}</label>
+                    <textarea clrTextarea formControlName="pem"
+                      [placeholder]="'blockchainWizard.clients.pemPH' | translate"></textarea>
+                  </clr-textarea-container>
+                </div>
+                <div class="clr-col-md-4">
+                  <clr-textarea-container>
+                    <label class="column-label">{{ 'blockchainWizard.clients.crt' | translate }}</label>
+                    <textarea clrTextarea formControlName="crt"
+                      [placeholder]="'blockchainWizard.clients.crtPH' | translate"></textarea>
+                  </clr-textarea-container>
+                </div>
+                <div class="clr-col-md-4">
+                  <clr-textarea-container>
+                    <label class="column-label">{{ 'blockchainWizard.clients.cacrt' | translate }}</label>
+                    <textarea clrTextarea formControlName="cacrt"
+                      [placeholder]="'blockchainWizard.clients.crtPH' | translate"></textarea>
+                  </clr-textarea-container>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div class="compact-input-container">
+              <div class="clr-row columned no-height">
+                <div class="client-group-bottom">
+                  <button class="btn btn-sm btn-link add-client-node-button" (click)="addClientNodeToGroup(g)"
+                    *ngIf="maxClients > totalClientsCount() && maxClientsPerGroup > getClientGroupMembers(g).length"
+                    [disabled]="totalClientsCount() >= maxClients || getClientGroupMembers(g).length >= maxClientsPerGroup">
+                    {{
+                      (!alwaysGroup && getClientGroupMembers(g).length === 1) ?
+                          ( 'blockchainWizard.clients.enableGrouping' | translate )
+                        : ( 'blockchainWizard.clients.addNodeToGroup' | translate )
+                    }}
+                  </button>
+                  <clr-tooltip *ngIf="!alwaysGroup && getClientGroupMembers(g).length === 1">
+                    <clr-icon clrTooltipTrigger class="client-grouping-info" size="20" shape="info-circle"></clr-icon>
+                    <clr-tooltip-content clrPosition="right" clrSize="lg" *clrIfOpen>
+                      <span>{{ 'blockchainWizard.clients.clientGroupingInfo'  | translate }}</span>
+                    </clr-tooltip-content>
+                  </clr-tooltip>
+                  <clr-control-helper class="client-grouping-message"
+                    *ngIf="totalClientsCount() >= maxClients || getClientGroupMembers(g).length >= maxClientsPerGroup">
+                    {{
+                      getClientGroupMembers(g).length >= maxClientsPerGroup ?
+                          ( 'blockchainWizard.clients.clientGroupMaxMembersReached' | translate )
+                        : ( 'blockchainWizard.clients.clientsMaxReached' | translate )
+                    }}{{
+                      getClientGroupMembers(g).length >= maxClientsPerGroup ?
+                          ' (' + maxClientsPerGroup + ')' : ' (' + maxClients + ')'
+                    }}
+                  </clr-control-helper>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="client-group">
+            <button id="deploy-page-clients-group-add-client" class="btn btn-sm margins"
+                    (click)="addClientGroup()" [disabled]="totalClientsCount() >= maxClients">
+              {{ alwaysGroup ?
+                    ('blockchainWizard.clients.addClientGroup' | translate)
+                  : ('blockchainWizard.clients.addClient' | translate)
+              }}
+            </button>
+            <clr-control-helper class="max-client-reached-message" *ngIf="totalClientsCount() >= maxClients">
+              {{ 'blockchainWizard.clients.clientsMaxReached' | translate }}{{ ' (' + maxClients + ')' }}
+            </clr-control-helper>
+          </div>
+          <div *ngIf="false && clientGroups.errors?.messages?.length > 0" class="form-error-info-cont">
+            <div>{{ 'blockchainWizard.clients.formErrors' | translate }}</div>
+            <div class="form-error-info">
+              <div *ngFor="let message of clientGroups.errors.messages">{{ message }}</div>
+            </div>
+          </div>
+        </div>
+        <button clrStepButton="next">{{ 'common.next' | translate }}</button>
+
+      </clr-step-content>
+    </clr-stepper-panel>
+
+    <clr-stepper-panel #replicaSizing formGroupName="nodeSizingTemplate">
+      <clr-step-title>{{'blockchainWizard.sizing.title' | translate}}</clr-step-title>
+      <clr-step-description>{{'blockchainWizard.sizing.pageDesc' | translate}}</clr-step-description>
+      <clr-step-content *clrIfExpanded>
+        <concord-node-sizing (sizeChange)="addReplicaSize($event)" (isValid)="sizingIsValid = $event" [selectedSizing]="selectedSizing"></concord-node-sizing>
+        <button clrStepButton="next">{{ 'common.next' | translate }}</button>
+      </clr-step-content>
+    </clr-stepper-panel>
+
+    <clr-stepper-panel formGroupName="review">
+      <clr-step-title>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</clr-step-title>
+      <clr-step-content *clrIfExpanded>
+        <clr-alert *ngIf="submitError" [clrAlertType]="'danger'" [clrAlertClosable]="false">
+          <clr-alert-item>
+            <span class="alert-text">
+              {{ submitErrorMessage }}
+            </span>
+          </clr-alert-item>
+        </clr-alert>
+        <div class="clr-row review">
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.engine.pageDesc' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value engine">
+            {{ selectedEngine }}
+          </div>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.common.consortiumName' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value consortium-title">
+            {{ form.value.details.consortium_name }}
+          </div>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.common.consortiumDescription' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value">
+            {{ form.value.details.consortium_desc || '--' }}
+          </div>
+
+          <h6 class="sub-title">{{'blockchainWizard.nodes.pageDesc' | translate}}</h6>
+          <div class="clr-col-4 summary-label">
+            {{'blockchainWizard.common.numberOfNodes' | translate}}
+          </div>
+          <div class="clr-col-8 summary-value number-of-replicas">
+            {{ form.value.nodes.numberOfNodes }}
+          </div>
+          <ng-container *ngIf="selectedEngine === engines.DAML">
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.noOfCPU' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.committerSizing.no_of_cpus }}
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.memory' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.committerSizing.memory_in_gigs }} GB
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.storage' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.committerSizing.storage_in_gigs }} GB
+            </div>
+            <h6  class="sub-title">
+              {{'blockchainWizard.clients.pageDesc' | translate}}
+            </h6>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.clients.number' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ totalClientsCount() }}
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.noOfCPU' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.clientSizing.no_of_cpus }}
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.memory' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.clientSizing.memory_in_gigs }} GB
+            </div>
+            <div class="clr-col-4 summary-label">
+              {{'blockchainWizard.sizing.storage' | translate}}
+            </div>
+            <div class="clr-col-8 summary-value number-of-replicas">
+              {{ nodeSizingTemplate?.clientSizing.storage_in_gigs }} GB
+            </div>
+          </ng-container>
+
+          <h6 class="sub-title">{{'blockchainWizard.nodes.regionalTitle' | translate}}</h6>
+          <ng-container *ngFor="let zoneInfo of getUsedZones()">
+            <div class="clr-col-4 summary-label">{{ zoneInfo.name }}</div>
+            <div class="clr-col-8 summary-value">{{ zoneInfo.summary }}</div>
+          </ng-container>
+        </div>
+        <button (click)="onSubmit()" class="btn btn-primary clr-step-button" [clrLoading]="submitting">
+          {{'common.deploy' | translate}}
+        </button>
+      </clr-step-content>
+    </clr-stepper-panel>
+  </form>
+</div>

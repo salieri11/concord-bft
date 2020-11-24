@@ -117,6 +117,7 @@ export interface NodeTemplates {
 export interface NodeTemplateFormResponse {
   committerSizing: TemplateItem;
   clientSizing?: TemplateItem;
+  size?: string;
 }
 
 export interface NodesResponse {
