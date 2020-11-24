@@ -136,7 +136,7 @@ public class LintProxyController {
      * We do the following:
      */
     @RequestMapping("/**")
-    @PreAuthorize("@authHelper.isAuthenticated()")
+    @PreAuthorize("@authHelper.canAccessLogs(#blockchainId)")
     public ResponseEntity<String> proxyToLint(@RequestBody(required = false) String body,
             @RequestParam(name = "blockchain_id", required = false) String blockchainId,
             HttpMethod method, HttpServletRequest request, HttpServletResponse response) throws IllegalAccessException {

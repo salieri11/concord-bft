@@ -122,6 +122,16 @@ public class AuthHelper extends BaseAuthHelper {
     }
 
     /**
+     * Can access logs.
+     */
+    public boolean canAccessLogs(UUID bId) {
+        logger.debug("can access logs {}", bId);
+        return hasAnyAuthority(Roles.systemAdmin()) || (getAccessChains().contains(bId)
+                && (hasAnyAuthority(vmbcRoles.orgAdmin()) || hasAnyAuthority(vmbcRoles.consortiumAdmin())
+                || hasAnyAuthority(vmbcRoles.developer())));
+    }
+
+    /**
      * Can update chain.
      */
     public boolean canUpdateChain(UUID id) {
