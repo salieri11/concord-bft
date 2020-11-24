@@ -3058,7 +3058,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("tls_certificates_folder_path",
                           "TLS certificates root folder path");
   config.tagParameter("tls_certificates_folder_path", publicInputTags);
-  config.tagParameter("tls_certificates_folder_path", applicationTag);
+  config.tagParameter("tls_certificates_folder_path", deploymentTag);
   config.declareParameter("signing_key_path", "Signing key root folder path");
   config.tagParameter("signing_key_path", publicOptionalTags);
   config.tagParameter("signing_key_path", deploymentTag);
