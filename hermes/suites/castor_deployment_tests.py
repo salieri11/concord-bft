@@ -269,6 +269,7 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
     dockerComposeFiles = fxHermesRunSettings['hermesCmdlineArgs'].dockerComposeFile
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     os.makedirs(castorOutputDir, exist_ok=True)
+    os.chmod(castorOutputDir, 0o777)
     castorComposeFile = None
     for dcf in dockerComposeFiles:
         if "docker-compose-castor.yml" in dcf:
