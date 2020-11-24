@@ -47,6 +47,12 @@ public class DamlLedgerApiUtil {
         builder.append("export INDEXDB_USER=indexdb");
         builder.append(System.lineSeparator());
 
+        String pwd = nodeInfo.getProperties().getValuesMap().get(NodeProperty.Name.DAML_DB_PASSWORD.name());
+        if (pwd != null) {
+            builder.append("export INDEXDB_PASSWORD=" + pwd);
+            builder.append(System.lineSeparator());
+        }
+
         builder.append("export REPLICAS=" + getReplicas(nodeInfo.getProperties()));
         builder.append(System.lineSeparator());
 

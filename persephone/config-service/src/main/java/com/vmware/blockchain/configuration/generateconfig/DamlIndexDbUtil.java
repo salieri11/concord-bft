@@ -32,7 +32,7 @@ public class DamlIndexDbUtil {
         builder.append(System.lineSeparator());
         String pwd = nodeInfo.getProperties().getValuesMap().get(NodeProperty.Name.DAML_DB_PASSWORD.name());
         if (pwd != null) {
-            builder.append("export POSTGRES_PASS=" + pwd);
+            builder.append("export POSTGRES_PASSWORD=" + pwd);
             builder.append(System.lineSeparator());
         }
         var clientGroupId =
