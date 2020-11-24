@@ -1074,7 +1074,7 @@ def test_daml_7_node_onprem_released(request, fxHermesRunSettings, ps_helper, fi
     num_replicas = 7
     num_clients = 3
     num_groups = 2
-    deployment_properties = "IMAGE_TAG=1.0.0.37,DAML_SDK_VERSION=1.6.0"
+    deployment_properties = "IMAGE_TAG=1.0.0.67,DAML_SDK_VERSION=1.6.1-snapshot.20201021.5317.0.aafe46a5"
 
     # Set the deployment params for this test case
     # 7 committers, 3 clients, 2 client groups
