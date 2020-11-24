@@ -273,11 +273,11 @@ bool DamlKvbCommandsHandler::PreExecute(
 
 std::map<std::string, ValueFingerprintPair> DamlKvbCommandsHandler::ReadKeys(
     const google::protobuf::RepeatedPtrField<string>& keys) {
-  std::vector<std::string> v{(std::size_t)keys.size()};
+  std::vector<std::string> keys_bytes{(std::size_t)keys.size()};
   for (int i = 0; i < keys.size(); i++) {
-    v[i] = std::move(keys[i]);
+    keys_bytes[i] = std::move(keys[i]);
   }
-  auto values = GetFromStorage(v);
+  auto values = GetFromStorage(keys_bytes);
   std::map<std::string, ValueFingerprintPair> result;
   for (auto& entry : values) {
     result[entry.first] =
@@ -287,7 +287,7 @@ std::map<std::string, ValueFingerprintPair> DamlKvbCommandsHandler::ReadKeys(
   return result;
 }
 
-std::string DamlKvbCommandsHandler::keyTypeToString(
+std::string DamlKvbCommandsHandler::KeyTypeToString(
     const com::digitalasset::kvbc::KeyType& type) {
   if (type.has_provable_state()) {
     return "Proveable";
@@ -295,21 +295,21 @@ std::string DamlKvbCommandsHandler::keyTypeToString(
   if (type.has_private_state()) {
     return "Private";
   }
-  return "event";
+  return "Event";
 }
 
 std::map<std::string, ValueFingerprintPair>
 DamlKvbCommandsHandler::ReadKeysWithType(
     const google::protobuf::RepeatedPtrField<
         com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>& keys) {
-  std::vector<std::string> v{(std::size_t)keys.size()};
+  std::vector<std::string> keys_bytes{(std::size_t)keys.size()};
   // E.L At this phase type is being ignored
   for (int i = 0; i < keys.size(); i++) {
-    v[i] = std::move(keys[i].key());
+    keys_bytes[i] = std::move(keys[i].key());
     LOG_DEBUG(logger_,
-              "Reading key of type " << keyTypeToString(keys[i].key_type()));
+              "Reading key of type " << KeyTypeToString(keys[i].key_type()));
   }
-  auto values = GetFromStorage(v);
+  auto values = GetFromStorage(keys_bytes);
   std::map<std::string, ValueFingerprintPair> result;
   for (auto& entry : values) {
     result[entry.first] =
@@ -441,10 +441,11 @@ void DamlKvbCommandsHandler::WriteSetToRawUpdates(
   for (const auto& entry : input_write_set.writes()) {
     auto key = CreateDamlKvbKey(entry.key());
     std::vector<string> thin_replica_ids;
+    // E.L the value will not contain the trids
     AccessControlListToThinReplicaIds(entry.access(), thin_replica_ids);
     LOG_DEBUG(logger_, "Writing key of type "
-                           << keyTypeToString(entry.key_type()) << " to "
-                           << thin_replica_ids.size() << " thin replica IDS");
+                           << KeyTypeToString(entry.key_type()) << " to "
+                           << thin_replica_ids.size() << " thin replica IDs");
     auto value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
     if (enable_histograms_or_summaries) {
       daml_kv_size_summary_.Observe(value.length());
@@ -492,11 +493,11 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     SetOfKeyValuePairs& updates) {
   // Callback for reading from storage.
   DamlKvbReadFunc kvb_read = [&](const auto& keys) {
-    std::vector<std::string> v{(std::size_t)keys.size()};
-    for (auto& skey : keys) {
-      v.push_back(std::move(skey));
+    std::vector<std::string> keys_bytes{(std::size_t)keys.size()};
+    for (int i = 0; i < keys.size(); i++) {
+      keys_bytes[i] = std::move(keys[i]);
     }
-    auto values = GetFromStorage(v);
+    auto values = GetFromStorage(keys_bytes);
     std::map<std::string, std::string> adapted_result;
     for (auto& entry : values) {
       adapted_result[entry.first] = std::move(entry.second.first);

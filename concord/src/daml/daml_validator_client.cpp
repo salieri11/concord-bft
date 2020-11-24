@@ -287,13 +287,11 @@ void DamlValidatorClient::HandleReadEventForPreExecution(
         read_request,
     KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
     com::digitalasset::kvbc::PreprocessorToEngine* reply) {
-  // E.L keys was a repeated string and now is repeated KeyAndType
   auto& keys = read_request.keys();
   const auto values = read_from_storage(keys);
   da_kvbc::PreprocessorToEngine_ReadResult* read_result =
       reply->mutable_read_result();
   read_result->set_tag(read_request.tag());
-  // E.L do the read results need to change?
   for (auto const& entry : values) {
     da_kvbc::KeyValueFingerprintTriple* key_value_fingerprint =
         read_result->add_key_value_pairs();

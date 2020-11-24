@@ -126,7 +126,7 @@ class DamlKvbCommandsHandler
       const google::protobuf::RepeatedPtrField<
           com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>& keys);
 
-  static inline std::string keyTypeToString(
+  static inline std::string KeyTypeToString(
       const com::digitalasset::kvbc::KeyType& type);
 
  private:
