@@ -13,10 +13,10 @@ use_loopback_for_local_hosts: true
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: /concord/config-local/cert
 num_ro_replicas: 1
+genesis_block: /concord/config-public/genesis.json
+time_pusher_period_ms: 1000
 node__TEMPLATE:
-  genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
-  time_pusher_period_ms: 1000
 ro_node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
   bft_metrics_udp_port: 4501

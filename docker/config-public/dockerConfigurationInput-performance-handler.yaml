@@ -13,11 +13,11 @@ concord-bft_communication_buffer_length: 16777216
 concord-bft_max_external_message_size: 2000000
 concord-bft_max_reply_message_size: 16384
 concord-bft_max_num_of_reserved_pages: 145
+genesis_block: /concord/config-public/genesis.json
+time_pusher_period_ms: 1000
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
-  genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
-  time_pusher_period_ms: 1000
   concord-bft_enable_debug_statistics: true
 node:
   - service_host: 0.0.0.0

@@ -2679,12 +2679,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.addValidator("concord-bft_enable_debug_statistics",
                     make_shared<BooleanValidator>());
 
-  node.declareParameter(
+  config.declareParameter(
       "genesis_block",
       "Path, in the node's local filesystem, to a JSON file containing the "
       "genesis block data for this blockchain.");
-  node.tagParameter("genesis_block", privateOptionalTags);
-  node.tagParameter("genesis_block", applicationTag);
+  config.tagParameter("genesis_block", publicOptionalTags);
+  config.tagParameter("genesis_block", applicationTag);
 
   auto logger_config_param = [&](ConcordConfiguration& c) {
     c.declareParameter("logger_config",
@@ -2887,15 +2887,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("time_source_id", deploymentTag);
   node.addGenerator("time_source_id", make_shared<TimeSourceIdCalculator>());
 
-  node.declareParameter(
+  config.declareParameter(
       "time_pusher_period_ms",
       "How often a node should guarantee that its time is published, in "
       "milliseconds. Ignored unless FEATURE_time_service is \"true\", and "
       "time_source_id is given.");
-  node.tagParameter("time_pusher_period_ms", publicOptionalTags);
-  node.tagParameter("time_pusher_period_ms", applicationTag);
-  node.addValidator("time_pusher_period_ms",
-                    make_shared<IntValidator>(INT32_MIN, INT32_MAX));
+  config.tagParameter("time_pusher_period_ms", publicOptionalTags);
+  config.tagParameter("time_pusher_period_ms", applicationTag);
+  config.addValidator("time_pusher_period_ms",
+                      make_shared<IntValidator>(INT32_MIN, INT32_MAX));
 
   replica.declareParameter("commit_private_key",
                            "Private key for this replica under the general "

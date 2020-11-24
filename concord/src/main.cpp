@@ -332,16 +332,16 @@ class IdleBlockAppender : public IBlocksAppender {
 };
 
 static concordUtils::Status create_daml_genesis_block(
-    IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
+    IReplica *replica, ConcordConfiguration &config,
+    ConcordConfiguration &nodeConfig, Logger logger) {
   if (replica->getReadOnlyStorage().getLastBlock() > 0) {
     LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
-  if (!nodeConfig.hasValue<std::string>("genesis_block")) {
+  if (!config.hasValue<std::string>("genesis_block")) {
     throw concord::daml::DamlInitParamException("Genesis block path is absent");
   }
-  const auto &genesis_file_path =
-      nodeConfig.getValue<std::string>("genesis_block");
+  const auto &genesis_file_path = config.getValue<std::string>("genesis_block");
   if (access(genesis_file_path.c_str(), F_OK) == -1) {
     LOG_WARN(logger, "Genesis config specified but doesn't exist: "
                          << genesis_file_path);
@@ -415,16 +415,17 @@ static concordUtils::Status create_ethereum_genesis_block(IReplica *replica,
 }
 
 static concordUtils::Status create_tee_genesis_block(
-    IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
+    IReplica *replica, ConcordConfiguration &config,
+    ConcordConfiguration &nodeConfig, Logger logger) {
   if (replica->getReadOnlyStorage().getLastBlock() > 0) {
     LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
 
   string genesis_string = "test execution engine genesis";
-  if (nodeConfig.hasValue<std::string>("genesis_block")) {
+  if (config.hasValue<std::string>("genesis_block")) {
     const auto &genesis_file_path =
-        nodeConfig.getValue<std::string>("genesis_block");
+        config.getValue<std::string>("genesis_block");
     std::ifstream genesis_stream(genesis_file_path);
     if (!genesis_stream.good()) {
       LOG_WARN(logger, "Error reading genesis file at " << genesis_file_path);
@@ -652,16 +653,17 @@ initialize_prometheus_metrics(ConcordConfiguration &config, Logger &logger) {
 }
 
 static concordUtils::Status create_perf_genesis_block(
-    IReplica *replica, ConcordConfiguration &nodeConfig, Logger logger) {
+    IReplica *replica, ConcordConfiguration &config,
+    ConcordConfiguration &nodeConfig, Logger logger) {
   if (replica->getReadOnlyStorage().getLastBlock() > 0) {
     LOG_INFO(logger, "Blocks already loaded, skipping genesis");
     return concordUtils::Status::OK();
   }
 
   string genesis_string = "performance execution engine genesis";
-  if (nodeConfig.hasValue<std::string>("genesis_block")) {
+  if (config.hasValue<std::string>("genesis_block")) {
     const auto &genesis_file_path =
-        nodeConfig.getValue<std::string>("genesis_block");
+        config.getValue<std::string>("genesis_block");
     std::ifstream genesis_stream(genesis_file_path);
     if (!genesis_stream.good()) {
       LOG_WARN(logger, "Error reading genesis file at " << genesis_file_path);
@@ -776,9 +778,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   try {
     if (eth_enabled) {
       // The genesis parsing is Eth specific.
-      if (nodeConfig.hasValue<std::string>("genesis_block")) {
+      if (config.hasValue<std::string>("genesis_block")) {
         string genesis_file_path =
-            nodeConfig.getValue<std::string>("genesis_block");
+            config.getValue<std::string>("genesis_block");
         LOG_INFO(logger, "Reading genesis block from " << genesis_file_path);
         params = EVMInitParams(genesis_file_path);
         chainID = params.get_chainID();
@@ -859,7 +861,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
               std::move(reconf_dispatcher), std::move(daml_validator),
               prometheus_registry, time_));
       const auto &status =
-          create_daml_genesis_block(&replica, nodeConfig, logger);
+          create_daml_genesis_block(&replica, config, nodeConfig, logger);
       if (status.isOK()) {
         LOG_INFO(logger, "Successfully loaded DAML genesis block");
       } else {
@@ -882,14 +884,14 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       };
 
       if (should_create_tee_genesis_block())
-        create_tee_genesis_block(&replica, nodeConfig, logger);
+        create_tee_genesis_block(&replica, config, nodeConfig, logger);
     } else if (perf_enabled) {
       kvb_commands_handler = unique_ptr<ICommandsHandler>(
           new concord::performance::PerformanceCommandsHandler(
               config, nodeConfig, replica, replica, replica,
               replica.getStateTransfer(), subscriber_list,
               std::move(reconf_dispatcher), prometheus_registry));
-      create_perf_genesis_block(&replica, nodeConfig, logger);
+      create_perf_genesis_block(&replica, config, nodeConfig, logger);
     } else {
       assert(eth_enabled);
       kvb_commands_handler =
