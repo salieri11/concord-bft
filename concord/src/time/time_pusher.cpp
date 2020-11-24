@@ -38,9 +38,9 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
         "Time service is not enabled. TimePusher should not be created.");
   }
 
-  if (nodeConfig.hasValue<int32_t>("time_pusher_period_ms")) {
+  if (config.hasValue<int32_t>("time_pusher_period_ms")) {
     period_ = TimeUtil::MillisecondsToDuration(
-        nodeConfig.getValue<int32_t>("time_pusher_period_ms"));
+        config.getValue<int32_t>("time_pusher_period_ms"));
   } else {
     period_ = TimeUtil::MillisecondsToDuration(0);
   }

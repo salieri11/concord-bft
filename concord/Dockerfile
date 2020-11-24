@@ -32,7 +32,8 @@ RUN cmake \
     CTEST_OUTPUT_ON_FAILURE=true make \
     -j$(nproc) all test
 
-RUN ./tools/conc_genconfig --configuration-type application --output-name app --configuration-input ../resources/appconf_input.yaml
+RUN cp ../resources/appconf_input.yaml app1.config
+
 ## Base Run image
 FROM ubuntu:18.04
 LABEL Description="Concord"

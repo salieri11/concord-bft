@@ -4,8 +4,8 @@ f_val: 1
 comm_to_use: udp
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: /concord/config-local/cert
+genesis_block: /concord/config-public/genesis.json
 node__TEMPLATE:
-  genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
 node:
   - service_host: 0.0.0.0

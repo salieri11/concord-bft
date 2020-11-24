@@ -5,11 +5,11 @@ tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: ./tls_certs
 comm_to_use: tls
 FEATURE_time_service: false
+genesis_block: /concord/config-public/genesis.json
+time_pusher_period_ms: 1000
 node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
-  genesis_block: /concord/config-public/genesis.json
   blockchain_db_path: /concord/rocksdbdata/
-  time_pusher_period_ms: 1000
   concord-bft_enable_debug_statistics: true
 node:
   - service_host: 0.0.0.0
