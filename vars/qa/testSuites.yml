@@ -156,11 +156,11 @@
     testModule: 'suites/sys_test_castor_deployment_tests.py'
 - EthJsonRpcTests:
     enabled: true
-    testModule: 'suites/eth_jsonrpc_tests.py'
+    testModule: 'suites/eth_json_rpc_tests.py'
 - EthJsonRpcTestsEthrpc:
     enabled: true
-    baseCommand: '${MAIN_PYTEST} suites/eth_jsonrpc_tests.py --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
-    testModule: 'suites/eth_jsonrpc_tests.py'
+    baseCommand: '${MAIN_PYTEST} suites/eth_json_rpc_tests.py --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth'
+    testModule: 'suites/eth_json_rpc_tests.py'
 - EthRegressionTests:
     enabled: true
     runAlone: true

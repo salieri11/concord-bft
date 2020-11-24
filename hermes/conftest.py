@@ -681,7 +681,7 @@ def _get_suite_short_name(module_name):
         "SimpleStateTransferTest": "hermes.suites.simple_st_test",
         "ContractCompilerTests": "hermes.suites.contract_compiler_tests",
         "SampleDAppTests": "hermes.suites.sample_dapp_tests",
-        "EthJsonRpcTests": "hermes.suites.eth_jsonrpc_tests",
+        "EthJsonRpcTests": "hermes.suites.eth_json_rpc_tests",
         "EthRegressionTests": "hermes.suites.eth_regression_tests",
         "PerformanceTests": "hermes.suites.performance_tests",
         "UiTests": "hermes.suites.ui_tests",
