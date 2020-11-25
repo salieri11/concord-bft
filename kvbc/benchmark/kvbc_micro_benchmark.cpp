@@ -233,7 +233,7 @@ void generate_read_data() {
 void update_db(WriteFunction &&write_function) {
   LOG_INFO(logger, "updating db with new read values");
   SetOfKeyValuePairs write_set;
-  for (uint i = 0; i < readset_size;++i) {
+  for (uint i = 0; i < readset_size; ++i) {
     write_set[read_keys[i]] = read_values[i];
     write_function(write_set);
     write_set.clear();
