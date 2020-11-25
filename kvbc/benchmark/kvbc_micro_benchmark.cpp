@@ -118,7 +118,6 @@ class DirectKeysReader : public Reader {
         }
         auto read_start = chrono::steady_clock::now();
         Status s = dbclient->multiGet(read_keys_batch, read_values_batch);
-        ++read_count;
         auto read_end = chrono::steady_clock::now();
         auto dur = chrono::duration_cast<chrono::microseconds>(read_end - read_start).count();
         h.Add(dur);
@@ -157,6 +156,7 @@ class KvbcKeysReader : public Reader {
             assert(!res.empty());
             assert(res == read_values[ind]);
             ++read_count;
+            read_size += res.size();
           }
           auto read_end = chrono::steady_clock::now();
           auto dur = chrono::duration_cast<chrono::microseconds>(read_end - read_start).count();
