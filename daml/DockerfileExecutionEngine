@@ -2,9 +2,13 @@
 
 # daml_execution_engine
 
-FROM ubuntu:18.04
+FROM athena-docker-local.artifactory.eng.vmware.com/ubuntu:18.04
 
 ENV SBT_VERSION 1.3.3
+
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic main restricted multiverse universe\n' > /etc/apt/sources.list
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-updates main restricted multiverse universe\n' >> /etc/apt/sources.list
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-security main restricted multiverse universe\n' >> /etc/apt/sources.list
 
 RUN set -ex; \
     apt-get update; \

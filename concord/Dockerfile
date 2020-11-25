@@ -35,8 +35,12 @@ RUN cmake \
 RUN cp ../resources/appconf_input.yaml app1.config
 
 ## Base Run image
-FROM ubuntu:18.04
+FROM athena-docker-local.artifactory.eng.vmware.com/ubuntu:18.04
 LABEL Description="Concord"
+
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic main restricted multiverse universe\n' > /etc/apt/sources.list
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-updates main restricted multiverse universe\n' >> /etc/apt/sources.list
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-security main restricted multiverse universe\n' >> /etc/apt/sources.list
 
 RUN apt-get update \
     && apt-get -y install bind9-host \
