@@ -620,8 +620,8 @@ def pytest_addoption(parser):
                                    default=None)
     nonLocalDeployConfig.addoption("--tlsEnabledClient",
                                    help="Ability to enable TLS certification in client.",
-                                   default=False)
-
+                                   default=False,
+                                   action="store_true")
     nonLocalDeployConfig.addoption("--propertiesString",
                                    help="The string containing comma seperated key value pairs for deployment properties.",
                                    default="")

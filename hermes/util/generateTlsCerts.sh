@@ -25,7 +25,7 @@ EOL
         openssl req -x509 -new -newkey rsa:2048 -nodes -keyout "root-ca.key" -out "root-ca.crt" \
   -days 3650  -subj '/C=US/ST=CA/L=San Francisco/O=Docker/CN=*.ledgerapi.com' -config "root-ca.cnf" -extensions v3_req
 
-        rm  "root-ca.cnf" "root-ca.srl"
+        rm  "root-ca.cnf" 
 }
 
 create_server_crt()
