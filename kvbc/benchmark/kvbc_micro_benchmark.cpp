@@ -231,6 +231,7 @@ void generate_data(char* data, const uint &size) {
 }
 
 void generate_read_data() {
+  LOG_INFO(logger, "generating new read values");
   for (uint i = 0; i < readset_size; ++i) {
     char *read_key = new char[kReadKeyLength];
     generate_data(read_key, kReadKeyLength);
@@ -240,9 +241,11 @@ void generate_read_data() {
     generate_data(read_value, kReadValueLength);
     read_values.emplace_back(read_value, kReadValueLength);
   }
+  LOG_INFO(logger, "done generating new read values");
 }
 
 void update_db(WriteFunction &&write_function) {
+  LOG_INFO(logger, "updating db with new read values");
   int done = 0;
   SetOfKeyValuePairs write_set;
   for (uint i = 0; i < readset_size;) {
@@ -255,6 +258,7 @@ void update_db(WriteFunction &&write_function) {
     done += 100;
     write_set.clear();
   }
+  LOG_INFO(logger, "done updating db with new read values");
 }
 
 void collect_and_wait(vector<shared_ptr<Reader>> &workers,
@@ -380,7 +384,7 @@ void show_help() {
             << " -c uint - concurrency level: number of readers (for ReadWrite test) "
                "(default: 4) \n"
             << " -e uint - reader delay, time to wait between 2 reads, ms (default: 10) \n"
-            << " -r strimg - path to the RocksDb location (default "
+            << " -f string - path to the RocksDb location (default "
                "./rocksdbdata) \n"
             << " -l (0,1,2,3 - off, error, info, debug) - log level (default: 1) \n"
             << " -t (0, 1 - FIllDb, ReadWriteStress) - benchmark to run (default: 1) \n"
