@@ -548,11 +548,13 @@ int main(int argc, char **argv) {
 
   auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count();
   cout << "Test duration: " << dur << " milliseconds" << endl;
+  cout << "Net writers duration: " << write_duration/1000 << " milliseconds" << endl;
+  cout << "Delta: " << dur - write_duration/1000 << endl;
   cout << "Read rate: " << setprecision(15) << floor((double)read_count / dur * 1000) << " reads/sec => ";
   cout << setprecision(15) << floor((double)read_size / dur * 1000) << " bytes/sec"
        << ", total bytes read: " << read_size << endl;
   cout << "Readers details (microseconds): " << endl << readers_hist.ToString() << endl;
-  cout << "Write rate: " << setprecision(15) << floor((double)num_of_blocks / write_duration * 1000000)
+  cout << "Write rate: " << setprecision(15) << floor((double)num_of_blocks / dur * 1000)
        << " writes/sec => ";
   cout << setprecision(15) << floor((double)write_size / dur * 1000) << " bytes/sec"
        << ", total bytes written: " << write_size << endl;
