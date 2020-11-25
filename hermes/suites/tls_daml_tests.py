@@ -67,14 +67,14 @@ def test_valid_certificates(fxConnection, fxBlockchain, fxLocalSetup, fxInstallD
     if not fxLocalSetup.flag:
         log.info("test skipped")
         pytest.skip(fxLocalSetup.warning)
-    log.info("get participants ")
+    log.info("get participants{}".format(fxLocalSetup.participant_nodes))
     for node_ip in fxLocalSetup.participant_nodes:
         cert_type = "client"
         log.info("Generating certificates for client with IP:{}".format(node_ip))
         cert.tlsCertificate(cert_type)
         path = cert.getTlsPath()+"/"
         log.info(path)
-        helper.add_host_in_etc_hosts_file(node_ip,cert_type+".ledgerapi.com")
-        cmd = [path+"tls_daml_test_setup.sh" , node_ip, path]
+        helper.add_host_in_etc_hosts_file(node_ip, "server.ledgerapi.com")
+        cmd = [path+"tls_daml_test_setup.sh", "server.ledgerapi.com", 6865, path]
         success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=path)
         assert success, ("Failed to build and install the request tool app.  Stdout: {}".format(stdout))

@@ -26,10 +26,10 @@ def getInsecureContext():
 def tlsCertificate(type):
    path = os.path.dirname(os.path.abspath(__file__))
    scriptPath = os.path.join(".", os.path.dirname(os.path.abspath(__file__)), "generateTlsCerts.sh")
-   root_path = os.path.join(".", os.path.dirname(os.path.abspath(__file__)), "root_ca.crt")
+   root_path = os.path.join(".", os.path.dirname(os.path.abspath(__file__)), "root-ca.crt")
    if type == 'server':
       if not os.path.exists(root_path):
-         type_root = 'root_ca'
+         type_root = 'root-ca'
          cmd = [scriptPath, type_root]
          success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=path, raise_exception=True)
          log.info("\nSuccess and Output are {} and {}".format(success, stdout))
@@ -56,3 +56,6 @@ def tlsCertificate(type):
    Certificates = namedtuple('Certificates', ['rootCaCrt', type+'Crt', type+'Key'])
    certificate = Certificates(certInStrList[0], certInStrList[1], certInStrList[2])
    return certificate
+
+def getTlsPath():
+   return os.path.dirname(os.path.abspath(__file__))

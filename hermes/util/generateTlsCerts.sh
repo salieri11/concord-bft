@@ -51,7 +51,7 @@ EOL
         openssl x509 -req -days 365 -in "server.csr" -sha256 \
                 -CA "root-ca.crt" -CAkey "root-ca.key"  -CAcreateserial \
                 -out "server.crt" -extfile "server.cnf" -extensions server
-        rm "server.cnf" "server.csr"  "server.key.rsa"
+        rm "server.cnf" "server.csr"  "server.key.rsa" "root-ca.srl"
 }
 
 create_client_crt()
@@ -77,13 +77,13 @@ EOL
         openssl x509 -req -days 365 -in "client.csr" -sha256 \
                 -CA "root-ca.crt" -CAkey "root-ca.key"  -CAcreateserial \
                 -out "client.crt" -extfile "client.cnf" -extensions client
-        rm "client.cnf" "client.csr" "client.key.rsa"
+        rm "client.cnf" "client.csr" "client.key.rsa" "root-ca.srl"
 }
 
 
 type="${1}"
 
-if [ "$type" == "root_ca" ]
+if [ "$type" == "root-ca" ]
 then
   create_root_crt
 elif [ "$type" == "server" ]
