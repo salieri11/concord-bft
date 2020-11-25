@@ -33,21 +33,11 @@ using namespace concord::storage;
 using namespace concord::kvbc::v2MerkleTree;
 using namespace concordUtils;
 
-typedef std::function<Status(SetOfKeyValuePairs&)> WriteFunction;
+typedef std::function<Status(SetOfKeyValuePairs &)> WriteFunction;
 
-enum class Benchmark : uint8_t {
-  FillDb,
-  ReadWriteStress,
-  MIN_VALUE = FillDb,
-  MAX_VALUE = ReadWriteStress
-};
+enum class Benchmark : uint8_t { FillDb, ReadWriteStress, MIN_VALUE = FillDb, MAX_VALUE = ReadWriteStress };
 
-enum class WriteType : uint8_t {
-  Merkle,
-  RocksDbDirect,
-  MIN_VALUE = Merkle,
-  MAX_VALUE = RocksDbDirect
-};
+enum class WriteType : uint8_t { Merkle, RocksDbDirect, MIN_VALUE = Merkle, MAX_VALUE = RocksDbDirect };
 
 // all these values, including CLI params should be aligned to multiplies of 4!!!!
 const uint kReadKeyLength = 20;
@@ -87,10 +77,7 @@ class Reader {
   uint reader_id;
   shared_ptr<thread> t = nullptr;
 
-  Reader(uint &id)
-      : reader_id{id} {
-    h.Clear();
-  }
+  Reader(uint &id) : reader_id{id} { h.Clear(); }
 
  public:
   Reader() {}
@@ -98,52 +85,53 @@ class Reader {
 
   virtual ~Reader() {}
 
-  void stop() { done = true; t->join(); }
+  void stop() {
+    done = true;
+    t->join();
+  }
   pair<uint32_t, uint32_t> get_sizes() { return {read_count, read_size}; }
   Histogram &get_histogram() { return h; }
 };
 
 class DirectKeysReader : public Reader {
  public:
-  DirectKeysReader(uint &id, std::shared_ptr<concord::storage::IDBClient> client) : Reader(id) {
-    dbclient = client;
-  }
+  DirectKeysReader(uint &id, std::shared_ptr<concord::storage::IDBClient> client) : Reader(id) { dbclient = client; }
 
   virtual void start() override {
-      t = make_shared<thread>([&]() {
-        LOG_INFO(logger, "DirectKeysReader " << reader_id << " started");
+    t = make_shared<thread>([&]() {
+      LOG_INFO(logger, "DirectKeysReader " << reader_id << " started");
 
-        KeysVector read_keys_batch;
-        ValuesVector read_values_batch;
-        SetOfKeyValuePairs write_batch;
-        vector<uint> indices;
-        while (!done) {
-          uint ind = distribution(generator) % readset_size;
-          // do read
-          read_keys_batch.clear();
-          read_values_batch.clear();
-          indices.clear();
-          for (uint i = ind, j = 0; j < read_kv_count; ++j, ++i) {
-            if (i == readset_size) i = 0;
-            read_keys_batch.push_back(read_keys[i]);
-            indices.push_back(i);
-          }
-          auto read_start = chrono::steady_clock::now();
-          Status s = dbclient->multiGet(read_keys_batch, read_values_batch);
-          ++read_count;
-          auto read_end = chrono::steady_clock::now();
-          auto dur = chrono::duration_cast<chrono::microseconds>(read_end - read_start).count();
-          h.Add(dur);
-          assert(s.isOK());
-          assert(read_values_batch.size() == indices.size());
-          for (uint i = 0; i < read_keys_batch.size(); ++i) {
-            if (kCheckOutput) assert(read_values_batch[i] == read_values[indices[i]]);
-            read_size += read_values[indices[i]].length();
-          }
-
-          if (reader_sleep_milli) this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
+      KeysVector read_keys_batch;
+      ValuesVector read_values_batch;
+      SetOfKeyValuePairs write_batch;
+      vector<uint> indices;
+      while (!done) {
+        uint ind = distribution(generator) % readset_size;
+        // do read
+        read_keys_batch.clear();
+        read_values_batch.clear();
+        indices.clear();
+        for (uint i = ind, j = 0; j < read_kv_count; ++j, ++i) {
+          if (i == readset_size) i = 0;
+          read_keys_batch.push_back(read_keys[i]);
+          indices.push_back(i);
         }
-      });
+        auto read_start = chrono::steady_clock::now();
+        Status s = dbclient->multiGet(read_keys_batch, read_values_batch);
+        ++read_count;
+        auto read_end = chrono::steady_clock::now();
+        auto dur = chrono::duration_cast<chrono::microseconds>(read_end - read_start).count();
+        h.Add(dur);
+        assert(s.isOK());
+        assert(read_values_batch.size() == indices.size());
+        for (uint i = 0; i < read_keys_batch.size(); ++i) {
+          if (kCheckOutput) assert(read_values_batch[i] == read_values[indices[i]]);
+          read_size += read_values[indices[i]].length();
+        }
+
+        if (reader_sleep_milli) this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
+      }
+    });
   }
 
  private:
@@ -152,9 +140,7 @@ class DirectKeysReader : public Reader {
 
 class KvbcKeysReader : public Reader {
  public:
-  KvbcKeysReader(uint &id, IDbAdapter * ad) : Reader(id) {
-    kvbc_adapter = ad;
-  }
+  KvbcKeysReader(uint &id, IDbAdapter *ad) : Reader(id) { kvbc_adapter = ad; }
 
   virtual void start() override {
     t = make_shared<thread>([&]() {
@@ -191,39 +177,34 @@ class ReaderFactory {
 
 class DirectKeysReaderFactory : public ReaderFactory {
  public:
-  DirectKeysReaderFactory(std::shared_ptr<concord::storage::IDBClient> cl) {
-    client = cl;
-  }
+  DirectKeysReaderFactory(std::shared_ptr<concord::storage::IDBClient> cl) { client = cl; }
 
-  virtual shared_ptr<Reader> create_reader(uint &id) override {
-    return std::make_shared<DirectKeysReader>(id, client);
-  }
+  virtual shared_ptr<Reader> create_reader(uint &id) override { return std::make_shared<DirectKeysReader>(id, client); }
+
  private:
   std::shared_ptr<concord::storage::IDBClient> client = nullptr;
 };
 
 class KvbcKeyReaderFactory : public ReaderFactory {
  public:
-  KvbcKeyReaderFactory(IDbAdapter *ad) {
-    kvbc_adapter = ad;
-  }
+  KvbcKeyReaderFactory(IDbAdapter *ad) { kvbc_adapter = ad; }
 
   virtual shared_ptr<Reader> create_reader(uint &id) override {
     return std::make_shared<KvbcKeysReader>(id, kvbc_adapter);
   }
+
  private:
   // not owning
   IDbAdapter *kvbc_adapter = nullptr;
 };
 
 // possible to have both Block`reader and kets readers?
-Reader* create_reader(std::shared_ptr<concord::storage::IDBClient> client,
-                     uint &&id) {
+Reader *create_reader(std::shared_ptr<concord::storage::IDBClient> client, uint &&id) {
   assert(write_type == WriteType::RocksDbDirect);
   return new DirectKeysReader(id, client);
 }
 
-void generate_data(char* data, const uint &size) {
+void generate_data(char *data, const uint &size) {
   for (uint j = 0; j < size / sizeof(int); j++) {
     auto r = distribution(generator);
     memcpy(data + j * sizeof(int), &r, sizeof(int));
@@ -277,26 +258,25 @@ void collect_and_wait(vector<shared_ptr<Reader>> &workers,
 }
 
 void dump_stats(uint64_t &interval_duration) {
-  if(curr_block % interval_count == 0) {
-    cout << "Interval stats: " << curr_block << " blocks written, " << "rate: " << setprecision(4)
-         << (double)interval_count / interval_duration * 1000000 << " blocks/sec" << endl;
+  if (curr_block % interval_count == 0) {
+    cout << "Interval stats: " << curr_block << " blocks written, "
+         << "rate: " << setprecision(4) << (double)interval_count / interval_duration * 1000000 << " blocks/sec"
+         << endl;
     interval_duration = 0;
   }
 }
 
-uint64_t do_writes(Histogram &writer_hist,
-                   WriteFunction &&write_function,
-                   uint64_t &out_write_size) {
+uint64_t do_writes(Histogram &writer_hist, WriteFunction &&write_function, uint64_t &out_write_size) {
   SetOfKeyValuePairs write_batch;
-  uint64_t totalDur= 0;
+  uint64_t totalDur = 0;
 
   uint64_t interval_duration = 0;
   while (curr_block < num_of_blocks) {
     write_batch.clear();
     for (uint i = 0; i < write_kv_count; ++i) {
-      char* key = new char[write_key_length];
+      char *key = new char[write_key_length];
       generate_data(key, write_key_length);
-      char* value = new char[write_value_length];
+      char *value = new char[write_value_length];
       generate_data(value, write_value_length);
       write_batch.emplace(Sliver{key, write_key_length}, Sliver{value, write_value_length});
       out_write_size += write_value_length;
@@ -319,16 +299,16 @@ uint64_t do_writes(Histogram &writer_hist,
 }
 
 uint64_t stress_test(WriteFunction &write_data_fn,
-                 ReaderFactory &readerFactory,
-                 Histogram &write_hist,
-                 Histogram &read_hist,
-                 uint64_t &out_read_count,
-                 uint64_t &out_read_size,
-                 uint64_t &out_write_size) {
+                     ReaderFactory &readerFactory,
+                     Histogram &write_hist,
+                     Histogram &read_hist,
+                     uint64_t &out_read_count,
+                     uint64_t &out_read_size,
+                     uint64_t &out_write_size) {
   generate_read_data();
   update_db(std::forward<WriteFunction>(write_data_fn));
 
-   std::vector<thread> threads;
+  std::vector<thread> threads;
   threads.reserve(num_of_reader_threads);
   vector<shared_ptr<Reader>> workers;
   workers.reserve(num_of_reader_threads);
@@ -343,8 +323,7 @@ uint64_t stress_test(WriteFunction &write_data_fn,
   return res;
 }
 
-uint64_t create_and_fill(Histogram &h, uint64_t &outWriteSize,
-                         WriteFunction &write_data_fn) {
+uint64_t create_and_fill(Histogram &h, uint64_t &outWriteSize, WriteFunction &write_data_fn) {
   concord::storage::SetOfKeyValuePairs write_set;
   uint64_t dur = 0;
   uint64_t interval_dur = 0;
@@ -388,27 +367,26 @@ void show_help() {
                "./rocksdbdata) \n"
             << " -l (0,1,2,3 - off, error, info, debug) - log level (default: 1) \n"
             << " -t (0, 1 - FIllDb, ReadWriteStress) - benchmark to run (default: 1) \n"
-            << " -w (0, 1 - Merkle Tree, RocksdDbDirect) - layer to write data with (default: 0) \n" << endl;
+            << " -w (0, 1 - Merkle Tree, RocksdDbDirect) - layer to write data with (default: 0) \n"
+            << endl;
 }
 
-bool parse_args(int argc, char** argv) {
+bool parse_args(int argc, char **argv) {
   try {
-    static struct option longOptions[] = {
-        {"num_of_blocks", required_argument, nullptr, 'b'},
-        {"num_of_keys", required_argument, nullptr, 'k'},
-        {"key_size", required_argument, nullptr, 's'},
-        {"single_value_size", required_argument, nullptr, 'v'},
-        {"concurrency_level", required_argument, nullptr, 'c'},
-        {"reader_delay", required_argument, nullptr, 'e'},
-        {"rocksdb_config_path", required_argument, nullptr, 'f'},
-        {"log_level", required_argument, nullptr, 'l'},
-        {"benchmark_to_run", required_argument, nullptr, 't'},
-        {"write_type", required_argument, nullptr, 'w'},
-        {nullptr, 0, nullptr, 0}};
+    static struct option longOptions[] = {{"num_of_blocks", required_argument, nullptr, 'b'},
+                                          {"num_of_keys", required_argument, nullptr, 'k'},
+                                          {"key_size", required_argument, nullptr, 's'},
+                                          {"single_value_size", required_argument, nullptr, 'v'},
+                                          {"concurrency_level", required_argument, nullptr, 'c'},
+                                          {"reader_delay", required_argument, nullptr, 'e'},
+                                          {"rocksdb_config_path", required_argument, nullptr, 'f'},
+                                          {"log_level", required_argument, nullptr, 'l'},
+                                          {"benchmark_to_run", required_argument, nullptr, 't'},
+                                          {"write_type", required_argument, nullptr, 'w'},
+                                          {nullptr, 0, nullptr, 0}};
     int optionIndex = 0;
     int option = 0;
-    while ((option = getopt_long(argc, argv, "b:k:s:v:c:e:f:l:t:w:",
-                                 longOptions, &optionIndex)) != -1) {
+    while ((option = getopt_long(argc, argv, "b:k:s:v:c:e:f:l:t:w:", longOptions, &optionIndex)) != -1) {
       switch (option) {
         case 'b': {
           auto blocks = stoi(string(optarg));
@@ -450,15 +428,13 @@ bool parse_args(int argc, char** argv) {
         }
         case 't': {
           uint b = stoi(string(optarg));
-          if(b < (uint)Benchmark::MIN_VALUE || b > (uint)Benchmark::MAX_VALUE)
-            return false;
+          if (b < (uint)Benchmark::MIN_VALUE || b > (uint)Benchmark::MAX_VALUE) return false;
           benchmark = static_cast<Benchmark>(b);
           break;
         }
         case 'w': {
           uint w = stoi(string(optarg));
-          if(w < (uint)WriteType::MIN_VALUE || w > (uint)WriteType::MAX_VALUE)
-            return false;
+          if (w < (uint)WriteType::MIN_VALUE || w > (uint)WriteType::MAX_VALUE) return false;
           write_type = static_cast<WriteType>(w);
           break;
         }
@@ -467,7 +443,7 @@ bool parse_args(int argc, char** argv) {
       }
     }
     return true;
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     cout << "Failed to parse command line arguments: " << e.what() << endl;
     return false;
   }
@@ -482,7 +458,7 @@ void setMaxNumOfOpenFiles() {
   LOG_INFO(logger, KVLOG(limit.rlim_cur, limit.rlim_max));
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   (void)argc;
   (void)argv;
   if (!parse_args(argc, argv)) {
@@ -509,18 +485,18 @@ int main(int argc, char** argv) {
   uint64_t write_size = 0;
   uint64_t write_duration = 0;
 
-  RocksDBStorageFactory* factory = nullptr;
+  RocksDBStorageFactory *factory = nullptr;
   IStorageFactory::DatabaseSet dbSet;
   shared_ptr<concord::storage::IDBClient> dbclient = nullptr;
 
   WriteFunction write_function = nullptr;
   ReaderFactory *rf = nullptr;
-  if(WriteType::Merkle == write_type) {
+  if (WriteType::Merkle == write_type) {
     factory = new RocksDBStorageFactory(rocksdb_path);
     dbSet = factory->newDatabaseSet();
     blocks_for_added_read_keys.reserve(readset_size);
     BlockId bid = dbSet.dbAdapter->getLatestBlockId();
-    write_function = [&](SetOfKeyValuePairs &data){
+    write_function = [&](SetOfKeyValuePairs &data) {
       auto blockId = dbSet.dbAdapter->addBlock(std::forward<SetOfKeyValuePairs>(data));
       assert(blockId == bid + 1);
       ++bid;
@@ -544,18 +520,17 @@ int main(int argc, char** argv) {
       write_duration = create_and_fill(write_hist, write_size, write_function);
       break;
     case Benchmark::ReadWriteStress:
-      write_duration = stress_test(write_function, *rf, write_hist, readers_hist, read_count,
-                                   read_size, write_size);
+      write_duration = stress_test(write_function, *rf, write_hist, readers_hist, read_count, read_size, write_size);
       break;
   }
   auto end = chrono::steady_clock::now();
-  LOG_INFO(logger, "Done. Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-           << " ms.");
+  LOG_INFO(logger,
+           "Done. Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms.");
 
-  if(WriteType::Merkle == write_type) {
+  if (WriteType::Merkle == write_type) {
     const Sliver last_agreed_prunable_block_id_key_{std::string{0x24}};
-    const auto block = SetOfKeyValuePairs{std::make_pair(last_agreed_prunable_block_id_key_,
-                                                         concordUtils::toBigEndianStringBuffer(0L))};
+    const auto block = SetOfKeyValuePairs{
+        std::make_pair(last_agreed_prunable_block_id_key_, concordUtils::toBigEndianStringBuffer(0L))};
   }
 
   auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count();
