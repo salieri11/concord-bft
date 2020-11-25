@@ -3537,7 +3537,7 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
         node_config, make_shared<HostsToMakeLoopbackSelector>(node));
     for (auto& path : node_local_hosts) {
       ConcordConfiguration* containing_scope = &node_config;
-      if (path.isScope && path.subpath && !isReadOnly) {
+      if (path.isScope && path.subpath) {
         containing_scope = &(node_config.subscope(path.trimLeaf()));
       }
       string failure_message;
