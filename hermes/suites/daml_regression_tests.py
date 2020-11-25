@@ -41,7 +41,7 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
     '''
     global installed
     log.info("\n*** Blockchain fixture is {} ***".format(fxBlockchain))
-    f_count = intr_helper.get_f_count(fxBlockchain)
+    f_count = blockchain_ops.get_f_count(fxBlockchain.replicas)
     client_hosts, concord_hosts = dr_helper.format_hosts_structure(
         fxBlockchain.replicas)
 
@@ -395,7 +395,7 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
     for client_host in fxLocalSetup.client_hosts:
         try:
             # Find primary replica and primary replica id
-            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain.replicas)
             primary_rip = replicas_mapping["primary_ip"]
             log.info("Primary Replica IP: {}".format(primary_rip))
 
@@ -526,7 +526,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
                 reraise, client_host), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG
 
             # Find primary replica ip and id
-            init_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            init_mapping = blockchain_ops.map_committers_info(fxBlockchain.replicas)
             init_primary_rip = init_mapping["primary_ip"]
             init_primary_index = init_mapping["primary_index"]
 
@@ -575,7 +575,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
                 p_stop_start_primary.terminate()
                 log.info("\nStop & start primary process completed")
 
-            assert dr_helper.verify_view_change(fxBlockchain, init_primary_rip, init_primary_index,
+            assert dr_helper.verify_view_change(fxBlockchain.replicas, init_primary_rip, init_primary_index,
                                                 [interrupted_nodes]), \
                 "View Change did not happen successfully"
 
@@ -613,7 +613,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
 
             # Find primary replica ip and id
             init_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain)
+                fxBlockchain.replicas)
             init_primary_rip = init_mapping["primary_ip"]
             init_primary_index = init_mapping["primary_index"]
 
@@ -648,7 +648,7 @@ def test_fault_tolerance_after_multiple_view_changes(reraise, fxLocalSetup, fxHe
             # Stop and Restart the current primary replicas multiple times
             for _ in range(0, len(fxLocalSetup.concord_hosts)):
                 new_mapping = blockchain_ops.map_committers_info(
-                    fxBlockchain, interrupted_nodes)
+                    fxBlockchain.replicas, interrupted_nodes)
                 new_primary_rip = new_mapping["primary_ip"]
                 new_primary_index = new_mapping["primary_index"]
 
@@ -690,7 +690,7 @@ def test_temporary_lack_of_quorum_after_view_change(reraise, fxLocalSetup, fxHer
             interrupted_nodes = []
 
             # Find primary replica and primary replica id
-            init_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            init_mapping = blockchain_ops.map_committers_info(fxBlockchain.replicas)
             init_primary_rip = init_mapping["primary_ip"]
             init_primary_index = init_mapping["primary_index"]
             log.info("Primary Replica IP and index: {} and {}".format(
@@ -751,7 +751,7 @@ def test_temporary_lack_of_quorum_after_view_change(reraise, fxLocalSetup, fxHer
 
             # Find current primary replica
             new_mapping = blockchain_ops.map_committers_info(
-                fxBlockchain, interrupted_nodes)
+                fxBlockchain.replicas, interrupted_nodes)
             new_primary_rip = new_mapping["primary_ip"]
             new_primary_index = new_mapping["primary_index"]
 
@@ -798,7 +798,7 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
     for client_host in fxLocalSetup.client_hosts:
         try:
             # Step 1 : Find primary replica
-            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain)
+            replicas_mapping = blockchain_ops.map_committers_info(fxBlockchain.replicas)
             init_primary_rip = replicas_mapping["primary_ip"]
             init_primary_index = replicas_mapping["primary_index"]
             assert init_primary_rip, "Primary Replica IP not found"
@@ -841,7 +841,7 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
             thread_st_check.start()
 
             # Step 9 : Verify view change is successfull
-            assert dr_helper.verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, [init_primary_rip]), \
+            assert dr_helper.verify_view_change(fxBlockchain.replicas, init_primary_rip, init_primary_index, [init_primary_rip]), \
                 "View Change did not happen successfully"
 
             # Step 10 : Checking whether view change happened before state transfer

@@ -8,7 +8,7 @@
 #
 #    node_interruption_details = {
 #       intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
-#       intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+#       intr_helper.NO_OF_NODES_TO_INTERRUPT: blockchain_ops.get_f_count(fxBlockchain.replicas),
 #       intr_helper.SKIP_MASTER_REPLICA: True,
 #       intr_helper.CUSTOM_INTERRUPTION_PARAMS: {
 #          "place_holder_for_other_interruption_params": "value"
@@ -18,6 +18,7 @@
 
 import pytest
 import util.helper as helper
+import util.blockchain_ops as blockchain_ops
 import util.node_interruption_helper as intr_helper
 from suites.case import describe
 from fixtures.common_fixtures import fxProduct, fxBlockchain, fxNodeInterruption
@@ -52,7 +53,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -79,7 +80,7 @@ def test_1_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -128,7 +129,7 @@ def test_longrun_committer_node_interruption(fxHermesRunSettings, fxBlockchain, 
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -155,7 +156,7 @@ def test_longrun_committer_node_interruption(fxHermesRunSettings, fxBlockchain, 
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -190,7 +191,7 @@ def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, 
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -217,7 +218,7 @@ def test_committer_nodes_all_container_crash(fxHermesRunSettings, fxBlockchain, 
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -252,7 +253,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -279,7 +280,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -298,7 +299,7 @@ def test_committer_nodes_few_container_crash(fxHermesRunSettings, fxBlockchain, 
 def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    scenario_details = {
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
-      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: blockchain_ops.get_f_count(fxBlockchain.replicas),
       intr_helper.NODE_INTERRUPTION_DETAILS: [
          {
             intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -312,7 +313,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -339,7 +340,7 @@ def test_f_node_interruption_vm_stop_start(fxHermesRunSettings, fxBlockchain, fx
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -372,7 +373,7 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -399,7 +400,7 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -419,7 +420,7 @@ def test_1_participant_node_interruption_vm_stop_start(fxHermesRunSettings, fxBl
 def test_f_node_interruption_vm_stop_start_in_flight_transaction(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    scenario_details = {
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
-      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: blockchain_ops.get_f_count(fxBlockchain.replicas),
       intr_helper.NODE_INTERRUPTION_DETAILS:[
          {
             intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_VM_STOP_START,
@@ -434,9 +435,9 @@ def test_f_node_interruption_vm_stop_start_in_flight_transaction(fxHermesRunSett
    # skipping master committer from interruption: bug BC-3264
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
-   daml_txn_background_thread = intr_helper.start_daml_txn_background_thread(fxBlockchain,
+   daml_txn_background_thread = intr_helper.start_daml_txn_background_thread(fxBlockchain.replicas,
                                                                              daml_txn_result_queue,
                                                                              scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0],
                                                                              fxHermesRunSettings)
@@ -453,7 +454,7 @@ def test_f_node_interruption_vm_stop_start_in_flight_transaction(fxHermesRunSett
          "Iteration {} - Nodes to be interrupted: {}".format(iteration + 1,
                                                                   nodes_to_interrupt))
 
-      status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+      status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                    fxHermesRunSettings,
                                                    nodes_to_interrupt,
                                                    scenario_details,
@@ -491,7 +492,7 @@ def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, 
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -518,7 +519,7 @@ def test_participant_node_interruption_all_container_crash(fxHermesRunSettings, 
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -551,7 +552,7 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -578,7 +579,7 @@ def test_participant_node_interruption_few_container_crash(fxHermesRunSettings, 
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -611,7 +612,7 @@ def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockc
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -638,7 +639,7 @@ def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockc
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -658,7 +659,7 @@ def test_participant_node_index_db_read_write_fail(fxHermesRunSettings, fxBlockc
 def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    scenario_details = {
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
-      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: blockchain_ops.get_f_count(fxBlockchain.replicas),
       intr_helper.NODE_INTERRUPTION_DETAILS: [
          {
             intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
@@ -673,7 +674,7 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -700,7 +701,7 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -720,7 +721,7 @@ def test_committer_node_interruption_vm_network_disconnect(fxHermesRunSettings, 
 def test_committer_node_interruption_container_network_disconnect(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    scenario_details = {
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
-      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: blockchain_ops.get_f_count(fxBlockchain.replicas),
       intr_helper.NODE_INTERRUPTION_DETAILS: [
          {
             intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_DISCONNECT,
@@ -736,7 +737,7 @@ def test_committer_node_interruption_container_network_disconnect(fxHermesRunSet
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -763,7 +764,7 @@ def test_committer_node_interruption_container_network_disconnect(fxHermesRunSet
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -796,7 +797,7 @@ def test_participant_node_interruption_vm_network_disconnect(fxHermesRunSettings
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -823,7 +824,7 @@ def test_participant_node_interruption_vm_network_disconnect(fxHermesRunSettings
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -857,7 +858,7 @@ def test_participant_node_interruption_container_network_disconnect(fxHermesRunS
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -884,7 +885,7 @@ def test_participant_node_interruption_container_network_disconnect(fxHermesRunS
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -905,7 +906,7 @@ def test_participant_node_interruption_container_network_disconnect(fxHermesRunS
 def test_f_committer_node_interruption_network_partition(fxHermesRunSettings, fxBlockchain, fxNodeInterruption):
    scenario_details = {
       intr_helper.NODE_TYPE_TO_INTERRUPT: helper.TYPE_DAML_COMMITTER,
-      intr_helper.NO_OF_NODES_TO_INTERRUPT: intr_helper.get_f_count(fxBlockchain),
+      intr_helper.NO_OF_NODES_TO_INTERRUPT: blockchain_ops.get_f_count(fxBlockchain.replicas),
       intr_helper.NODE_INTERRUPTION_DETAILS: [
          {
             intr_helper.NODE_INTERRUPTION_TYPE: intr_helper.NODE_INTERRUPT_NETWORK_PARTITION,
@@ -917,7 +918,7 @@ def test_f_committer_node_interruption_network_partition(fxHermesRunSettings, fx
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -944,7 +945,7 @@ def test_f_committer_node_interruption_network_partition(fxHermesRunSettings, fx
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,
@@ -976,7 +977,7 @@ def test_participant_node_interruption_network_partition(fxHermesRunSettings, fx
 
    nodes_available_for_interruption = \
       intr_helper.get_nodes_available_for_interruption(
-         fxBlockchain, scenario_details)
+         fxBlockchain.replicas, scenario_details)
 
    status = False
    last_interrupted_node_index = None
@@ -1003,7 +1004,7 @@ def test_participant_node_interruption_network_partition(fxHermesRunSettings, fx
                                   intr_helper.CUSTOM_INTERRUPTION_PARAMS].items()))
          log.info(
             "************************************************************")
-         status = intr_helper.crash_and_restore_nodes(fxBlockchain,
+         status = intr_helper.crash_and_restore_nodes(fxBlockchain.replicas,
                                                       fxHermesRunSettings,
                                                       nodes_to_interrupt,
                                                       scenario_details,

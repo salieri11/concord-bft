@@ -747,8 +747,8 @@ def fxInitializeOrgs(request, set_hermes_info):
 @pytest.fixture(scope="module")
 @describe("fixture; blockchain and run settings")
 def fxNodeInterruption(request, fxBlockchain, set_hermes_info):
-   committers = blockchain_ops.committers_of(fxBlockchain)
-   participants = blockchain_ops.participants_of(fxBlockchain)
+   committers = blockchain_ops.committers_of(fxBlockchain.replicas)
+   participants = blockchain_ops.participants_of(fxBlockchain.replicas)
 
    log.info("Committers: {}".format(committers))
    log.info("Participants: {}".format(participants))

@@ -16,7 +16,6 @@ import urllib
 import tempfile
 import base64
 import time
-from fixtures.common_fixtures import BlockchainFixture
 from util import (auth, csp, hermes_logging, helper, slack, mailer, wavefront,
                  racetrack, jenkins, infra, blockchain_ops as ops, vault)
 import util.hermes_logging
@@ -113,14 +112,12 @@ def run_on_workers(args, options, secret):
 def resetBlockchain(args, options, secret):
   a = prepareArgs(args)
   replicas = helper.parseReplicasConfig(replicas=a[0])
-  fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas, clientNodes=None)
-  ops.reset_blockchain(fxBlockchain)
+  ops.reset_blockchain(replicas)
 
 def showPrimary(args, options, secret):
   a = prepareArgs(args)
   replicas = helper.parseReplicasConfig(replicas=a[0])
-  fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None, replicas=replicas, clientNodes=None)
-  ops.get_primary_rid(fxBlockchain)
+  ops.get_primary_rid(replicas)
 
 def moveVMs(args, options, secret):
   a = prepareArgs(args)

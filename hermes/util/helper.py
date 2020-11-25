@@ -242,19 +242,24 @@ def get_docker_env(key=None):
       return env
 
 
+def find_service(docker_compose_file, service_name):
+   '''
+   Returns whether the service service_name is defined in docker_compose_file.
+   '''
+   log.debug("Parsing docker-compose file: {}".format(docker_compose_file))
+   with open(docker_compose_file, "r") as yaml_file:
+      compose_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+   
+   service_found = True if service_name in list(compose_data["services"]) else False
+   return service_found
+
+
 def service_defined(docker_compose_files, service_name):
    '''
    Returns whether the service service_name is defined in docker_compose_files.
    '''
    for docker_compose_file in docker_compose_files:
-      log.debug("Parsing docker-compose file: {}".format(docker_compose_file))
-
-      with open(docker_compose_file, "r") as yaml_file:
-         compose_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
-
-      services = list(compose_data["services"])
-
-      if service_name in services:
+      if find_service(docker_compose_file, service_name):
          return True
 
    return False
@@ -270,27 +275,23 @@ def get_docker_compose_value(docker_compose_files, service_name, key):
    :return: value for the key passed for the service name
    '''
    service_name_found = False
-   value_found = False
    for docker_compose_file in docker_compose_files:
       log.debug("Parsing docker-compose file: {}".format(docker_compose_file))
-      with open(docker_compose_file, "r") as yaml_file:
-         compose_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
-      services = list(compose_data["services"])
-      if '/' in service_name:
-         tmp_service_name = service_name.split('/')[1]
-      else:
-         tmp_service_name = service_name
-
-      if tmp_service_name in services:
+      tmp_service_name = service_name.split('/')[1] if '/' in service_name else service_name
+      if find_service(docker_compose_file, tmp_service_name):
          service_name_found = True
+         log.debug("Service found in docker-compose file: {}".format(docker_compose_file))
+         with open(docker_compose_file, "r") as yaml_file:
+            compose_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
          service_keys = compose_data['services'][tmp_service_name]
          if key in service_keys:
-            value = service_keys[key]
-            value_found = True
-
-   if value_found:
-      return value
+            log.debug("key({0}) found for the service ({1}) in docker file ({2})"\
+               .format(key, service_name, docker_compose_file))
+            return service_keys[key]
+         else:
+            log.debug("No key({0}) found for the service ({1}) in docker file ({2})"\
+               .format(key, service_name, docker_compose_file))
 
    if not service_name_found:
       raise Exception(
@@ -317,6 +318,7 @@ def get_deployment_service_config_file(docker_compose_files, service_name):
    except Exception as e:
       raise
    return config_file
+
 
 def get_deployment_properties(deployment_properties):
    properties_dict = {}
@@ -365,6 +367,7 @@ def set_props_file_value(filename, key, value):
       log.error("Unable to update properties file: {}".format(filename))
       raise
 
+
 def read_key(key, properties_file=PROPERTIES_TEST_FILE):
    """
    Method to read value for a given key in a properties file
@@ -386,6 +389,7 @@ def read_key(key, properties_file=PROPERTIES_TEST_FILE):
       log.error("Unable to access/read properties file: {}".format(properties_file))
       raise
 
+
 def work_around_bc_5021(output):
    '''
    In the new VM templates, every first line of a remote SSH exeuction starts
@@ -403,6 +407,7 @@ def work_around_bc_5021(output):
       output = "\n".join(lines)
 
    return output
+
 
 def durable_ssh_connect(host, username, password, command, log_mode=None, verbose=True, attempts=5):
    '''
@@ -423,6 +428,7 @@ def durable_ssh_connect(host, username, password, command, log_mode=None, verbos
          exc = e
 
    raise exc
+
 
 def ssh_connect(host, username, password, command, log_mode=None, verbose=True, log_response=True):
    '''
@@ -485,6 +491,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True, 
          retry_attempt += 1
 
    return work_around_bc_5021(resp)
+
 
 def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
   '''
@@ -644,13 +651,6 @@ def protobuf_message_to_json(message_obj):
    else:
       log.error("protobuf_message_to_json received nothing to convert.")
       return None
-
-
-def json_to_protobuf_message(j):
-   from vmware.blockchain.deployment.v1.provisioning_service_pb2 import \
-      DeploymentSessionIdentifier
-   from google.protobuf.json_format import Parse
-   return Parse(j, DeploymentSessionIdentifier())
 
 
 def requireFields(ob, fieldList):
@@ -875,23 +875,6 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    return False
 
 
-def collect_support_logs_for_long_running_tests(all_replicas_and_type,
-                                                save_support_logs_to,
-                                                verbose=True):
-   '''
-   Collect support logs for long running tests
-   :param all_replicas_and_type: dict of replica type & replica ips
-   :param save_support_logs_to: location to save logs
-   :param verbose: log info () if set to true
-   '''
-   log.info("Saving support logs to: {} ...".format(save_support_logs_to))
-   for blockchain_type, replica_ips in all_replicas_and_type.items():
-      log.debug("Collect support bundle from all replica IPs: {}...".format(
-         replica_ips))
-      create_concord_support_bundle(replica_ips, blockchain_type,
-                                    save_support_logs_to, verbose=verbose)
-
-
 def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                      test_list_json_file, testset, notify_target=None, notify_job=None):
    '''
@@ -913,11 +896,6 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                                               "blockchainId, consortiumId, replicas, clientNodes")
 
    from . import slack
-   configObject = getUserConfig()
-   credentials = configObject["persephoneTests"]["provisioningService"][
-      "concordNode"]
-   username = credentials["username"]
-   password = credentials["password"]
 
    start_time = time.time()
    end_time = start_time + run_duration * 3600
@@ -961,15 +939,12 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    replica_status = None
    while ((time.time() - start_time)/3600 < run_duration) and replica_status is not False:
       run_count += 1
-      fxBlockchain = BlockchainFixture(blockchainId=None, consortiumId=None,
-                                       replicas=all_replicas_and_type,
-                                       clientNodes=None)
       log.info("************************************************************")
       log.info("Iteration: {}".format(run_count).center(60))
       log.info("************************************************************")
 
       crashed_committers, crashed_participants, unexpected_crash_results_dir = blockchain_ops.get_all_crashed_nodes(
-         fxBlockchain, log_dir)
+         all_replicas_and_type, log_dir)
 
       status = False if len(crashed_committers + crashed_participants) > 0 else True
       nodes_status = {
@@ -980,7 +955,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       }
 
       if not status:
-         f = blockchain_ops.get_f_count(fxBlockchain)
+         f = blockchain_ops.get_f_count(all_replicas_and_type)
          overall_run_status = False
 
          if len(crashed_committers) > f or len(crashed_participants) > 0:
@@ -1588,20 +1563,6 @@ def getNodeCredentials():
   return (credentials["username"], credentials["password"])
 
 
-def checkRpcTestHelperImport():
-   try:
-      sys.path.append("lib/persephone")
-      from persephone import rpc_test_helper
-   except (ImportError, ModuleNotFoundError) as e:
-      log.error("Python bindings not generated. Execute the following from the top " \
-                "level of the blockchain source directory: \n" \
-                "python3 ./hermes/util/generate_grpc_bindings.py " \
-                "--source-path=persephone/api/src/protobuf " \
-                "--target-path=hermes/lib/persephone")
-
-      raise Exception("gRPC Python bindings not generated")
-
-
 def distributeItemsRoundRobin(numSlots, availableItems):
    '''
    Given some number of slots (e.g. 4 or 7 desired blockchain nodes) and a list of availableItems
@@ -1634,12 +1595,6 @@ def blockchainIsRemote(args):
    return args.blockchainLocation != LOCATION_LOCAL
 
 
-def needToCollectDeploymentEvents(cmdlineArgs):
-   return blockchainIsRemote(cmdlineArgs) and \
-      "persephone".lower() not in cmdlineArgs.suite and \
-      cmdlineArgs.keepBlockchains in [KEEP_BLOCKCHAINS_NEVER, KEEP_BLOCKCHAINS_ON_FAILURE]
-
-
 def replaceUrlParts(url, newPort=None, newScheme=None):
    '''
    Replace url parts.  Expand as needed.
@@ -1668,7 +1623,6 @@ def mergeDictionaries(orig, new):
             orig[newK] = newV
       else:
          orig[newK] = newV
-
 
 
 def getReplicaContainers(replicaType):
@@ -1709,6 +1663,7 @@ def waitForDockerContainers(host, username, password, replicaType, timeout=2700)
 
       if not up:
          raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))
+
 
 def check_docker_health(node, username, password, replica_type,
                         max_timeout=600, verbose=True):
@@ -1963,6 +1918,7 @@ def parseReplicasConfig(replicas):
     is used to standardize replicas parsing across codebase
   '''
   if not replicas: replicas = REPLICAS_JSON_PATH
+  
   if isinstance(replicas, str): # path supplied
     with open(replicas, 'r') as f:
       replicasObject = json.loads(f.read())
@@ -1971,13 +1927,16 @@ def parseReplicasConfig(replicas):
       replicasObject = replicas
       return getattr(replicasObject, "replicas")
     else: replicasObject = replicas
+ 
   nodeTypes = [
     TYPE_ETHEREUM, TYPE_DAML, TYPE_DAML_COMMITTER,
     TYPE_DAML_PARTICIPANT, TYPE_HLF, TYPE_TEE,
   ]
+
   result = {} # clean up and enforce replicas structure
-  if isinstance(replicasObject, dict):
-    replicasObject = json.loads(json.dumps(replicasObject))
+#   if isinstance(replicasObject, dict):
+#     replicasObject = json.loads(json.dumps(replicasObject)) 
+  
   for nodeType in replicasObject:
     nodeWithThisType = replicasObject[nodeType]
     if nodeType == "others":
@@ -1985,6 +1944,7 @@ def parseReplicasConfig(replicas):
       continue
     if nodeType not in nodeTypes: continue
     if nodeType not in result: result[nodeType] = []
+    
     for i, nodeInfo in enumerate(nodeWithThisType):
       if isinstance(nodeInfo, str):
         result[nodeType].append(nodeInfo)
@@ -2154,7 +2114,6 @@ def get_agent_pulled_tags_info():
     if len(all_tags) > 1: agent_pulled_tags_are_uniform = False
   info_obj["uniform"] = agent_pulled_tags_are_uniform
   return info_obj
-
 
 
 def getDefaultDeploymentComponents():
@@ -2345,6 +2304,7 @@ def get_zones(org_name, service):
       for k in resp:
          log.info("    {}: {}".format(k, resp[k]))
 
+
 def getClientNodes(num_groups, client_zone_ids):
    client_nodes = []
    # Are there any zone ids?, if not return empty client list.
@@ -2382,6 +2342,7 @@ def getClientNodes(num_groups, client_zone_ids):
    log.debug("client nodes {}".format(client_nodes))
    return client_nodes
 
+
 def getNetworkIPAddress(interface="ens160"):
    command = ["/sbin/ifconfig", interface]
    ifconfig_output = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -2400,6 +2361,7 @@ def getNetworkIPAddress(interface="ens160"):
             host_ip = fields[1]
          break
    return host_ip
+
 
 def get_time_now_in_milliseconds():
    '''
@@ -2435,11 +2397,13 @@ def collectSupportBundles(supportBundleFile, testLogDir):
             create_concord_support_bundle(
                [bundleHost], bundles[bundleHost]["type"], logDir)
 
+
 def parsePytestTestName(parseMe):
    '''
    Returns a condensed name, just used to reduce noise.
    '''
    return parseMe[parseMe.rindex(":")+1:]
+
 
 def makeRelativeTestPath(resultsDir, fullTestPath):
    '''
@@ -2447,6 +2411,7 @@ def makeRelativeTestPath(resultsDir, fullTestPath):
    relative path.
    '''
    return fullTestPath[len(resultsDir)+1:len(fullTestPath)]
+
 
 def map_run_id_to_this_run(run_id, parent_results_dir, results_dir):
    '''
