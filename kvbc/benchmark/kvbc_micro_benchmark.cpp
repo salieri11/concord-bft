@@ -43,7 +43,7 @@ enum class WriteType : uint8_t { Merkle, RocksDbDirect, MIN_VALUE = Merkle, MAX_
 const uint kReadKeyLength = 20;
 const uint kReadValueLength = 420;
 const uint data_set_size_factor = 10;
-const uint stat_dump_perc = 10;
+const uint stat_dump_perc = 1;
 bool kCheckOutput = true;
 // cli params
 uint read_kv_count = 31;
@@ -465,7 +465,7 @@ int main(int argc, char **argv) {
     show_help();
     return 1;
   }
-  interval_count = num_of_blocks / stat_dump_perc;
+  interval_count = num_of_blocks / 100 * stat_dump_perc;
 
   logging::initLogger("log4cplus.properties");
   logger = logging::getLogger("storage-benchmark");
