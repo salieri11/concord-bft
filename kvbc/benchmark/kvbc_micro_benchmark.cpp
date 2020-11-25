@@ -510,7 +510,10 @@ int main(int argc, char **argv) {
         auto blockId = dbSet.dbAdapter->addBlock(std::forward<SetOfKeyValuePairs>(data));
         assert(blockId == bid + 1);
         ++bid;
-        blocks_for_added_read_keys.emplace_back(blockId);
+        blocks_for_added_read_keys.push_back(blockId);
+        LOG_DEBUG(logger,
+                  "added new block " << blockId
+                                     << ", blocks_for_added_read_keys.size() == " << blocks_for_added_read_keys.size());
       } catch (std::exception &ex) {
         LOG_ERROR(logger, "merkle_write_fn " << ex.what());
       }
