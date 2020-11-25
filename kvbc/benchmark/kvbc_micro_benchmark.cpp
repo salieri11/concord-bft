@@ -44,7 +44,7 @@ const uint kReadKeyLength = 20;
 const uint kReadValueLength = 420;
 const uint data_set_size_factor = 10;
 const uint stat_dump_perc = 1;
-bool kCheckOutput = true;
+const string log_properties_file = "log4cplus.properties";
 // cli params
 uint read_kv_count = 31;
 uint write_kv_count = 31;
@@ -125,7 +125,7 @@ class DirectKeysReader : public Reader {
         assert(s.isOK());
         assert(read_values_batch.size() == indices.size());
         for (uint i = 0; i < read_keys_batch.size(); ++i) {
-          if (kCheckOutput) assert(read_values_batch[i] == read_values[indices[i]]);
+          assert(read_values_batch[i] == read_values[indices[i]]);
           read_size += read_values[indices[i]].length();
         }
 
@@ -365,7 +365,8 @@ void show_help() {
             << " -e uint - reader delay, time to wait between 2 reads, ms (default: 10) \n"
             << " -f string - path to the RocksDb location (default "
                "./rocksdbdata) \n"
-            << " -l (0,1,2,3 - off, error, info, debug) - log level (default: 1) \n"
+            << " -l (0,1,2,3 - off, error, info, debug) - log level, will be overrided by log4cplus.properties file "
+               " if found in current folder (default: 1) \n"
             << " -t (0, 1 - FIllDb, ReadWriteStress) - benchmark to run (default: 1) \n"
             << " -w (0, 1 - Merkle Tree, RocksdDbDirect) - layer to write data with (default: 0) \n"
             << endl;
@@ -465,14 +466,21 @@ int main(int argc, char **argv) {
     show_help();
     return 1;
   }
-  interval_count = num_of_blocks / 100 * stat_dump_perc;
-  logging::initLogger("log4cplus.properties");
 
+  interval_count = num_of_blocks / 100 * stat_dump_perc;
+
+  {
+    ifstream f(log_properties_file);
+    if (f.good()) {
+      logging::initLogger(log_properties_file);
+    } else {
 #if USE_LOG4CPP
-  logger.setLogLevel(log_level ? log4cplus::OFF_LOG_LEVEL : log_level * 1000u);
+      logger.setLogLevel(log_level ? log4cplus::OFF_LOG_LEVEL : log_level * 10000u);
 #else
-  logger.setLogLevel(log_level);
+      logger.setLogLevel(log_level);
 #endif
+    }
+  }
 
   Histogram write_hist;
   write_hist.Clear();
