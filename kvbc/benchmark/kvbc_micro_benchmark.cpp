@@ -151,8 +151,8 @@ class KvbcKeysReader : public Reader {
           auto read_start = chrono::steady_clock::now();
           for (uint j = 0; j < read_kv_count; ++j) {
             uint ind = distribution(generator) % readset_size;
-            auto blockId = blocks_for_added_read_keys[ind];
-            LOG_DEBUG(logger, "try to read values for block id " << blockId);
+            BlockId blockId = blocks_for_added_read_keys[ind];
+            LOG_DEBUG(logger, "try to read values for block id " << blockId << " at index " << ind);
             Sliver res = kvbc_adapter->getValue(read_keys[ind], blockId).first;
             assert(!res.empty());
             assert(res == read_values[ind]);
