@@ -147,20 +147,24 @@ class KvbcKeysReader : public Reader {
       LOG_INFO(logger, "KvbcKeysReader " << reader_id << " started");
 
       while (!done) {
-        auto read_start = chrono::steady_clock::now();
-        auto lastBlockId = kvbc_adapter->getLatestBlockId();
-        for (uint j = 0; j < read_kv_count; ++j) {
-          uint ind = distribution(generator) % readset_size;
-          Sliver res = kvbc_adapter->getValue(read_keys[ind], lastBlockId).first;
-          assert(!res.empty());
-          assert(res == read_values[ind]);
-          ++read_count;
-        }
-        auto read_end = chrono::steady_clock::now();
-        auto dur = chrono::duration_cast<chrono::microseconds>(read_end - read_start).count();
-        h.Add(dur);
+        try {
+          auto read_start = chrono::steady_clock::now();
+          auto lastBlockId = kvbc_adapter->getLatestBlockId();
+          for (uint j = 0; j < read_kv_count; ++j) {
+            uint ind = distribution(generator) % readset_size;
+            Sliver res = kvbc_adapter->getValue(read_keys[ind], lastBlockId).first;
+            assert(!res.empty());
+            assert(res == read_values[ind]);
+            ++read_count;
+          }
+          auto read_end = chrono::steady_clock::now();
+          auto dur = chrono::duration_cast<chrono::microseconds>(read_end - read_start).count();
+          h.Add(dur);
 
-        if (reader_sleep_milli) this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
+          if (reader_sleep_milli) this_thread::sleep_for(chrono::milliseconds(reader_sleep_milli));
+        } catch (std::exception &ex) {
+          LOG_ERROR(logger, "kvbc_reader " << ex.what());
+        }
       }
     });
   }
@@ -503,10 +507,14 @@ int main(int argc, char **argv) {
     blocks_for_added_read_keys.reserve(readset_size);
     BlockId bid = dbSet.dbAdapter->getLatestBlockId();
     write_function = [&](SetOfKeyValuePairs &data) {
-      auto blockId = dbSet.dbAdapter->addBlock(std::forward<SetOfKeyValuePairs>(data));
-      assert(blockId == bid + 1);
-      ++bid;
-      blocks_for_added_read_keys.emplace_back(blockId);
+      try {
+        auto blockId = dbSet.dbAdapter->addBlock(std::forward<SetOfKeyValuePairs>(data));
+        assert(blockId == bid + 1);
+        ++bid;
+        blocks_for_added_read_keys.emplace_back(blockId);
+      } catch (std::exception &ex) {
+        LOG_ERROR(logger, "merkle_write_fn " << ex.what());
+      }
       return Status::OK();
     };
     rf = new KvbcKeyReaderFactory(dbSet.dbAdapter.get());
