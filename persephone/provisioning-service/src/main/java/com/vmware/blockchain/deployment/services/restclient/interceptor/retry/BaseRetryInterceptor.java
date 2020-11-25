@@ -66,7 +66,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                 response = execution.execute(request, body);
             } catch (Exception ex) {
                 logger.error("Failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
-                throw new InternalFailurePersephoneException(ErrorCode.REQUEST_EXECUTION_FAILURE);
+                throw new InternalFailurePersephoneException(ex, ErrorCode.REQUEST_EXECUTION_FAILURE);
             }
             if (isSuccessful(response)) {
                 // Log only if the call succeeded after retries.

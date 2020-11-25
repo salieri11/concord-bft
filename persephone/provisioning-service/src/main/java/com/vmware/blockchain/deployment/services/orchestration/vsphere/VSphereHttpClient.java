@@ -6,7 +6,6 @@ package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.net.URI;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
@@ -184,11 +183,10 @@ public class VSphereHttpClient {
      * @return status string returned by VC.
      */
     public HttpStatus getHealth() {
-        Class<?> objArrClz = Array.newInstance(Object.class, 0).getClass();
         String uri = VsphereEndpoints.VSPHERE_HEALTH.getPath();
-        HttpEntity<Object[]> requests = new HttpEntity<>(httpHeaders);
+        HttpEntity<Object> requests = new HttpEntity<>(httpHeaders);
         ResponseEntity<? extends Object> responseEntity
-                = restTemplate.getForEntity(uri, objArrClz);
+                = restTemplate.getForEntity(uri, Object.class);
         return responseEntity.getStatusCode();
     }
 

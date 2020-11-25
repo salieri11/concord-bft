@@ -56,6 +56,7 @@ public class ValidatorServiceImpl implements ValidatorService {
         List<ValidationError> errors = Collections.emptyList();
         switch (deploymentType) {
             case PROVISION:
+            case VALIDATE:
                 ProvisionDescriptorDescriptorModel provisionDesc =
                         ProvisionDescriptorDescriptorModel.class.cast(deploymentDescriptor);
                 errors = validateProvisioning(infrastructureDescriptor, provisionDesc);
