@@ -11,3 +11,6 @@ fi
 cp ./config-public/log4cplus.properties ./config-local/log4cplus.properties
 chmod ugo+r -R tls_certs
 chmod ugo+r -R trs_trc_tls_certs
+sudo rm -rf /media/concord/cores/*
+sudo rm -rf /media/concord/log/*
+sudo rm -rf /media/concord/rocksdbdata/*

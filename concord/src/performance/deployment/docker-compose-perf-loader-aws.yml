@@ -11,6 +11,8 @@ services:
     volumes:
       - ./config-local:/perf_loader/config
       - ./tls_certs:/perf_loader/tls_certs:ro
+      - /media/concord/cores:/perf_loader/cores
+      - /media/concord/log:/concord/log
     command: LOADER_COMMAND
     labels:
       custom_name: concord_perf_loader

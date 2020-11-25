@@ -25,6 +25,8 @@ Important sections:
                          Currently the string `CONTAINER_ID` is supported as parameter
                          and will be replaced in the runtime by actual container ID.
       `custom_command_run_interval_sec` - periodic interval to run custom command, in seconds
+ - `general`
+    -`num_of_replicas` - we support 4 or 7 only
 
 ### AWS setup
 AWS users may have IAM account type, where the credentials provided by Amazon are in form of **account ID**,**user name**, **password** tuple, or they may use SSO (which is used in VMWare, for example, called Cloudgate) to obtain AWS access.
@@ -95,7 +97,8 @@ The behaviour can be modified by the following CLI parameters:
 - `-useExistingInstances` - use pre-created instances (for debug only)
 - `-setupMachinesOnly` - setup AWS machines and stop (for debug only)
 - `-stopMachines` - stop instances after the run
-- `-noRunTest` - Don't run actual test (for debug only)
+- `-noRunTest` - Don't run actual test. Will run only replicas and it allows to run loader container manually.
+                ***Note: the script may hang at this point, just exit with CTRL-C***
 
 The following set of CLI parameters control the Concord replica configuration:
 - `-inMemory` - use in-memory DB instead of RocksdDb
@@ -116,7 +119,8 @@ The PLT is a stand alone binary, which is containerized and runs on the separate
   - -f (STRING) - path to the client pool configuration file
   - -w (1/0) - to use a busy-wait (1) or a regular sleep simulating execution time latency (default: 1)
   - -i (1/0) - to print (1) or not (0) request durations (default: 1)
-  - -l (0,1,2,3 - off, error, info, debug) - log level (default: 1")
+  - -l (0,1,2,3 - off, error, info, debug) - log level (default: 1"). If log4cplus is not used, we use this file.
+  - -a STRING - path to log4cplus.properties file for the loader. Default: assumes it runs within Docker container with mapped folder to /perf_loader/config
 
   These parameters can be changed via the `loader_cli` parameter in the `deployment_local.yaml` file
 
