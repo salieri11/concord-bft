@@ -66,7 +66,7 @@ vector<BlockId> blocks_for_added_read_keys;
 mt19937 generator(0);
 uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
 uint curr_block = 0;
-logging::Logger logger;
+logging::Logger logger = logging::getLogger("storage-benchmark");
 
 class Reader {
  protected:
@@ -466,9 +466,7 @@ int main(int argc, char **argv) {
     return 1;
   }
   interval_count = num_of_blocks / 100 * stat_dump_perc;
-
   logging::initLogger("log4cplus.properties");
-  logger = logging::getLogger("storage-benchmark");
 
 #if USE_LOG4CPP
   logger.setLogLevel(log_level ? log4cplus::OFF_LOG_LEVEL : log_level * 1000u);
