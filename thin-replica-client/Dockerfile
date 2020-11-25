@@ -21,8 +21,12 @@ RUN cmake -DCMAKE_C_COMPILER=/usr/bin/clang-7 \
      make install
 
 # Base runtime image.
-FROM ubuntu:18.04
+FROM athena-docker-local.artifactory.eng.vmware.com/ubuntu:18.04
 LABEL Description="Thin Replica Client Library"
+
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic main restricted multiverse universe\n' > /etc/apt/sources.list
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-updates main restricted multiverse universe\n' >> /etc/apt/sources.list
+RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-security main restricted multiverse universe\n' >> /etc/apt/sources.list
 
 # Install packaged runtime dependencies.
 RUN apt-get update && apt-get -y install \
