@@ -1131,13 +1131,14 @@ class PrincipalHostValidator : public ConcordConfiguration::ParameterValidator {
       // hosts into the config. To handle this case, we return
       // INSUFFICIENT_INFORMATION if detectLocalNode throws an exception.
       size_t local_node_index;
+      bool isRoReplica = false;
       try {
-        std::tie(local_node_index, std::ignore) =
+        std::tie(local_node_index, isRoReplica) =
             detectLocalNode(nonConstConfig);
       } catch (const ConfigurationResourceNotFoundException& e) {
         return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
       }
-      if (path.index == local_node_index) {
+      if (path.index == local_node_index && !isRoReplica) {
         failureMessage =
             "Invalid host address for " + path.toString() + ": " + value +
             "; the value 127.0.0.1 (i.e. loopback) is expected for "
