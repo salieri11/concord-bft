@@ -229,7 +229,7 @@ void DamlValidatorClient::SetAndLogPreExecutionResult(
 grpc::Status DamlValidatorClient::PreExecute(
     const std::string& submission, const std::string& participant_id,
     const std::string& correlation_id, const opentracing::Span& parent_span,
-    KeyValueWithFingerprintReaderFunc read_from_storage,
+    KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
     com::vmware::concord::PreExecutionResult* pre_execution_result) {
   auto child_span = parent_span.tracer().StartSpan(
       "daml_pre_execute", {opentracing::ChildOf(&parent_span.context())});
@@ -285,7 +285,7 @@ grpc::Status DamlValidatorClient::PreExecute(
 void DamlValidatorClient::HandleReadEventForPreExecution(
     const com::digitalasset::kvbc::PreprocessorFromEngine::ReadRequest&
         read_request,
-    KeyValueWithFingerprintReaderFunc read_from_storage,
+    KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
     com::digitalasset::kvbc::PreprocessorToEngine* reply) {
   auto& keys = read_request.keys();
   const auto values = read_from_storage(keys);

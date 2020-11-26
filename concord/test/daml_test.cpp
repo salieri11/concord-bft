@@ -183,7 +183,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
                      const std::string& participant_id,
                      const std::string& correlation_id,
                      const opentracing::Span& parent_span,
-                     KeyValueWithFingerprintReaderFunc read_from_storage,
+                     KeyTypeAndValueWithFingerprintReaderFunc read_from_storage,
                      PreExecutionResult* pre_execution_result) -> grpc::Status {
                 da_kvbc::PreExecutionOutput pre_execution_output;
                 pre_execution_output.mutable_min_record_time()->CopyFrom(
