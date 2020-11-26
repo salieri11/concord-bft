@@ -228,7 +228,7 @@ class NodeCreator():
         
         for _ in range(0, self.num_clients):
             if self.tls_enabled:
-                tls_crt = util.cert.tlsCertificate('server')
+                tls_crt = util.cert.tlsCreateLoadSignedCrt('server')
                 server_crt = tls_crt.serverCrt
                 server_key = tls_crt.serverKey
                 root_crt = tls_crt.rootCaCrt

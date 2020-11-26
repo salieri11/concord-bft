@@ -58,7 +58,6 @@ then
   daml_list_without_crt
 elif [ "$test_type" == "with_invalid_cert" ]
 then 
-  cd "invalid" || exit
   daml_list_with_crt
 else
   error "**** Type not valid"
