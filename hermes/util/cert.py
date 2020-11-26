@@ -10,6 +10,7 @@ import OpenSSL
 from collections import namedtuple
 
 log = util.hermes_logging.getMainLogger()
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daml", "request_tool") 
 
 def getSecureContext():
    ctx = ssl.create_default_context(cafile=certifi.where())
@@ -24,9 +25,9 @@ def getInsecureContext():
    return ctx
 
 def tlsCertificate(type):
-   path = os.path.dirname(os.path.abspath(__file__))
-   scriptPath = os.path.join(".", os.path.dirname(os.path.abspath(__file__)), "generateTlsCerts.sh")
-   root_path = os.path.join(".", os.path.dirname(os.path.abspath(__file__)), "root-ca.crt")
+   scriptPath = os.path.join(path, "generateTlsCerts.sh")
+   root_path = os.path.join(path, "root-ca.crt")
+   os.chmod(scriptPath, 0o777)
    if type == 'server':
       if not os.path.exists(root_path):
          type_root = 'root-ca'
@@ -38,10 +39,9 @@ def tlsCertificate(type):
       assert os.path.exists(root_path), "Root certificate must exist"
    else:
       raise Exception("Invalid Input type for tlsCertificate.")
-
    cmd = [scriptPath, type]
    success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=path, raise_exception=True)
-   log.info("\nSuccess and Output are {} and {}".format(success, stdout))
+   log.debug("\nSuccess and Output are {} and {}".format(success, stdout))
    assert success, "Error creating {} certificates".format(type)
    fileList = ["root-ca.crt", type + ".crt", type + '.key']
    certInStrList = []
@@ -58,4 +58,25 @@ def tlsCertificate(type):
    return certificate
 
 def getTlsPath():
-   return os.path.dirname(os.path.abspath(__file__))
+   return path
+
+def tlsInvalidCertificate(type):
+   scriptPath = os.path.join(path, "generateTlsCerts.sh")
+   if not os.path.exists(path+"/invalid"):
+    os.makedirs(path+"/invalid")
+   root_path = os.path.join(path,"invalid","root-ca.crt")  
+   os.chmod(scriptPath, 0o777)
+   invalidPath = os.path.join(path,"invalid")
+   if not os.path.exists(root_path): 
+         type_root = 'root-ca'
+         cmd = [scriptPath, type_root]
+         success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=invalidPath)
+         log.info("\nSuccess and Output are {} and {}".format(success, stdout))
+         assert success, "Error creating root certificates"
+   cmd = [scriptPath, type]
+   success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=invalidPath)
+   log.debug("\nSuccess and Output are {} and {}".format(success, stdout))
+   assert success, "Error creating {} certificates".format(type)
+   
+   
+
