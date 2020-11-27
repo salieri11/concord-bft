@@ -37,7 +37,7 @@
           "type": "string"
         },
         "tlsCertificateData": {
-            "description": "vCenter TLS Certificate",
+            "description": "Single or multiple certificates (collated) for vCenter",
             "type": "string"
         },
         "userName": {
