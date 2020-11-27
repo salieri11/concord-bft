@@ -5,6 +5,7 @@
 package com.vmware.blockchain.deployment.services.orchestration.vsphere;
 
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 
+import org.apache.http.conn.HttpHostConnectException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -78,16 +80,18 @@ public class VSphereOrchestrator implements Orchestrator {
             throw new BadRequestPersephoneException(ErrorCode.INVALID_CREDENTIALS, vCenterUrl);
         } catch (InternalFailurePersephoneException e) {
             // This exception is thrown when the server is unreachable.
-            if (e.getHttpStatus() == HttpStatus.INTERNAL_SERVER_ERROR) {
+            if (e.getHttpStatus() == HttpStatus.INTERNAL_SERVER_ERROR
+                && (e.getCause() instanceof UnknownHostException
+                    ||  e.getCause() instanceof HttpHostConnectException)) {
                 log.error("Unreachable vCenter: {}", e);
-                throw new BadRequestPersephoneException(ErrorCode.SERVER_NOT_FUNCTIONAL, vCenterUrl);
+                throw new BadRequestPersephoneException(e, ErrorCode.SERVER_NOT_FUNCTIONAL, vCenterUrl);
             } else {
                 log.error("Unknown error: {}", e);
-                throw new BadRequestPersephoneException(ErrorCode.REQUEST_EXECUTION_FAILURE, vCenterUrl);
+                throw new BadRequestPersephoneException(e, ErrorCode.REQUEST_EXECUTION_FAILURE, vCenterUrl);
             }
         } catch (Exception e) {
             log.error("Unknown error: {}", e);
-            throw new BadRequestPersephoneException(ErrorCode.REQUEST_EXECUTION_FAILURE, vCenterUrl);
+            throw new BadRequestPersephoneException(e, ErrorCode.REQUEST_EXECUTION_FAILURE, vCenterUrl);
         }
 
         val compute = datacenterInfo.getResourcePool();
