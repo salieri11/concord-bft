@@ -770,7 +770,7 @@ def prepare_report(items, results_dir):
     log.info(msg)
     log.info("Summary: {0}[\u2714] tests succeeded {1}, {2}[\u2717] tests failed {3}, "
              "{4}tests skipped {5}, {0}[\u2714] tests expected-failed {6}, "
-             "{2}[\u2717] tests un-expected-pass {7}, "
+             "{2}[\u2714] tests un-expected-pass {7}, "
              "tests not-executed {8}, {9}Total Tests: {10}{11}"
              .format(ok, result_summary['succeeded'], fail, result_summary['failed'],
                      yellow, result_summary['skipped'],
