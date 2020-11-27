@@ -16,6 +16,9 @@ import util.wavefront
 import yaml
 import collections
 import time 
+import shutil
+import glob
+import atexit
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 from suites.case import describe, passed, failed
@@ -30,6 +33,7 @@ SCRIPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 SCRIPT_PATH  = os.path.join(SCRIPT_DIR,"daml_setup.sh")
 hostname="server.ledgerapi.com"
 port="6865"
+Invalid_CERT = "invalid"
 
 LocalSetupfixture = collections.namedtuple("LocalSetupfixture", ["run_test", "participant_nodes", "warning"])
 
@@ -47,6 +51,7 @@ def fxInstallDamlSdk(fxBlockchain):
 @pytest.fixture
 @describe("fixture; Initial Setup")
 def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection, fxInstallDamlSdk):
+    atexit.register(clean_atexit)
     warning = None
     blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
     tls_certificates_flag = fxHermesRunSettings["hermesCmdlineArgs"].tlsEnabledClient
@@ -64,6 +69,17 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection, fxInstallDamlS
     return LocalSetupfixture(run_test=run_test, participant_nodes=participants,
                               warning=warning)
 
+
+def clean_atexit():
+    helper.restore_etc_host(hostname)
+    invalid_certs_path = path = os.path.join(SCRIPT_DIR, Invalid_CERT)
+    if os.path.exists(invalid_certs_path):
+        shutil.rmtree(invalid_certs_path)
+    filelist = glob.glob(os.path.join(SCRIPT_DIR,"*.key")) + glob.glob(os.path.join(SCRIPT_DIR,"*.crt"))
+    for file in filelist:
+        if os.path.exists(file):
+            os.remove(file)
+    
 
 @describe()
 @pytest.mark.smoke
@@ -98,7 +114,7 @@ def test_invalid_certificates(fxLocalSetup):
         pytest.skip(fxLocalSetup.warning)
 
     # create invalid certificate with new CA
-    path = cert.tlsInvalidCertificate("client","invalid")
+    path = cert.tlsInvalidCertificate("client",Invalid_CERT)
     time.sleep(50)
 
     for node_ip in fxLocalSetup.participant_nodes:

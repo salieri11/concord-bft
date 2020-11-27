@@ -72,5 +72,7 @@ def tlsCreateCrt(cert_type):
 
 def tlsInvalidCertificate(cert_type,invalid_path):
    path = os.path.join(SCRIPT_DIR, invalid_path)
+   if not os.path.exists(path):
+      os.makedirs(path)
    tlsSignedCrt(path=path,cert_type=cert_type)
    return path
