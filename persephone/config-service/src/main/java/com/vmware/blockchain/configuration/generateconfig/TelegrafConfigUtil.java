@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
+import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
@@ -129,7 +130,13 @@ public class TelegrafConfigUtil {
         }
 
         String postgressPluginStr = "#[[inputs.postgresql]]";
-        String indexDbInput = "address = \"postgres://indexdb@daml_index_db/daml_ledger_api\"";
+        String password = nodeInfo.getProperties().getValuesMap().get(NodeProperty.Name.DAML_DB_PASSWORD.name());
+        String indexDbInput;
+        if (password != null) {
+            indexDbInput = "address = \"postgres://indexdb:" + password + "@daml_index_db/daml_ledger_api\"";
+        } else {
+            indexDbInput = "address = \"postgres://indexdb@daml_index_db/daml_ledger_api\"";
+        }
 
         String hostConfigCopy = content.replace("$REPLICA", nodeInfo.getNodeIp());
 
