@@ -111,10 +111,21 @@ class TestServerContext {
   std::multimap<std::string, std::string> metadata_ = {
       {"client_id", "TEST ID"}};
 
+  class AuthContext {
+   public:
+    bool IsPeerAuthenticated() const { return false; }
+
+    std::vector<std::string> GetPeerIdentity() const {
+      std::vector<std::string> temp_vector;
+      return temp_vector;
+    }
+  };
+
  public:
   const std::multimap<std::string, std::string>& client_metadata() const {
     return metadata_;
   }
+  std::shared_ptr<const AuthContext> auth_context() const { return nullptr; }
   void erase_client_metadata() { metadata_.clear(); }
   bool IsCancelled() { return false; }
 };
@@ -228,7 +239,11 @@ TEST(thin_replica_test, SubscribeToUpdatesAlreadySynced) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -247,7 +262,11 @@ TEST(thin_replica_test, SubscribeToUpdatesWithGap) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -266,7 +285,11 @@ TEST(thin_replica_test, SubscribeToUpdatesWithGapFromTheMiddleBlock) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -285,7 +308,11 @@ TEST(thin_replica_test, SubscribeToUpdateHashesAlreadySynced) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -304,7 +331,11 @@ TEST(thin_replica_test, SubscribeToUpdateHashesWithGap) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -325,7 +356,11 @@ TEST(thin_replica_test, ReadState) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   ReadStateRequest request;
   request.set_key_prefix("");
@@ -341,7 +376,11 @@ TEST(thin_replica_test, ReadStateHash) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   ReadStateHashRequest request;
   request.set_key_prefix("");
@@ -359,7 +398,11 @@ TEST(thin_replica_test, AckUpdate) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   ReadStateHashRequest request;
   request.set_key_prefix("");
@@ -378,7 +421,11 @@ TEST(thin_replica_test, Unsubscribe) {
   TestSubBufferList<Hash> buffer{state_machine};
   TestServerWriter<Hash> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   ReadStateHashRequest request;
   request.set_key_prefix("");
@@ -405,8 +452,11 @@ TEST(thin_replica_test, ContextWithoutClientIdData) {
   SubscriptionRequest subscription_request;
   Hash hash;
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, data_buffer,
-                                                 registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, data_buffer, registry);
   EXPECT_EQ(replica.ReadState(&context, &read_state_request, &data_stream)
                 .error_code(),
             grpc::StatusCode::UNKNOWN);
@@ -432,7 +482,11 @@ TEST(thin_replica_test, SubscribeWithWrongBlockId) {
   TestSubBufferList<Data> buffer{state_machine};
   TestServerWriter<Data> stream{state_machine};
 
-  concord::thin_replica::ThinReplicaImpl replica(&storage, buffer, registry);
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
   TestServerContext context;
   SubscriptionRequest request;
   request.set_key_prefix("");
@@ -442,6 +496,51 @@ TEST(thin_replica_test, SubscribeWithWrongBlockId) {
           .SubscribeToUpdates<TestServerContext, TestServerWriter<Data>, Data>(
               &context, &request, &stream);
   EXPECT_EQ(status.error_code(), grpc::StatusCode::FAILED_PRECONDITION);
+}
+
+TEST(thin_replica_test, GetClientIdFromCertSubjectField) {
+  FakeStorage storage{generate_kvp(0, 0)};
+  auto live_update_blocks = generate_kvp(0, 0);
+  TestStateMachine<Data> state_machine{storage, live_update_blocks, 1};
+  TestSubBufferList<Data> buffer{state_machine};
+
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
+  std::string subject_str =
+      "subject=C = NA, ST = NA, L = NA, O = NA, OU = daml_ledger_api1, CN = "
+      "daml_ledger_api1";
+  std::string client_id = "daml_ledger_api1";
+  std::string parsed_client_id = replica.ParseClientIdFromSubject(subject_str);
+  EXPECT_EQ(client_id, parsed_client_id);
+}
+
+TEST(thin_replica_test, GetClientIdSetFromRootCert) {
+  FakeStorage storage{generate_kvp(0, 0)};
+  auto live_update_blocks = generate_kvp(0, 0);
+  TestStateMachine<Data> state_machine{storage, live_update_blocks, 1};
+  TestSubBufferList<Data> buffer{state_machine};
+
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+  std::string root_cert_path =
+      "resources/trs_trc_tls_certs/concord1/client.cert";
+  std::unordered_set<std::string> parsed_client_id_set;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
+  std::unordered_set<std::string> client_id_set(
+      {"daml_ledger_api1", "daml_ledger_api2", "daml_ledger_api3",
+       "daml_ledger_api4", "trutil"});
+  replica.GetClientIdFromRootCert(root_cert_path, parsed_client_id_set);
+  EXPECT_GT(parsed_client_id_set.size(), 0);
+  for (auto& client_id : client_id_set) {
+    auto parsed_client_id_it = parsed_client_id_set.find(client_id);
+    EXPECT_NE(parsed_client_id_it, parsed_client_id_set.end());
+    EXPECT_EQ(*parsed_client_id_it, client_id);
+  }
 }
 }  // namespace
 
