@@ -30,65 +30,78 @@ using namespace bft::communication;
 using namespace concordUtils;
 using namespace std;
 
-unique_ptr<ICommunication> server = nullptr;
-unique_ptr<ICommunication> client = nullptr;
-Histogram hist;
-logging::Logger log = logging::getLogger("comm_microbenchmark");
+typedef std::shared_ptr<ICommunication> COMM_PTR;
 
+unique_ptr<ICommunication> server = nullptr;
+
+Histogram hist;
 const int client_wait = 3000;
 
-int num_of_requests = 1000;
+uint receive_counter = 0;
+uint64_t received_bytes = 0;
+uint num_of_requests = 1000;
 int req_size_bytes = 15000;
 bool is_server = false;
-int client_id = 0;
+int first_client_id = 1;
+int num_of_clients = 1;
 bool verbose = false;
 char* request_bytes = nullptr;
 
-mutex done_mutex;
-condition_variable cv;
+mutex client_done_mutex;
+condition_variable client_cv;
+mutex server_done_mutex;
+condition_variable server_cv;
 bool done = false;
-auto logger = logging::getLogger("comm_microbench");
+auto log = logging::getLogger("comm_microbench");
 
 // Define the function to be called when ctrl-c (SIGINT) is sent to process
 void signal_callback_handler(int signum) {
   cout << "Caught signal " << signum << endl;
   done = true;
-  cv.notify_all();
+  if(is_server)
+    server_cv.notify_all();
+  else
+    client_cv.notify_all();
+
   exit(signum);
 }
 
 class ServerReceiver : IReceiver {
   char* reply;
-  // int count = 0;
+  int count = 0;
  public:
   ServerReceiver() {
-    reply = new char[100];
-    for (int i = 0; i < 100; i++) reply[i] = (char)(i + 1);
+    reply = new char[req_size_bytes];
+    for (int i = 0; i < req_size_bytes; i++) reply[i] = (char)(i + 1);
   }
 
   ~ServerReceiver() { delete[] reply; }
 
   virtual void onConnectionStatusChanged(NodeNum node, ConnectionStatus newStatus) override {}
   virtual void onNewMessage(NodeNum sourceNode, const char* const message, size_t messageLength) override {
-    // LOG_INFO(logger, "got " << messageLength << " bytes from " << sourceNode << ", total " << ++count);
-    server->sendAsyncMessage(sourceNode, reply, 100);
+    ++count;
+    if (verbose && count > 0 && count % 1000 == 0) LOG_INFO(log, "total " << count);
+    LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << count);
+    while(server->sendAsyncMessage(sourceNode, reply, req_size_bytes) != 0);
   }
 };
 
-class ClientReceiver : IReceiver {
-  int done_counter = 0;
-
+class ClientReceiver : public IReceiver {
  public:
-  ulong receive_bytes = 0;
   virtual void onConnectionStatusChanged(NodeNum node, ConnectionStatus newStatus) override {}
   virtual void onNewMessage(NodeNum sourceNode, const char* const message, size_t messageLength) override {
-    ++done_counter;
-    receive_bytes += messageLength;
-    if (verbose && done_counter % 1000 == 0) LOG_INFO(log, "total " << done_counter);
-    LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << done_counter);
-    if (done_counter == num_of_requests) {
-      done = true;
-      cv.notify_all();
+    {
+      unique_lock<mutex> ul(client_done_mutex);
+      ++receive_counter;
+      received_bytes += messageLength;
+      if (receive_counter == num_of_requests * num_of_clients) {
+        done = true;
+    }
+    if(done)
+      client_cv.notify_all();
+
+    if (verbose && receive_counter > 0 && receive_counter % 1000 == 0) LOG_INFO(log, "total " << receive_counter);
+    LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << receive_counter);
     }
   }
 };
@@ -96,35 +109,32 @@ class ClientReceiver : IReceiver {
 void start_server() {
   server->Start();
   {
-    unique_lock l(done_mutex);
-    cv.wait(l, []() { return done; });
+    unique_lock l(server_done_mutex);
+    server_cv.wait(l, []() { return done; });
   }
   server->Stop();
 }
 
-ulong start_client() {
+void start_client(const COMM_PTR&& client, uint&& client_id) {
   client->Start();
-  LOG_INFO(logger, "waiting for client to connect...");
+  LOG_INFO(log, "waiting for client to connect...");
   std::this_thread::sleep_for(chrono::milliseconds(client_wait));
-  int count = 0;
-  LOG_INFO(logger, "client connected...");
-  ulong sent_bytes = 0;
-  for (int i = 0; i < num_of_requests; i++) {
+  LOG_INFO(log, "client connected...");
+  uint sent_counter = 0;
+  while (sent_counter < num_of_requests) {
     // LOG_INFO(log, "sending " << i);
-    while (client->sendAsyncMessage(0, (const char*)request_bytes, req_size_bytes) != 0)
-      ;
+    while (client->sendAsyncMessage(0, (const char*)request_bytes, req_size_bytes) != 0);
+    ++sent_counter;
     // std::this_thread::sleep_for(chrono::milliseconds(1));
-    count++;
-    sent_bytes += req_size_bytes;
   }
+  LOG_INFO(log, "client " << client_id << " done sending " << sent_counter << " requests");
   // std::this_thread::sleep_for(chrono::milliseconds(10));
-  LOG_INFO(log, "sent " << count);
   {
-    unique_lock l(done_mutex);
-    cv.wait(l, []() { return done; });
+    unique_lock<mutex> ul(client_done_mutex);
+    client_cv.wait(ul, [&](){
+      return done;
+    });
   }
-
-  return sent_bytes;
 }
 
 void parse_args(int argc, char** argv) {
@@ -132,11 +142,12 @@ void parse_args(int argc, char** argv) {
                                         {"req_size", required_argument, nullptr, 's'},
                                         {"mode", required_argument, nullptr, 'm'},
                                         {"verbose", required_argument, nullptr, 'v'},
-                                        {"client_id", required_argument, nullptr, 'c'},
+                                        {"first_client_id", required_argument, nullptr, 'c'},
+                                        {"num_of_clients", required_argument, nullptr, 'n'},
                                         {nullptr, 0, nullptr, 0}};
   int optionIndex = 0;
   int option = 0;
-  while ((option = getopt_long(argc, argv, "r:s:m:v:c:", longOptions, &optionIndex)) != -1) {
+  while ((option = getopt_long(argc, argv, "r:s:m:v:c:n:", longOptions, &optionIndex)) != -1) {
     switch (option) {
       case 'r': {
         auto t = stoi(string(optarg));
@@ -159,7 +170,11 @@ void parse_args(int argc, char** argv) {
       }
       case 'c': {
         auto t = stoi(string(optarg));
-        if (t > 0) client_id = t;
+        if (t > 0) first_client_id = t;
+      }
+      case 'n': {
+        auto t = stoi(string(optarg));
+        if (t > 0) num_of_clients = t;
       }
       default: {
       }
@@ -172,9 +187,16 @@ int main(int argc, char** argv) {
   string cipherSuite = "ECDHE-ECDSA-AES256-GCM-SHA384";
   NodeMap nodes;
   nodes[0] = NodeInfo{"127.0.0.1", 3501, true};
-  nodes[1] = NodeInfo{"127.0.0.1", 3501, false};
+  for (int i = 0; i < num_of_clients; ++i) {
+    nodes[first_client_id + i] = NodeInfo{"127.0.0.1", 3501, false};
+  }
+
   TlsTcpConfig conf_server = TlsTcpConfig("0.0.0.0", 3501, 64000, nodes, 0, 0, "certs", cipherSuite);
-  TlsTcpConfig conf_client = TlsTcpConfig("0.0.0.0", 3501, 64000, nodes, 0, client_id, "certs", cipherSuite);
+
+  vector<COMM_PTR> clients;
+  vector<std::thread> threads;
+  threads.reserve(num_of_clients);
+  clients.reserve(num_of_clients);
 
   if (is_server) {
     server = unique_ptr<TlsTCPCommunication>(TlsTCPCommunication::create(conf_server));
@@ -183,19 +205,36 @@ int main(int argc, char** argv) {
   } else {
     request_bytes = new char[req_size_bytes];
     for (int i = 0; i < req_size_bytes; i++) request_bytes[i] = (char)(i + 1);
-    client = unique_ptr<TlsTCPCommunication>(TlsTCPCommunication::create(conf_client));
-    auto receiver = new ClientReceiver();
-    client->setReceiver(1, (IReceiver*)receiver);
+
     auto start = chrono::steady_clock::now();
-    auto sent_bytes = start_client();
+    for (int i = 0; i < num_of_clients; ++i) {
+      auto conf_client = TlsTcpConfig(
+          "0.0.0.0", 3501, 64000, nodes,
+          0, first_client_id + i, "certs", cipherSuite);
+      clients.emplace_back(TlsTCPCommunication::create(conf_client));
+      auto receiver = new ClientReceiver();
+      clients.back()->setReceiver(i, receiver);
+      threads.emplace_back(start_client, clients.back(), i);
+    }
+    for (auto& t : threads) {
+      t.join();
+    }
+
+    for(auto &t : clients)
+      t->Stop();
+
+    threads.clear();
+    clients.clear();
+
+    delete[] request_bytes;
     auto end = chrono::steady_clock::now();
-    client->Stop();
     auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count() - client_wait;
-    double tp = (double)num_of_requests / dur * 1000.0;
-    ulong tp1 = sent_bytes / dur * 1000;
-    cout << "Total: " << num_of_requests << " requests, bytes sent: " << sent_bytes
-         << ", bytes received: " << receiver->receive_bytes << ", dur: " << dur << " ms" << endl;
+    double tp = (double)num_of_requests * num_of_clients / dur * 1000.0;
+    ulong tp1 = num_of_requests * req_size_bytes * num_of_clients / dur * 1000;
+    cout << "Total: " << num_of_requests * num_of_clients << " requests, bytes sent: " << num_of_requests * req_size_bytes * num_of_clients
+         << ", bytes received: " << received_bytes << ", dur: " << dur << " ms" << endl;
     cout << "TP: " << tp << " req/sec" << endl;
     cout << "TP: " << tp1 << " bytes/sec" << endl;
+    exit(0);
   }
 }

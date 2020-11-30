@@ -940,7 +940,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   void send_sync(const char *data, uint32_t length) {
     boost::system::error_code ec;
     uint32_t sent = 0;
-    while(sent < length) {
+    while (sent < length) {
       sent += _socket->write_some(boost::asio::buffer(data + sent, length - sent), ec);
       bool err = was_error(ec, "send_sync");
       if (err) {
@@ -971,8 +971,10 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
     // here we lock to protect multiple thread access and to synch with callback
     // queue access
     lock_guard<mutex> l(_writeLock);
-    if(_outQueue.size() > 1000)
+    if (_outQueue.size() > (_isReplica ? 10000 : 1000)) {
+      // LOG_ERROR(_logger, "queue is full, size: " << _outQueue.size());
       return false;
+    }
 
     char *buf = new char[length + MSG_HEADER_SIZE];
     memset(buf, 0, length + MSG_HEADER_SIZE);
@@ -1034,6 +1036,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   }
 
   virtual ~AsyncTlsConnection() {
+    _outQueue.clear();
     LOG_DEBUG(_logger, "Dtor called, node: " << _selfId << "peer: " << _destId << ", type: " << _connType);
   }
 
