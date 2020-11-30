@@ -158,7 +158,7 @@
           }
         },
         "api":{
-          "address":"https://vcenter.sddc-54-69-50-59.vmwarevmc.com",
+          "address":"https://vcenter.sddc-52-62-59-206.vmwarevmc.com",
           "credential":{
             "type":"NONE",
             "passwordCredential":{
