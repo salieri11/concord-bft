@@ -86,7 +86,7 @@ def test_invalid_certificates(fxLocalSetup):
 
     for node_ip in fxLocalSetup.participant_nodes:
         response, stdout = util.daml.daml_helper.daml_tls_setup(host=node_ip, path=path, parameter = "with_invalid_cert")
-        assert "Handshake failed with fatal error" in response, ("DAML connection happened with invalid certificates  Stdout: {}".format(response))
+        assert "Handshake failed with fatal error" in stdout, ("DAML connection happened with invalid certificates  Stdout: {}".format(response))
 
 @describe()
 @pytest.mark.smoke
@@ -100,4 +100,4 @@ def test_no_certificates(fxLocalSetup):
     
     for node_ip in fxLocalSetup.participant_nodes:
         response, stdout = util.daml.daml_helper.daml_tls_setup(host=node_ip,parameter = "without_certificates")
-        assert "GRPCIOBadStatusCode" in response, ("DAML connection happened without certificates  Stdout: {}".format(response))
+        assert "GRPCIOBadStatusCode" in stdout, ("DAML connection happened without certificates  Stdout: {}".format(response))

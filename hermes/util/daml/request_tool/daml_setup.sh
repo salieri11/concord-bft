@@ -74,8 +74,7 @@ then
 elif [ "$parameter" == "daml_test_crt" ]
 then
 test_type="${5}"
-echo "hellooooooooooooooooooooooooooooooooooooooooooooooooooooo"
-java -jar /var/jenkins/workspace/vmwathena_blockchain/hermes/resources/mvn_repo/com/daml/ledger-api-test-tool/1.8.0-snapshot.20201110.5615.0.b35c9fcb/ledger-api-test-tool-1.8.0-snapshot.20201110.5615.0.b35c9fcb.jar --include "${test_type}" --timeout-scale-factor 20 --no-wait-for-parties --cacrt /var/jenkins/workspace/vmwathena_blockchain/hermes/util/daml/request_tool/root-ca.crt --pem /var/jenkins/workspace/vmwathena_blockchain/hermes/util/daml/request_tool/client.key --crt /var/jenkins/workspace/vmwathena_blockchain/hermes/util/daml/request_tool/client.crt --concurrent-test-runs 1 "${ledger_host}":"${ledger_port}"
+java -jar /var/jenkins/workspace/vmwathena_blockchain/hermes/resources/mvn_repo/com/daml/ledger-api-test-tool/1.8.0-snapshot.20201110.5615.0.b35c9fcb/ledger-api-test-tool-1.8.0-snapshot.20201110.5615.0.b35c9fcb.jar --include "${test_type}" --timeout-scale-factor 20 --no-wait-for-parties --cacrt root-ca.crt --pem client.key --crt client.crt --concurrent-test-runs 1 "${ledger_host}":"${ledger_port}"
 else
   error "**** Type not valid"
 fi
