@@ -18,4 +18,5 @@ public class BlockchainFeatures {
     private boolean isPreExecutionDeployment;
     private int preExecutionThreshold;
     private boolean isTrcTlsEnabled;
+    private String operatorSigningKey;
 }

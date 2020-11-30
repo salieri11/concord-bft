@@ -32,6 +32,10 @@ public class Constants {
      */
     public static final String CONCORD_SECRETS_CONFIG_PATH = "/concord/config-local/secrets.config";
     /**
+     * Concord config file path.
+     */
+    public static final String CONCORD_OPERATOR_KEY_FOLDER_PATH = "/concord/config-public";
+    /**
      * DAML env vars file path.
      */
     public static final String DAML_ENV_VARS_PATH = "/daml-execution-engine/environment-vars";

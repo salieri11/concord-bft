@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -22,7 +23,6 @@ import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReadReplica;
 import com.vmware.blockchain.configuration.util.BlockchainReplica;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 
 /**
@@ -31,7 +31,7 @@ import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 public class ConcordConfigUtilTest {
 
     private static String filePath = "/tmp/concordConfigUtilTest";
-    private static ConfigurationSessionIdentifier sessionId = ConfigurationSessionIdentifier.newBuilder().build();
+    private static UUID sessionId = UUID.randomUUID();
 
     @Test
     void testConfigUtilPositive() throws IOException {
@@ -216,8 +216,7 @@ public class ConcordConfigUtilTest {
             fileWriter = new FileWriter(principalsFile);
             fileWriter.write(principalsContent);
             fileWriter.flush();
-            return ConfigUtilHelpers.getPrincipals(principalsFile.getAbsolutePath(), ConfigurationSessionIdentifier
-                    .newBuilder().setId("sessionId").build());
+            return ConfigUtilHelpers.getPrincipals(principalsFile.getAbsolutePath(), sessionId);
         } catch (IOException | ConfigServiceException e) {
             throw e;
         } finally {
