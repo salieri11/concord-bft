@@ -48,4 +48,7 @@ public class ProvisionDescriptorDescriptorModel implements DeploymentDescriptorM
 
     @Valid
     private Blockchain blockchain;
+
+    @Valid
+    private OperatorSpecifications operatorSpecifications;
 }

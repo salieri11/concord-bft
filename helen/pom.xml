@@ -29,6 +29,7 @@
         <protobuf.runtime.java.version>3.7.1</protobuf.runtime.java.version>
         <projectlombok.version>1.18.12</projectlombok.version>
         <persephone.protobuf.source.path>../persephone/api/src/protobuf</persephone.protobuf.source.path>
+        <bouncycastle.version>1.60</bouncycastle.version>
     </properties>
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,6 +55,11 @@
         <dependency>
             <groupId>javax.transaction</groupId>
             <artifactId>javax.transaction-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk15on</artifactId>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

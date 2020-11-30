@@ -104,28 +104,30 @@ public class DeploymentHelper {
         // Build deployment spec
         DeploymentDescriptorModel.Blockchain blockchainDescriptor = deploymentDescriptorModel.getBlockchain();
         UUID consortiumId = UUID.randomUUID();
-        String consortiumIdString = consortiumId.toString();
         String consortiumName = blockchainDescriptor.getConsortiumName();
         log.info("Generated consortium id: {} for consortium: {}", consortiumId, consortiumName);
         BlockchainType blockchainType = blockchainTypeMap.get(blockchainDescriptor.getBlockchainType());
         Sites sites = Sites.newBuilder().addAllInfoList(orchestrationSites).build();
         // Build properties
-        Properties properties = buildProperties(infrastructureDescriptorModel);
+        Properties.Builder propertiesBuilder = buildProperties(infrastructureDescriptorModel);
 
         // Set the deployment-level read-only replica flag if needed.
         if (readonlyReplicas != null && readonlyReplicas.size() > 0) {
-            properties = Properties.newBuilder(properties)
-                    .putValues(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "True")
-                    .build();
+            propertiesBuilder.putValues(DeploymentAttributes.OBJECT_STORE_ENABLED.name(), "True");
+        }
+
+        if (deploymentDescriptorModel.getOperatorSpecifications() != null
+            && !Strings.isNullOrEmpty(deploymentDescriptorModel.getOperatorSpecifications().getOperatorPublicKey())) {
+            propertiesBuilder.putValues(DeploymentAttributes.DEPLOY_OPERATOR.name(),
+                                        deploymentDescriptorModel.getOperatorSpecifications().getOperatorPublicKey());
         }
 
         DeploymentSpec.Builder deploymentSpecBuilder = DeploymentSpec.newBuilder()
-                .setConsortiumId(consortiumIdString)
+                .setConsortiumId(consortiumId.toString())
                 .setBlockchainType(blockchainType)
                 .setSites(sites)
                 .setNodeAssignment(nodeAssignmentBuilder.build())
-                .setProperties(properties);
-
+                .setProperties(propertiesBuilder.build());
 
         // Finally! deployment request
         DeploymentRequest deploymentRequest = DeploymentRequest.newBuilder()
@@ -330,7 +332,7 @@ public class DeploymentHelper {
     }
 
 
-    private static Properties buildProperties(
+    private static Properties.Builder buildProperties(
             InfrastructureDescriptorModel infrastructureDescriptorModel) {
         Properties.Builder propertiesBuilder = Properties.newBuilder();
         // Build properties
@@ -378,7 +380,7 @@ public class DeploymentHelper {
             propertiesBuilder.putValues(DeploymentAttributes.NOTARY_VERIFICATION_ENABLED.name(), "true");
         }
 
-        return propertiesBuilder.build();
+        return propertiesBuilder;
     }
 
     private static OrchestrationSite toOrchestrationSite(

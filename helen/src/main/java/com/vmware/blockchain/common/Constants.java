@@ -22,6 +22,7 @@ public class Constants {
     public static final String ORG_PREEXECUTION_THRESHOLD = "preexecution_threshold";
     public static final String ORG_DECENTRALIZED_KEYS = "decentralized_keys";
     public static final String ORG_SPLIT_CONFIG = "split_config";
+    public static final String ORG_OPERATOR_KEY_ENABLED = "enable_Operator_Key";
     public static final String USE_WAVEFRONT = "use_wavefront";
 
     //API Endpoints

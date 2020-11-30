@@ -5,11 +5,13 @@
 package com.vmware.blockchain;
 
 import java.io.IOException;
+import java.security.Security;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.annotation.Configuration;
@@ -52,6 +54,8 @@ public class StartupConfig {
      */
     @EventListener(classes = ApplicationStartedEvent.class)
     public void applicationStarted() {
+        Security.addProvider(new BouncyCastleProvider());
+
         // Create a connection pool for all the blockchains
         List<Blockchain> blockchains = blockchainService.list();
         for (Blockchain b : blockchains) {
