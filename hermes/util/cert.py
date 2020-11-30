@@ -7,11 +7,13 @@ import ssl
 import util.helper
 import os
 import OpenSSL
+import util.daml.daml_helper
 from collections import namedtuple
+import time
 
 log = util.hermes_logging.getMainLogger()
-SCRIPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "daml", "request_tool") 
-SCRIPT_PATH  = os.path.join(SCRIPT_DIR, "generateTlsCerts.sh")
+SCRIPT_DIR = util.daml.daml_helper.TLS_CERT_PATH
+SCRIPT_PATH = util.daml.daml_helper.TLS_CERT_SCRIPT
 
 
 def getSecureContext():
@@ -66,7 +68,9 @@ def tlsCreateLoadSignedCrt(cert_type):
 
 def tlsCreateCrt(cert_type):
    path = SCRIPT_DIR 
-   tlsSignedCrt(path=path,cert_type=cert_type)
+   if not ((os.path.exists(os.path.join(path,cert_type+".key"))) and (os.path.exists(os.path.join(path,cert_type+".key")))):
+      tlsSignedCrt(path=path,cert_type=cert_type)
+      time.sleep(50)
    return path
 
 

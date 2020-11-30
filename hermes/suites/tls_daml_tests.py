@@ -1,39 +1,24 @@
 ##########################################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
-# These are system tests for pre-execution.
+# These are daml tests with tls certificates .
 # Test plan: https://confluence.eng.vmware.com/display/BLOC/TLS+for+Ledger+API+System+Test+Plan#TLSforLedgerAPISystemTestPlan-CertCreationProcess
 ##########################################################################################
-import concurrent.futures
-import json
-import os
 import pytest
-import subprocess
-import time
-import util.daml.daml_requests
 import util.helper as helper
 import util.cert as cert
-import util.wavefront
-import yaml
-import collections
-import time 
-import shutil
-import glob
+import time
 import atexit
+import collections
 
 from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
 from suites.case import describe, passed, failed
 
 import util.daml.daml_helper
 import util.hermes_logging
+
 log = util.hermes_logging.getMainLogger()
 
 daml_sdk_path = None
-SCRIPT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "util", "daml", "request_tool")
-SCRIPT_PATH  = os.path.join(SCRIPT_DIR,"daml_setup.sh")
-hostname="server.ledgerapi.com"
-port="6865"
-Invalid_CERT = "invalid"
 
 LocalSetupfixture = collections.namedtuple("LocalSetupfixture", ["run_test", "participant_nodes", "warning"])
 
@@ -51,13 +36,11 @@ def fxInstallDamlSdk(fxBlockchain):
 @pytest.fixture
 @describe("fixture; Initial Setup")
 def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection, fxInstallDamlSdk):
-    atexit.register(clean_atexit)
+    atexit.register(util.daml.daml_helper.clean_atexit)
     warning = None
     blockchain_type = fxHermesRunSettings["hermesCmdlineArgs"].blockchainType.lower()
     tls_certificates_flag = fxHermesRunSettings["hermesCmdlineArgs"].tlsEnabledClient
-    skip_verify_test = fxHermesRunSettings["hermesCmdlineArgs"].skipDeploymentVerificationTest
-    os.chmod(SCRIPT_PATH, 0o777)
-    if blockchain_type == helper.TYPE_DAML and tls_certificates_flag and skip_verify_test:
+    if blockchain_type == helper.TYPE_DAML and tls_certificates_flag:
         run_test = True
     else:
         warning = ("blockchainType must be DAML and Tls flag must be enabled")
@@ -69,17 +52,6 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection, fxInstallDamlS
     return LocalSetupfixture(run_test=run_test, participant_nodes=participants,
                               warning=warning)
 
-
-def clean_atexit():
-    helper.restore_etc_host(hostname)
-    invalid_certs_path = path = os.path.join(SCRIPT_DIR, Invalid_CERT)
-    if os.path.exists(invalid_certs_path):
-        shutil.rmtree(invalid_certs_path)
-    filelist = glob.glob(os.path.join(SCRIPT_DIR,"*.key")) + glob.glob(os.path.join(SCRIPT_DIR,"*.crt"))
-    for file in filelist:
-        if os.path.exists(file):
-            os.remove(file)
-    
 
 @describe()
 @pytest.mark.smoke
@@ -93,14 +65,10 @@ def test_valid_certificates(fxLocalSetup):
 
     # Create certificate for client using same root-ca
     path = cert.tlsCreateCrt("client")
-    time.sleep(50)
 
     for node_ip in fxLocalSetup.participant_nodes: 
-        helper.add_host_in_etc_hosts_file(node_ip, hostname)
-        cmd = [SCRIPT_PATH, hostname, port, path, "with_certificates"]
-        success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=path)
-        log.debug("\nSuccess and Output are {} and {}".format(success, stdout))
-        assert success, ("DAML TLS connection failed  Stdout: {}".format(stdout))
+        response, stdout = util.daml.daml_helper.daml_tls_setup(host=node_ip,path= path, parameter = "with_certificates")
+        assert response == True, ("DAML TLS connection failed  Stdout: {}".format(response))
 
 
 @describe()
@@ -114,15 +82,11 @@ def test_invalid_certificates(fxLocalSetup):
         pytest.skip(fxLocalSetup.warning)
 
     # create invalid certificate with new CA
-    path = cert.tlsInvalidCertificate("client",Invalid_CERT)
-    time.sleep(50)
+    path = cert.tlsInvalidCertificate("client", util.daml.daml_helper.Invalid_CERT)
 
     for node_ip in fxLocalSetup.participant_nodes:
-        helper.add_host_in_etc_hosts_file(node_ip, hostname)
-        cmd = [SCRIPT_PATH, hostname, port, path, "with_invalid_cert"]
-        success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=path)
-        log.debug("\nSuccess and Output are {} and {}".format(success, stdout))
-        assert "Handshake failed with fatal error" in stdout, ("DAML connection happened with invalid certificates  Stdout: {}".format(stdout))
+        response, stdout = util.daml.daml_helper.daml_tls_setup(host=node_ip, path=path, parameter = "with_invalid_cert")
+        assert "Handshake failed with fatal error" in response, ("DAML connection happened with invalid certificates  Stdout: {}".format(response))
 
 @describe()
 @pytest.mark.smoke
@@ -135,8 +99,5 @@ def test_no_certificates(fxLocalSetup):
         pytest.skip(fxLocalSetup.warning)
     
     for node_ip in fxLocalSetup.participant_nodes:
-        helper.add_host_in_etc_hosts_file(node_ip, hostname)
-        cmd = [SCRIPT_PATH, hostname, port, SCRIPT_DIR, "without_certificates"]
-        success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=SCRIPT_DIR)
-        log.debug("\nSuccess and Output are {} and {}".format(success, stdout))
-        assert "GRPCIOBadStatusCode" in stdout, ("DAML connection happened without certificates  Stdout: {}".format(stdout))
+        response, stdout = util.daml.daml_helper.daml_tls_setup(host=node_ip,parameter = "without_certificates")
+        assert "GRPCIOBadStatusCode" in response, ("DAML connection happened without certificates  Stdout: {}".format(response))
