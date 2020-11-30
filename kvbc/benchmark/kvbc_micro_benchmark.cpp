@@ -53,9 +53,9 @@ enum class WriteType : uint8_t { Merkle, RocksDbDirect, MIN_VALUE = Merkle, MAX_
 
 enum class FillMethod : uint8_t { Simple, PseudoRandom, Random, MIN_VALUE = Simple, MAX_VALUE = Random };
 
-// all these values, including CLI params should be aligned to multiplies of 4!!!!
-const uint kReadKeyLength = 20;
-const uint kReadValueLength = 420;
+// all these values, including CLI params should be aligned to multiplies of 8!!!!
+const uint kReadKeyLength = 24;
+const uint kReadValueLength = 424;
 const uint data_set_size_factor = 10;
 const uint stat_dump_perc = 1;
 const string log_properties_file = "log4cplus.properties";
@@ -396,10 +396,10 @@ uint64_t create_and_fill(Histogram &h, uint64_t &outWriteSize, WriteFunction &wr
 
 void show_help() {
   std::cout << "Command line options: \n"
-            << " -b uint - number of blocks, multiply of 4 (default: 10000) \n"
+            << " -b uint - number of blocks (default: 10000) \n"
             << " -k uint - number of keys (default: 31) \n"
-            << " -s uint - single key size, multiply of 4 (default: 20) \n"
-            << " -v uint - single value size, multiply of 4 (default: 840) \n"
+            << " -s uint - single key size, multiply of 8 (default: 24) \n"
+            << " -v uint - single value size, multiply of 8 (default: 840) \n"
             << " -c uint - concurrency level: number of readers (for ReadWrite test) "
                "(default: 4) \n"
             << " -e uint - reader delay, time to wait between 2 reads, ms (default: 10) \n"
