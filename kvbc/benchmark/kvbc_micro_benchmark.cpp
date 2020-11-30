@@ -33,11 +33,25 @@ using namespace concord::storage;
 using namespace concord::kvbc::v2MerkleTree;
 using namespace concordUtils;
 
+struct xorshift64_state {
+  uint64_t a;
+};
+
+uint64_t xorshift64(struct xorshift64_state *state) {
+  uint64_t x = state->a;
+  x ^= x << 13;
+  x ^= x >> 7;
+  x ^= x << 17;
+  return state->a = x;
+}
+
 typedef std::function<Status(SetOfKeyValuePairs &)> WriteFunction;
 
 enum class Benchmark : uint8_t { FillDb, ReadWriteStress, MIN_VALUE = FillDb, MAX_VALUE = ReadWriteStress };
 
 enum class WriteType : uint8_t { Merkle, RocksDbDirect, MIN_VALUE = Merkle, MAX_VALUE = RocksDbDirect };
+
+enum class FillMethod : uint8_t { Simple, PseudoRandom, Random, MIN_VALUE = Simple, MAX_VALUE = Random };
 
 // all these values, including CLI params should be aligned to multiplies of 4!!!!
 const uint kReadKeyLength = 20;
@@ -57,6 +71,7 @@ std::string rocksdb_path = "rocksdbdata";
 uint log_level = 2;
 Benchmark benchmark = Benchmark::FillDb;
 WriteType write_type = WriteType::RocksDbDirect;
+FillMethod random_type = FillMethod::PseudoRandom;
 
 uint readset_size = num_of_blocks / data_set_size_factor;
 uint64_t interval_count = 0;
@@ -64,7 +79,7 @@ vector<Key> read_keys;
 vector<Value> read_values;
 vector<BlockId> blocks_for_added_read_keys;
 mt19937 generator(0);
-uniform_int_distribution<uint32_t> distribution(0, UINT32_MAX);
+uniform_int_distribution<uint64_t> distribution(0, UINT64_MAX);
 uint curr_block = 0;
 logging::Logger logger = logging::getLogger("storage-benchmark");
 
@@ -210,9 +225,34 @@ Reader *create_reader(std::shared_ptr<concord::storage::IDBClient> client, uint 
 }
 
 void generate_data(char *data, const uint &size) {
-  for (uint j = 0; j < size / sizeof(int); j++) {
-    auto r = distribution(generator);
-    memcpy(data + j * sizeof(int), &r, sizeof(int));
+  uint i = 0;
+  static xorshift64_state xor_state{static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())};
+  switch (random_type) {
+    case (FillMethod::Simple): {
+      uint64_t v = xorshift64(&xor_state);
+      memcpy(data, &v, sizeof(uint64_t));
+      v = xorshift64(&xor_state);
+      memcpy(data + sizeof(uint64_t), &v, sizeof(uint64_t));
+      i += (2 * sizeof(uint64_t));
+      for (; i < size; ++i) data[i] = i;
+    }
+    case FillMethod::PseudoRandom: {
+      for (; i < size; i += sizeof(uint64_t)) {
+        uint64_t v = xorshift64(&xor_state);
+        memcpy(data + i, &v, sizeof(uint64_t));
+      }
+      break;
+    }
+    case FillMethod::Random: {
+      for (; i < size; i += sizeof(uint64_t)) {
+        uint64_t r = distribution(generator);
+        memcpy(data + i, &r, sizeof(uint64_t));
+      }
+      break;
+    }
+    default: {
+      assert(false);
+    }
   }
 }
 
@@ -384,10 +424,11 @@ bool parse_args(int argc, char **argv) {
                                           {"log_level", required_argument, nullptr, 'l'},
                                           {"benchmark_to_run", required_argument, nullptr, 't'},
                                           {"write_type", required_argument, nullptr, 'w'},
+                                          {"random_type", required_argument, nullptr, 'r'},
                                           {nullptr, 0, nullptr, 0}};
     int optionIndex = 0;
     int option = 0;
-    while ((option = getopt_long(argc, argv, "b:k:s:v:c:e:f:l:t:w:", longOptions, &optionIndex)) != -1) {
+    while ((option = getopt_long(argc, argv, "b:k:s:v:c:e:f:l:t:w:r:", longOptions, &optionIndex)) != -1) {
       switch (option) {
         case 'b': {
           auto blocks = stoi(string(optarg));
@@ -437,6 +478,12 @@ bool parse_args(int argc, char **argv) {
           uint w = stoi(string(optarg));
           if (w < (uint)WriteType::MIN_VALUE || w > (uint)WriteType::MAX_VALUE) return false;
           write_type = static_cast<WriteType>(w);
+          break;
+        }
+        case 'r': {
+          uint r = stoi(string(optarg));
+          if (r < (uint)FillMethod::MIN_VALUE || r > (uint)FillMethod::MAX_VALUE) return false;
+          random_type = static_cast<FillMethod>(r);
           break;
         }
         default:
@@ -548,15 +595,18 @@ int main(int argc, char **argv) {
 
   auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count();
   cout << "Test duration: " << dur << " milliseconds" << endl;
-  cout << "Net writers duration: " << write_duration/1000 << " milliseconds" << endl;
-  cout << "Delta: " << dur - write_duration/1000 << endl;
+  cout << "Net writers duration: " << write_duration / 1000 << " milliseconds" << endl;
+  cout << "Delta: " << dur - write_duration / 1000 << endl;
   cout << "Read rate: " << setprecision(15) << floor((double)read_count / dur * 1000) << " reads/sec => ";
   cout << setprecision(15) << floor((double)read_size / dur * 1000) << " bytes/sec"
        << ", total bytes read: " << read_size << endl;
   cout << "Readers details (microseconds): " << endl << readers_hist.ToString() << endl;
-  cout << "Write rate: " << setprecision(15) << floor((double)num_of_blocks / dur * 1000)
-       << " writes/sec => ";
+  cout << "Overall write rate: " << setprecision(15) << floor((double)num_of_blocks / dur * 1000) << " writes/sec => ";
   cout << setprecision(15) << floor((double)write_size / dur * 1000) << " bytes/sec"
+       << ", total bytes written: " << write_size << endl;
+  cout << "Net write rate: " << setprecision(15) << floor((double)num_of_blocks / write_duration * 1000000)
+       << " writes/sec => ";
+  cout << setprecision(15) << floor((double)write_size / write_duration * 1000) << " bytes/sec"
        << ", total bytes written: " << write_size << endl;
   cout << "Writer details (microseconds):" << endl << write_hist.ToString() << endl;
   return 0;
