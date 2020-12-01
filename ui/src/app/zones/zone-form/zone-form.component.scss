@@ -32,7 +32,7 @@ $input-width: 36%;
     transform: translate(0.325rem, 0);
   }
 
-  .clr-input {
+  .clr-input, .clr-textarea {
     margin-left: $input-margin-left;
     width: $input-width;
     display: inline-block;

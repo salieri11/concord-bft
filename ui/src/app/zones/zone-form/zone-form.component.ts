@@ -9,7 +9,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 
 import { VmwComboboxItem } from '../../shared/components/combobox/combobox-items/combobox-item.model';
-import { protocolNotAllowed, urlRegEx, ipRegEx, listOfIpsRegEx } from '../../shared/custom-validators';
+import { protocolNotAllowed, urlRegEx, ipRegEx, listOfIpsRegEx, validateCert } from '../../shared/custom-validators';
 import { OnPremZone, ZoneType } from './../../zones/shared/zones.model';
 import { ZonesService } from '../shared/zones.service';
 import { BlockchainService } from './../../blockchain/shared/blockchain.service';
@@ -44,6 +44,7 @@ export class ZoneFormComponent implements AfterViewInit {
     metrics: true,
     containerReg: true,
     outboundProxy: true,
+    notary_server: true,
   };
   someValueMap = {
     logging: false,
@@ -208,6 +209,9 @@ export class ZoneFormComponent implements AfterViewInit {
     if (formValues.metrics) { delete formValues.metrics; } // Metrics get added in with wavefront and elasticsearch.
     formValues = this.validateData(formValues);
 
+    formValues.container_repo.tls_certificate_data = formValues.container_repo.tls_certificate_data.replace('/(?:\r|\n|\r)/g', '\n');
+    formValues.notary_server.tls_certificate_data = formValues.notary_server.tls_certificate_data.replace('/(?:\r|\n|\r)/g', '\n');
+
     const submittableData = {
       ...formValues,
       ...onPrem.value,
@@ -225,7 +229,10 @@ export class ZoneFormComponent implements AfterViewInit {
       formValues.log_managements = [];
     }
     if (this.insufficientSection.containerReg) {
-      formValues.container_repo = { url: '', username: '', password: '' };
+      formValues.container_repo = { url: '', username: '', password: '', tls_certificate_data: '' };
+    }
+    if (this.insufficientSection.notary_server) {
+      formValues.notary_server = { url: '', tls_certificate_data: '' };
     }
     if (this.insufficientSection.wavefront) {
       formValues.wavefront = { url: '', token: '' };
@@ -280,6 +287,7 @@ export class ZoneFormComponent implements AfterViewInit {
     this.insufficientSection.elasticsearch = !allKeysHaveValue(ctrls.metrics.get('elasticsearch').value);
     this.insufficientSection.metrics = this.insufficientSection.wavefront && this.insufficientSection.elasticsearch;
     this.insufficientSection.containerReg = !allKeysHaveValue(ctrls.container_repo.value);
+    this.insufficientSection.notary_server = !allKeysHaveValue(ctrls.notary_server.value);
     this.insufficientSection.outboundProxy = !allKeysHaveValue(ctrls.outbound_proxy.value);
     // Some fields have value
     this.someValueMap.logging = someMembersHaveValue(ctrls.log_managements.value, logFieldSkip);
@@ -429,7 +437,18 @@ export class ZoneFormComponent implements AfterViewInit {
           }
         ),
         username: new FormControl('', { updateOn: 'blur' }),
-        password: new FormControl('', { updateOn: 'blur' })
+        password: new FormControl('', { updateOn: 'blur' }),
+        tls_certificate_data: new FormControl('', { updateOn: 'blur', validators: [validateCert()] })
+      }),
+      notary_server: new FormGroup({
+        url: new FormControl(
+          '',
+          {
+            validators: Validators.pattern(urlRegEx),
+            updateOn: 'blur'
+          }
+        ),
+        tls_certificate_data: new FormControl('', { updateOn: 'blur', validators: [validateCert()] }),
       }),
       metrics: new FormGroup({
         wavefront: new FormGroup({

@@ -165,6 +165,9 @@ export class ZoneComponent implements OnInit {
     if (zone.log_managements) {
       this.zoneForm.form.controls.log_managements.patchValue(zone.log_managements);
     }
+    if (zone.notary_server) {
+      this.zoneForm.form.controls.notary_server.patchValue(zone.notary_server);
+    }
     if (zone.wavefront) {
       this.zoneForm.form.get('metrics').get('wavefront').patchValue(zone.wavefront);
     }

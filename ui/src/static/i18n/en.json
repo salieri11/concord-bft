@@ -39,6 +39,7 @@
     "storage": "Storage",
     "success": "Success",
     "token": "Token",
+    "tlsCert": "TLS Certificate",
     "update": "Update",
     "url": "URL",
     "urlPh": "https://<endpoint>",
@@ -510,6 +511,9 @@
       "title": "Zone"
     }
   },
+  "tls": {
+    "validationError": "Please add a valid cert"
+  },
   "onPrem": {
     "sections":{
       "basic": {
@@ -531,6 +535,10 @@
       "outboundProxy": {
         "title": "Outbound Proxy",
         "description": "Proxy from on-prem to external resources"
+      },
+      "notary": {
+        "title": "Notary",
+        "description": "Notary is a tool for publishing and managing trusted collections of content"
       },
       "containerReg": {
         "title": "Container Registry",
@@ -595,7 +603,8 @@
       "urlPH": "https://<endpoint>",
       "username": "Username",
       "usernamePH": "admin@onprem",
-      "password": "Password"
+      "password": "Password",
+      "notaryUrl": "Notary URL"
     },
     "outboundProxy": {
       "title": "Outbound Proxy",

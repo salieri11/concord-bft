@@ -23,6 +23,7 @@ export interface OnPremZone extends Zone {
   wavefront?: OnPremWavefront;
   elasticsearch?: OnPremElasticsearch;
   outbound_proxy?: OnPremOutboundProxy;
+  notary_server: {url: string; tls_certificate_data: string;}
 }
 
 export interface OnPremVCenter {
