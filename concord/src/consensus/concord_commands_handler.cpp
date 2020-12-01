@@ -441,6 +441,17 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
   return result ? 0 : 1;
 }  // namespace consensus
 
+void ConcordCommandsHandler::execute(ExecutionRequestsQueue &requests,
+                                     const std::string &batchCid,
+                                     concordUtils::SpanWrapper &parent_span) {
+  for (auto &req : requests) {
+    req.outExecutionStatus = execute(
+        req.clientId, req.executionSequenceNum, req.flags, req.request.size(),
+        req.request.c_str(), req.outReply.size(), req.outReply.data(),
+        req.outActualReplySize, req.outReplicaSpecificInfoSize, parent_span);
+  }
+}
+
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::ReadSet &read_set) const {
   const auto last_block_id = storage_.getLastBlock();
