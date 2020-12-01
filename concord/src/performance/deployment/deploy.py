@@ -111,18 +111,26 @@ class Instance:
             return False, self.public_ip
 
     def start_ssh(self, config):
-        try:
-            pk_path = config.get_ssh_key_path()
-            ssh_key = k = paramiko.RSAKey.from_private_key_file(pk_path)
-            self.ssh_client = paramiko.client.SSHClient()
-            self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            self.ssh_client.connect(self.public_ip, port=22, username=config.get_ssh_username(), pkey=ssh_key,
-                                    timeout=60)
-            self.ssh_client.get_transport().set_keepalive(30)
-            logger.info(f"ssh to {self.public_ip} is running")
-        except Exception as e:
-            logger.error(f"{e}, ip: {self.public_ip}")
-            raise e
+        retries = 24
+        wait = 5
+        count = 0
+        self.ssh_client = paramiko.client.SSHClient()
+        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        pk_path = config.get_ssh_key_path()
+        ssh_key = k = paramiko.RSAKey.from_private_key_file(pk_path)
+        while count < retries:
+            try:
+                self.ssh_client.connect(self.public_ip, port=22, username=config.get_ssh_username(), pkey=ssh_key,
+                                        timeout=180)
+                self.ssh_client.get_transport().set_keepalive(30)
+                logger.info(f"ssh to {self.public_ip} is running")
+                break
+            except Exception as e:
+                logger.error(f"{e}, ip: {self.public_ip}")
+                time.sleep(wait)
+                count += 1
+        if count == retries:
+            raise(Exception(f"can't connect to {self.public_ip}"))
 
     def prepare_remote_env(self, remote_path, tar_name):
         self.remote_path = remote_path
@@ -202,13 +210,13 @@ class Instance:
             if self.check_container_running(f"label=custom_name=concord_perf_replica{self.concord_id + 1}"):
                 logger.debug(f"concord{self.concord_id + 1} is running on {self.public_ip}")
                 return True
-            cmd = f"cd {self.remote_path} && sudo rm -rf /media/concord/* && sudo docker-compose " \
+            cmd = f"cd {self.remote_path} && sudo docker-compose " \
                   f"-f docker-compose-perf-rep-aws.yml up -d concord{self.concord_id + 1}"
             res = self.run_command(cmd)
             logger.info(f"waiting for concord{self.concord_id + 1} to start at {self.public_ip}")
             time.sleep(5)
             count = 0
-            while count < 2:
+            while count < 5:
                 if self.check_container_running(f"label=custom_name=concord_perf_replica{self.concord_id + 1}"):
                     logger.info(f"concord{self.concord_id + 1} is running on {self.public_ip}")
                     if custom_command_interval > 0:
@@ -254,39 +262,37 @@ class Instance:
             ftp_client = self.ssh_client.open_sftp()
             if self.replica_thread:
                 self.done = True
-                dest_folder = os.path.join(local_folder, "replica_logs")
+                dest_folder = os.path.join(local_folder, "logs")
                 with open(os.path.join(dest_folder,
                                        f"custom_script_output{self.concord_id + 1}.txt"), "w") as text_file:
                     for line in self.replica_custom_command_result:
                         print(line, file=text_file)
 
-            cmd = f"sudo tar cfz {self.remote_path}/replica_logs/logs{self.concord_id + 1}.tar.gz /media/concord/log/*"
+            if self.is_replica:
+                cmd = f"sudo tar cfz {self.remote_path}/logs/replica_logs_{self.concord_id + 1}" \
+                      f".tar.gz -C /media/concord/log ."
+            else:
+                cmd = f"sudo tar cfz {self.remote_path}/logs/loader_Logs_{self.concord_id + 1}" \
+                      f".tar.gz -C /media/concord/log ."
+            logger.debug(f"creating TAR with command {cmd}")
             res = self.run_command(cmd)
             assert (res[2] == 0)
-            cmd = f"sudo tar cfz {self.remote_path}/rocksdb_out/rocksdb{self.concord_id + 1}.tar.gz " \
-                  f"/media/concord/rocksdbdata/*"
-            res = self.run_command(cmd)
-            assert (res[2] == 0)
-
-            ftp_client.get(f"{self.remote_path}/replica_logs/logs{self.concord_id + 1}.tar.gz",
-                           os.path.join(local_folder, "replica_logs", f"logs{self.concord_id + 1}.tar.gz"))
+            if self.is_replica:
+                cmd = f"sudo tar cfz {self.remote_path}/rocksdb_out/rocksdb{self.concord_id + 1}.tar.gz " \
+                      f"/media/concord/rocksdbdata/*"
+                res = self.run_command(cmd)
+                assert (res[2] == 0)
+                ftp_client.get(f"{self.remote_path}/logs/replica_logs_{self.concord_id + 1}.tar.gz",
+                           os.path.join(local_folder, "logs", f"replica_logs{self.concord_id + 1}.tar.gz"))
+            else:
+                ftp_client.get(f"{self.remote_path}/logs/loader_Logs_{self.concord_id + 1}.tar.gz",
+                               os.path.join(local_folder, "logs", f"loader_logs{self.concord_id + 1}.tar.gz"))
 
             cmd = f"ls /media/concord/cores | wc -l"
             res = self.run_command(cmd)
             if res[1] != "0\n":
-                cmd = f"sudo docker create " \
-                      f"{config.get_docker_username()}/{config.get_docker_repo()}:{config.get_repo_tag_replica()}"
-                logger.debug(
-                    f"create remote container for {self.concord_id + 1} at {self.public_ip} "
-                    f"for extracting concord binary with command {cmd}")
-                res = self.run_command(cmd)
-                container_id = res[1].rstrip("\n")
-                logger.debug(f"result {res[1]} container_id {container_id}")
-                cmd = f"sudo docker cp {container_id}:/concord/concord /media/concord/cores" \
-                      f" && sudo docker rm {container_id}"
-                res = self.run_command(cmd)
                 cmd = f"sudo tar cfz {self.remote_path}/core/coredump{self.concord_id + 1}.tar.gz" \
-                      f" /media/concord/cores/*"
+                      f" -C /media/concord/cores *"
                 res = self.run_command(cmd)
                 assert (res[2] == 0)
                 logger.info(
@@ -296,8 +302,9 @@ class Instance:
                 res = self.run_command(cmd)
                 ftp_client.get(f"{self.remote_path}/core/coredump{self.concord_id + 1}.tar.gz",
                                os.path.join(local_folder, "core", f"coredump{self.concord_id + 1}.tar.gz"))
-                ftp_client.get(f"{self.remote_path}/rocksdb_out/rocksdb{self.concord_id + 1}.tar.gz",
-                               os.path.join(local_folder, "rocksdb", f"rocksdb{self.concord_id + 1}.tar.gz"))
+                if self.is_replica:
+                    ftp_client.get(f"{self.remote_path}/rocksdb_out/rocksdb{self.concord_id + 1}.tar.gz",
+                                   os.path.join(local_folder, "rocksdb", f"rocksdb{self.concord_id + 1}.tar.gz"))
             return True, self.concord_id, self.public_ip
         except Exception as e:
             logger.error(e)
@@ -552,34 +559,34 @@ def create_local_env(config, args, replica_instances, loader_instances):
     config_folder = os.path.join(run_root_folder, "config")
     os.mkdir(config_folder)
     os.mkdir(os.path.join(run_root_folder, "config-public"))
-    os.mkdir(os.path.join(run_root_folder, "replica_logs"))
+    os.mkdir(os.path.join(run_root_folder, "logs"))
     if args.copyAllData:
         os.mkdir(os.path.join(run_root_folder, "core"))
         os.mkdir(os.path.join(run_root_folder, "rocksdb"))
+    perf_script_folder = os.path.join(concord_root_folder, "concord", "src", "performance", "deployment")
     # copy config files
-    config_file_name = "dockerConfigurationInput-performance-handler-deploy.yaml"
-    shutil.copy(os.path.join(concord_root_folder, "docker", "config-public", config_file_name), config_folder)
-    remote_sh_file_path = os.path.join(concord_root_folder, "concord", "src", "performance", "deployment",
-                                       "remote_pre_deploy.sh")
+    config_file = f"dockerConfigurationInput-performance-handler-deploy-{config.get_num_of_replicas()}.yaml"
+    shutil.copy(os.path.join(concord_root_folder, "docker", "config-public", config_file), config_folder)
+    remote_sh_file_path = os.path.join(perf_script_folder, "remote_pre_deploy.sh")
     shutil.copy(remote_sh_file_path, run_root_folder)
-    remote_sh_file_path = os.path.join(concord_root_folder, "concord", "src", "performance", "deployment",
-                                       "remote_post_deploy.sh")
+    remote_sh_file_path = os.path.join(perf_script_folder, "remote_post_deploy.sh")
     shutil.copy(remote_sh_file_path, run_root_folder)
     # modify concord config file - set network
-    config_file_path_out = os.path.join(config_folder, config_file_name)
+    config_file_path_out = os.path.join(config_folder, config_file)
     set_network(replica_instances, config_file_path_out)
     # set static set_static_params
     set_static_params(config_file_path_out, args)
     shutil.copy(
-        os.path.join(concord_root_folder, "concord", "src", "performance", "deployment", "log4cplus.properties"),
+        os.path.join(concord_root_folder, perf_script_folder, "log4cplus.properties"),
         os.path.join(run_root_folder, "config-public"))
-    shutil.copy(os.path.join(concord_root_folder, "docker", "config-public", "bftclient.config"), config_folder)
+    bft_client_config_file = f"bftclient-{config.get_num_of_replicas()}.config"
+    shutil.copy(os.path.join(perf_script_folder, bft_client_config_file),
+                os.path.join(config_folder, "bftclient.config"))
     # copy custom run script
-    script_path = os.path.join(concord_root_folder, "concord", "src", "performance", "deployment",
-                               config.get_custom_script_path())
-    shutil.copy(os.path.join(concord_root_folder, "concord", "src", "performance", "deployment", script_path),
+    script_path = os.path.join(concord_root_folder, perf_script_folder, config.get_custom_script_path())
+    shutil.copy(os.path.join(concord_root_folder, perf_script_folder, script_path),
                 run_root_folder)
-    shutil.copytree(os.path.join(concord_root_folder, "docker", "tls_certs"),
+    shutil.copytree(os.path.join(perf_script_folder, "tls_certs"),
                     os.path.join(run_root_folder, "tls_certs"))
     shutil.copytree(os.path.join(concord_root_folder, "docker", "trs_trc_tls_certs"),
                     os.path.join(run_root_folder, "trs_trc_tls_certs"))
@@ -587,11 +594,11 @@ def create_local_env(config, args, replica_instances, loader_instances):
     replace_in_file(os.path.join(config_folder, "bftclient.config"), "\/concord\/tls_certs", "\/perf_loader\/tls_certs")
     # set docker parameters
     set_docker_params(os.path.join(run_root_folder, "remote_pre_deploy.sh"), config)
-    replica_docker_compose_file_path = os.path.join(concord_root_folder, "concord", "src", "performance", "deployment",
+    replica_docker_compose_file_path = os.path.join(concord_root_folder, perf_script_folder,
                                                     "docker-compose-perf-rep-aws.yml")
     shutil.copy(replica_docker_compose_file_path, run_root_folder)
     set_replica_docker_compose_params(os.path.join(run_root_folder, "docker-compose-perf-rep-aws.yml"), config)
-    loader_docker_compose_file_path = os.path.join(concord_root_folder, "concord", "src", "performance", "deployment",
+    loader_docker_compose_file_path = os.path.join(concord_root_folder, perf_script_folder,
                                                    "docker-compose-perf-loader-aws.yml")
     shutil.copy(loader_docker_compose_file_path, run_root_folder)
     set_loader_docker_compose_params(os.path.join(run_root_folder, "docker-compose-perf-loader-aws.yml"), config)
@@ -600,10 +607,12 @@ def create_local_env(config, args, replica_instances, loader_instances):
         os.chdir(concord_root_folder)
         # create concord config
         os.chdir("docker")
-        create_conc_cfg_cmgd = os.path.join(".",
-                                            "gen-docker-concord-config.sh") + f" config/{config_file_name} " \
+        create_conc_cfg_cmd = os.path.join(".",
+                                            "gen-docker-concord-config.sh") + f" config/{config_file} " \
                                                                               f"config-public {run_root_folder}"
-        subprocess.check_call(create_conc_cfg_cmgd, shell=True)
+        logger.debug(f"create concord configuration with command {create_conc_cfg_cmd}")
+        subprocess.check_call(create_conc_cfg_cmd, shell=True)
+        subprocess.check_call(create_conc_cfg_cmd, shell=True)
         # create tar
         out_tar_path = os.path.join(run_root_folder, tar_name)
         os.chdir(config.get_local_perf_results_root())
@@ -682,17 +691,23 @@ def raise_error(msg, pool=None):
 
 def get_instances(config, filters, client):
     res = client.describe_instances(Filters=filters)
-    result = []
+    logger.debug(f"describe_instances output: {os.linesep} {res}")
     loaders = []
     replicas = []
     if len(res["Reservations"]) == 0:
-        return result
+        return replicas, loaders
     for r in res["Reservations"]:
         for instance in r["Instances"]:
             if instance["State"]["Name"] == "terminated":
                 continue
-            result.append(instance["InstanceId"])
-    return result
+            for tag in instance["Tags"]:
+                if tag["Key"] == "concord_perf":
+                    if tag["Value"] == "loader":
+                        loaders.append(instance["InstanceId"])
+                    elif tag["Value"] == "replica":
+                        replicas.append(instance["InstanceId"])
+    logger.debug(f"get_instances result: {replicas} , {loaders}")
+    return replicas, loaders
 
 
 def setup_infra(config, client):
@@ -739,13 +754,16 @@ def setup_infra(config, client):
 
 
 def setup(config, num_of_replicas, num_of_loaders, ec2):
-    results = []
+    replicas = []
+    loaders = []
     tags = [("concord_perf", "replica") for x in range(0, num_of_replicas)]
     tags.extend([("concord_perf", "loader") for x in range(0, num_of_loaders)])
 
+    logger.debug(f"setup, {tags}")
+
     key_name = config.get_ssh_key_name().split(".")[0]
     ami_id = config.get_ami_id()
-    region_name = config.get_region_name()
+    availability_zone = config.get_az_name()
 
     for i in range(0, len(tags)):
         res = ec2.create_instances(
@@ -761,7 +779,11 @@ def setup(config, num_of_replicas, num_of_loaders, ec2):
                     },
                 },
             ],
-            ImageId="ami-0e82959d4ed12de3f",
+            Placement=
+                {
+                    "AvailabilityZone": f"{availability_zone}"
+                },
+            ImageId=f"{ami_id}",
             InstanceType="i3.2xlarge",
             KeyName=f"{key_name}",
             DisableApiTermination=False,
@@ -779,8 +801,11 @@ def setup(config, num_of_replicas, num_of_loaders, ec2):
                     ]
                 },
             ])
-        results.append(res[0].id)
-    return results
+        if i < num_of_replicas:
+            replicas.append(res[0].id)
+        else:
+            loaders.append(res[0].id)
+    return replicas, loaders
 
 
 def main():
@@ -840,23 +865,29 @@ def main():
 
     replica_ids = []
     loader_ids = []
+    num_of_replicas = config.get_num_of_replicas()
+    num_of_loaders = 1
     if args.useExistingInstances:
         replica_ids = config.get_replicas_ids()
         loader_ids = config.get_loaders_ids()
     else:
-        num_of_replicas = config.get_num_of_replicas()
-        num_of_loaders = 1
-        res = get_instances(config, [{"Name": "tag-key", "Values": ["concord_perf", ], }, ], client)
-        if len(res) != num_of_loaders + num_of_replicas:
-            res = setup(config, num_of_replicas, num_of_loaders, ec2)
-            logger.info("created all instances")
-            if len(res) != num_of_loaders + num_of_replicas:
-                raise_error("can't create instances")
+        replica_ids, loader_ids = get_instances(config, [{"Name": "tag-key", "Values": ["concord_perf", ]},
+                                     {"Name": "availability-zone", "Values": [f"{config.get_az_name()}", ]}, ], client)
+        n_o_r = num_of_replicas - len(replica_ids)
+        n_o_l = num_of_loaders - len(loader_ids)
+        print(n_o_r, n_o_l)
+        if n_o_r + n_o_l > 0:
+            reps, loads = setup(config, n_o_r, n_o_l, ec2)
+            print(reps, loads)
+            replica_ids.extend(reps)
+            loader_ids.extend(loads)
         else:
             logger.info("got all instances")
+    assert(len(replica_ids) >= num_of_replicas)
+    assert(len(loader_ids) >= num_of_loaders)
+    replica_ids = replica_ids[0:num_of_replicas]
+    loader_ids = loader_ids[0:num_of_loaders]
 
-        replica_ids = res[0:num_of_replicas]
-        loader_ids = res[num_of_replicas:]
     if args.setupMachinesOnly:
         return
 
@@ -924,7 +955,7 @@ def main():
             for r in instances:
                 r.start_ssh(config)
 
-            with open(os.path.join(local_folder, "loader_output.txt"), "w") as text_file:
+            with open(os.path.join(local_folder, "logs", "loader_output.txt"), "w") as text_file:
                 for r in instances:
                     print(
                         f"instance: {inst.instance_id}, concord_id: {r.concord_id + 1}, "
@@ -960,30 +991,31 @@ def main():
                     raise_error(f"uploading concord container to {future.result()[1]} failed", pool)
             logger.info("containers ready...")
 
+            fut = []
+            for r in instances:
+               fut.append(pool.submit(r.pull_image, config))
+            for future in concurrent.futures.as_completed(fut):
+                if not future.result()[0]:
+                    raise_error(f"pulling {future.result()[2]} container at {future.result()[1]} failed", pool)
+
+            for r in instances:
+                res = r.run_post_deploy()
+                if not res[0]:
+                    raise_error(f"running post deploy task at {res[1]} failed")
+
+            print(replica_instances, loader_instances)
+            for r in replica_instances:
+                res = r.start_replica(config.get_custom_command_run_interval_sec(),
+                                      config.get_custom_command())
+                if not res:
+                    raise_error(f"failed to start replica concord{r.concord_id + 1} at {r.public_ip}")
+
             if not args.noRunTest:
-                fut = []
-                for r in instances:
-                    fut.append(pool.submit(r.pull_image, config))
-                for future in concurrent.futures.as_completed(fut):
-                    if not future.result()[0]:
-                        raise_error(f"pulling {future.result()[2]} container at {future.result()[1]} failed", pool)
-
-                for r in instances:
-                    res = r.run_post_deploy()
-                    if not res[0]:
-                        raise_error(f"running post deploy task at {res[1]} failed")
-
-                for r in replica_instances:
-                    res = r.start_replica(config.get_custom_command_run_interval_sec(),
-                                          config.get_custom_command())
-                    if not res:
-                        raise_error(f"failed to start replica concord{r.concord_id + 1} at {r.public_ip}")
-
                 for r in loader_instances:
                     res = r.start_loader(config.get_loader_timeout_sec())
                     if not res[0]:
                         raise_error(f"failed to start replica concord{r.concord_id + 1} at {r.public_ip}", None)
-                with open(os.path.join(local_folder, "loader_output.txt"), "a") as text_file:
+                with open(os.path.join(local_folder, "logs", "loader_output.txt"), "a") as text_file:
                     print("*******************************", file=text_file)
                     print(res[1], file=text_file)
                     print(res[2], file=text_file)
@@ -991,7 +1023,7 @@ def main():
                 logger.info(f"Loader output:\n{res[1]}\n{res[2]}")
 
                 fut = []
-                for r in replica_instances:
+                for r in instances:
                     r.done = True
                     r.stop_containers()
                     fut.append(pool.submit(r.collect_results, local_folder, args.copyAllData, config))
@@ -1002,17 +1034,19 @@ def main():
     except Exception as e:
         logger.error(e)
         traceback.print_stack()
-        for r in replica_instances:
-            if not local_folder:
-                local_folder = config.get_local_perf_results_root()
-            r.collect_results(local_folder, args.copyAllData, config)
+        if instances:
+            for r in instances:
+                if not local_folder:
+                    local_folder = config.get_local_perf_results_root()
+                r.collect_results(local_folder, args.copyAllData, config)
 
     if args.stopMachines:
         logger.info("stopping machines...")
         for id in replica_ids + loader_ids:
             stop_machine(id, client)
     logger.info(f"Done! Results folder {local_folder}")
-
+    pool._threads.clear()
+    concurrent.futures.thread._threads_queues.clear()
 
 if __name__ == '__main__':
     main()

@@ -6,7 +6,11 @@ else
   sudo mkdir /media
   sudo mkfs -t ext4 -F /dev/nvme0n1
   sudo mount /dev/nvme0n1 /media
+  sudo chown -R ubuntu:ubuntu /media
   mkdir /media/concord
+  mkdir /media/concord/log
+  mkdir /media/concord/cores
+  mkdir /media/concord/rocksdbdata
 fi
 
 echo "installing dependencies..."

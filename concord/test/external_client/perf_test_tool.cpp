@@ -8,8 +8,6 @@
 
 #include <getopt.h>
 #include <grpcpp/grpcpp.h>
-#include <log4cplus/configurator.h>
-#include <log4cplus/loglevel.h>
 #include <sys/resource.h>
 #include <chrono>
 #include <ctime>
@@ -58,7 +56,9 @@ bool busyWait = true;
 const float kWarmUpPerc = 0.02;
 const string kPerfServiceHost = "127.0.0.1:50051";
 string poolConfigPath = "external_client_tls.config";
-log4cplus::LogLevel logLevel = log4cplus::ERROR_LOG_LEVEL;
+
+string log_properties_file = "log4cplus.properties";
+uint log_level = 0;  // info
 
 bool done = false;
 chrono::steady_clock::time_point globalStart;
@@ -129,7 +129,7 @@ static void signalHandler(int signum) {
 void req_callback(const uint64_t& sn, const string& cid, uint32_t replySize) {
   ReqData* reqData = nullptr;
   static int count = 0;
-  static auto logger = logging::getLogger("callback");
+  static auto logger = logging::getLogger("perf-test-tool.callback");
 
   {
     lock_guard<mutex> l(reqSynch);
@@ -348,10 +348,11 @@ bool parse_args(int argc, char** argv) {
         {"busy_wait", required_argument, nullptr, 'w'},
         {"pool_config_path", required_argument, nullptr, 'f'},
         {"log_level", required_argument, nullptr, 'l'},
+        {"log_properties_file", required_argument, nullptr, 'a'},
         {nullptr, 0, nullptr, 0}};
     int optionIndex = 0;
     int option = 0;
-    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:w:f:l:",
+    while ((option = getopt_long(argc, argv, "b:p:k:s:v:d:c:e:i:w:f:l:a:",
                                  longOptions, &optionIndex)) != -1) {
       switch (option) {
         case 'b': {
@@ -409,36 +410,21 @@ bool parse_args(int argc, char** argv) {
           break;
         }
         case 'l': {
-          auto ll = stoi(string(optarg));
-          switch (ll) {
-            case 0: {
-              logLevel = log4cplus::OFF_LOG_LEVEL;
-              break;
-            }
-            case 1: {
-              logLevel = log4cplus::ERROR_LOG_LEVEL;
-              break;
-            }
-            case 2: {
-              logLevel = log4cplus::INFO_LOG_LEVEL;
-              break;
-            }
-            case 3: {
-              logLevel = log4cplus::DEBUG_LOG_LEVEL;
-              break;
-            }
-            default:
-              return false;
-          }
-
+          log_level = stoi(string(optarg));
+          break;
+        }
+        case 'a': {
+          log_properties_file = string(optarg);
           break;
         }
         default:
+          cout << "Unknown option: " << option << endl;
           return false;
       }
     }
     return true;
   } catch (const std::exception& e) {
+    cout << "Failed to parse command line arguments" << endl;
     LOG_FATAL(GL, "Failed to parse command line arguments: " << e.what());
     return false;
   }
@@ -463,20 +449,37 @@ int main(int argc, char** argv) {
   signal(SIGTERM, signalHandler);
   signal(SIGINT, signalHandler);
 
-  log4cplus::initialize();
-  log4cplus::BasicConfigurator config;
-  config.configure();
-  log4cplus::Logger logger = logging::getLogger("test");
-  logger.getRoot().setLogLevel(logLevel);
+  logging::Logger logger = logging::getLogger("perf-test-tool");
+  {
+    ifstream f(log_properties_file);
+    if (f.good()) {
+      logging::initLogger(log_properties_file);
+    }
+  }
+
+  logger.setLogLevel(log_level ? log4cplus::OFF_LOG_LEVEL : log_level * 10000u);
+
   setMaxNumOfOpenFiles();
   auto pool = new ConcordClientPool(poolConfigPath);
   pool->SetDoneCallback(req_callback);
-  parse_args(argc, argv);
 
   durations.reserve(numOfBlocks);
 
   // wait for the pool to connect
-  this_thread::sleep_for(chrono::seconds(5));
+  this_thread::sleep_for(chrono::seconds(60));
+  auto start = chrono::steady_clock::now();
+  while (PoolStatus::NotServing == pool->HealthStatus()) {
+    this_thread::sleep_for(chrono::seconds(5));
+    if (chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() -
+                                               start)
+            .count() > 120) {
+      LOG_FATAL(logger,
+                "pool can't connect to at least 1 replica in 60 seconds. "
+                "Aborting.");
+      return 2;
+    }
+  }
+  LOG_FATAL(logger, "starting test");
 
   globalStart = chrono::steady_clock::now();
   // do_preloaded_test(logger, pool);

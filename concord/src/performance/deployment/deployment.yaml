@@ -38,8 +38,9 @@ docker:
   loader_image_name: perf_test_tool:latest
   # -l {0,1,2,3} - debug level for perf_test_tool {OFF, ERROR, INFO, DEBUG}
   # for the parameters descriptions see README
-  loader_cli: \/perf_loader\/perf_test_tool -f \/perf_loader\/config\/bftclient.config -c 15 -b 5000 -p 0 -k 31 -s 118 -v 2841 -d 15000 -e 0 -i 0 -w 0 -l 2
+  loader_cli: \/perf_loader\/perf_test_tool -f \/perf_loader\/config\/bftclient.config -c 100 -b 5000 -p 1 -k 15 -s 118 -v 2841 -d 15600 -e 50 -i 0 -w 1 -a \/perf_loader\/config\/log4cplus.properties
 general:
+  # supported value are 4 or 7 ONLY
   num_of_replicas: 4
   # timeout, in seconds, for the loader to complete the run. If not completed, the run will be aborted
   loader_timeout_sec: 300
