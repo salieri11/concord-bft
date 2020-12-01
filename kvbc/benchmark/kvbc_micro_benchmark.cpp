@@ -11,8 +11,16 @@
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
 
+#define MERKLE 0
+
 #include "KVBCInterfaces.h"
+#if MERKLE
 #include "merkle_tree_storage_factory.h"
+using namespace concord::kvbc::v2MerkleTree;
+#else
+#include "direct_kv_storage_factory.h"
+using namespace concord::kvbc::v1DirectKeyValue;
+#endif
 #include "histogram.hpp"
 #include "Logger.hpp"
 #include <thread>
@@ -30,7 +38,6 @@
 using namespace std;
 using namespace concord::kvbc;
 using namespace concord::storage;
-using namespace concord::kvbc::v2MerkleTree;
 using namespace concordUtils;
 
 struct xorshift64_state {
