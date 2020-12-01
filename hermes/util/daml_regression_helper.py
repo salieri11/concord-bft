@@ -166,7 +166,7 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
     if custom_params:
         scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0][intr_helper.CUSTOM_INTERRUPTION_PARAMS] = custom_params
     return intr_helper.perform_interrupt_recovery_operation(
-        fxHermesRunSettings, fxBlockchain, None, node, scenario_details, scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0], mode)
+        fxHermesRunSettings, None, None, node, scenario_details, scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0], mode)
 
 
 def make_daml_request(reraise, client_host, no_of_txns=1, wait_time=0.3):
@@ -360,11 +360,11 @@ def start_for_replica_list(replica_list, container_name, count):
     log.info("\n*** Started {} replicas ***".format(count))
 
 
-def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
+def verify_view_change(replicas, init_primary_rip, init_primary_index, interrupted_nodes=[]):
     '''
     Function to verify view change happened successfully
     Args:
-        fxBlockchain: Local fixture
+        replicas: replicas dict
         init_primary_rip: Initial primary IP
         init_primary_index: Initial primary index
         interrupted_nodes: Nodes which are stopped        
@@ -374,7 +374,7 @@ def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, inter
     try:
         log.debug("Finding new primary replica ip")
         committers_mapping = blockchain_ops.map_committers_info(
-            fxBlockchain, interrupted_nodes)
+            replicas, interrupted_nodes)
         new_primary_rip = committers_mapping["primary_ip"]
         new_primary_index = committers_mapping["primary_index"]
         assert new_primary_rip or new_primary_index, "Primary replica IP & index not found after view change"

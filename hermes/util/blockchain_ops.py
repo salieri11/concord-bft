@@ -14,6 +14,7 @@ import threading
 import time
 import sys
 import yaml
+import collections
 
 import rest
 from util import auth, helper, hermes_logging, infra
@@ -27,16 +28,18 @@ LAST_STABLE_SEQ_NUMBER_CMD = "docker exec -t telegraf /bin/bash -c 'curl concord
 #   State Information Operation
 #   (e.g. primary info & which committers are the submission endpoints)
 # ===================================================================================
-def refresh_current_state_info(fxBlockchain, verbose=False):
+
+# This function is not used anywhere
+def refresh_current_state_info(replicas, verbose=False):
   '''
     Get the latest state info detailing:
     1. What the primary is (rid, idx, IP)
     2. Submission endpoints used for participants
     and output to console
   '''
-  map_committers_info(fxBlockchain, verbose=verbose)
-  map_participants_submission_endpoints(fxBlockchain, verbose=verbose)
-  echo_current_state_info(fxBlockchain)
+  map_committers_info(replicas, verbose=verbose)
+  map_participants_submission_endpoints(replicas, verbose=verbose)
+  echo_current_state_info(replicas)
   return True
 
 
@@ -85,7 +88,7 @@ def wait_for_state_transfer_complete(all_replicas, interrupted_replicas=[], time
       log.info("State transfer not complete.  Waiting.")
       time.sleep(1)
 
-def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
+def get_primary_rid(blockchain_replicas, interrupted_nodes=[], verbose=True):
   '''
     Get primary rid (id used internally for concord nodes)
     Nodes can differ opinions on what the primary is, in that case
@@ -96,7 +99,7 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
       BC-5236 will resolve this. Don't force the caller to create a special
       data structure when all it needs is a list of IP addresses.
   '''
-  all_committers = get_all_committers(fxBlockchain)
+  all_committers = get_all_committers(blockchain_replicas)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   current_primary_match = 'concord_concordbft_currentPrimary{source="concordbft",component="replica"} '
   current_active_view_match = 'concord_concordbft_currentActiveView{source="concordbft",component="replica"} '
@@ -138,7 +141,7 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
     if highest_agreed_count > 0:
       # get_f_count() requires one of the flavors of fxBlockchain.  Mock one up for it.
       # TEMPORARY.  Will be fixed by BC-5236.
-      if highest_agreed_count >= get_f_count(type('obj', (object,), {'replicas': {helper.TYPE_DAML_COMMITTER: target_committers}})):
+      if highest_agreed_count >= get_f_count({helper.TYPE_DAML_COMMITTER: target_committers}):
         # no problem if (n-f) agrees on primary. e.g. 5/7 => quorum achieved
         log.warning("         Going with {} (most votes, {})"
                       .format(highest_agreed_idx, highest_agreed_count))
@@ -152,12 +155,12 @@ def get_primary_rid(fxBlockchain, interrupted_nodes=[], verbose=True):
     return last_added_index
 
 
-def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
+def map_committers_info(blockchain_replicas, interrupted_nodes=[], verbose=True):
   '''
     This will get primary rid, ip and map out committer idx and rid relation.
   '''
   if verbose: log.info("")
-  all_committers = get_all_committers(fxBlockchain)
+  all_committers = get_all_committers(blockchain_replicas)
   target_committers = [ip for ip in all_committers if ip not in interrupted_nodes]
   # Below will get principal_id from deployment config
   replicaIdGetCommand = "cat /config/concord/config-local/deployment.config"
@@ -170,7 +173,7 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
   }
   committersOutput = [""] * len(all_committers)
   if verbose: log.info("Mapping out the rid and index relationship in committers...")
-  primary_rid = get_primary_rid(fxBlockchain, interrupted_nodes=interrupted_nodes, verbose=verbose)
+  primary_rid = get_primary_rid(blockchain_replicas, interrupted_nodes=interrupted_nodes, verbose=verbose)
   success = False
   try:
     results = helper.ssh_parallel(target_committers, replicaIdGetCommand)
@@ -211,25 +214,25 @@ def map_committers_info(fxBlockchain, interrupted_nodes=[], verbose=True):
     mappingComplete = (committerRespondedCount == len(target_committers))
     if mappingComplete: print("Committer index, rid and IP mapping:\n" + "\n".join(committersOutput))
     else: log.warning("Mapping is incomplete; problem IPs: {}".format(errored))
-  if "primary_index" in fxBlockchain.replicas and fxBlockchain.replicas["primary_index"] is not None:
-    primary_idx_before = fxBlockchain.replicas["primary_index"]
+  if "primary_index" in blockchain_replicas and blockchain_replicas["primary_index"] is not None:
+    primary_idx_before = blockchain_replicas["primary_index"]
     primary_idx_now = committersMapping["primary_index"]
     if primary_idx_before != primary_idx_now:
       log.warning("       View Change detected: primary from rid={} to rid={}" \
                         .format(primary_idx_before, primary_idx_now))
-  fxBlockchain.replicas["primary_index"] = committersMapping["primary_index"]
-  fxBlockchain.replicas["primary_rid"] = committersMapping["primary_rid"]
-  fxBlockchain.replicas["primary_ip"] = committersMapping["primary_ip"]
-  fxBlockchain.replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
+  blockchain_replicas["primary_index"] = committersMapping["primary_index"]
+  blockchain_replicas["primary_rid"] = committersMapping["primary_rid"]
+  blockchain_replicas["primary_ip"] = committersMapping["primary_ip"]
+  blockchain_replicas["committer_index_by_rid"] = committersMapping["committer_index_by_rid"]
   return committersMapping
 
 # Below must change once participants are able to connect to multiple committers
-def map_participants_submission_endpoints(fxBlockchain, verbose=True):
+def map_participants_submission_endpoints(replicas, verbose=True):
   '''
     This will map out exactly, which participants are connected to which committer
     (e.g. which committers are used for participant N as tx submission endpoint)
   '''
-  participants = participants_of(fxBlockchain)
+  participants = participants_of(replicas)
   participantsMapping = {
     "allSubmissionEndpoints": [],
     "participants": [None] * len(participants)
@@ -261,13 +264,13 @@ def map_participants_submission_endpoints(fxBlockchain, verbose=True):
           participantIndex, participantIP, submissionEndpoint
         ))
   all_submission_endpoints = list(set(all_submission_endpoints)) # unique
-  fxBlockchain.replicas["submission_endpoints"] = all_submission_endpoints
+  replicas["submission_endpoints"] = all_submission_endpoints
   return participantsMapping
 
 # ===================================================================================
 #   Fixture Reset Operations
 # ===================================================================================
-def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
+def reset_blockchain(replicas, concordConfig=None, useOriginalConfig=False,
                         keepData=False, resetOnlyTheseIPs=None, verbose=True):
   '''
     ! DO NOT RUN AGAINST PRODUCTION BLOCKCHAIN
@@ -280,12 +283,11 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
     `resetOnlyTheseIPs`:  list of target to be selectively reset; for wiping out only selected nodes.
                           Supplying it with [] or any falsey value will skip filtering and reset all nodes.
 
-    e.g.: helper.reset_blockchain(fxBlockchain, concordConfig={
+    e.g.: helper.reset_blockchain(replicas, concordConfig={
       "concord-bft_max_num_of_reserved_pages": 8192,
       "view_change_timeout": 20000,
     })
   '''
-  replicas = fxBlockchain.replicas
   wipeOutPre = [
     "docker stop $(docker ps -a -q)",
     "docker rm jaeger-agent",
@@ -318,8 +320,8 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
   nodeWipeOutCommand = '; '.join(wipeOutPre + wipeOutDeleteData + wipeOutConcordConfigSet + wipeOutPost)
   nodeRetartCommand = "docker start agent" # Agent handles everything as long as persistency is deleted
   nodeResetCrashStatusCommand = "rm -rf \"{}\"; cd /root/health-daemon; nohup bash healthd.sh > /dev/null".format(helper.HEALTHD_CRASH_FILE)
-  committerIPs = committers_of(fxBlockchain)
-  participantIPs = participants_of(fxBlockchain)
+  committerIPs = committers_of(replicas)
+  participantIPs = participants_of(replicas)
   if resetOnlyTheseIPs:
     committerIPs = list(filter(lambda ip: ip in resetOnlyTheseIPs, committerIPs))
     participantIPs = list(filter(lambda ip: ip in resetOnlyTheseIPs, participantIPs))
@@ -357,37 +359,44 @@ def reset_blockchain(fxBlockchain, concordConfig=None, useOriginalConfig=False,
     "primary_ip": None, "primary_index": None, "primary_rid": None,
     "committer_index_by_rid": None, "submission_endpoints": None
   }
-  if committerIPs: map_committers_info(fxBlockchain, verbose=verbose)
+  if committerIPs: map_committers_info(replicas, verbose=verbose)
   if participantIPs:
     # need to avoid submission endpoints until there are more connections from participants to other committers
-    map_participants_submission_endpoints(fxBlockchain, verbose)
+    map_participants_submission_endpoints(replicas, verbose)
   if verbose: log.info("Blockchain network reset completed.")
   return state_info
 
 # ===================================================================================
 #   Convenience functions
 # ===================================================================================
-def get_f_count(fxBlockchain):
-  return int((len(fxBlockchain.replicas[helper.TYPE_DAML_COMMITTER]) - 1) / 3)
+def get_f_count(replicas):
+  return int((len(replicas[helper.TYPE_DAML_COMMITTER]) - 1) / 3)
 
-def committers_of(fxBlockchain):
-  return fxBlockchain.replicas[helper.TYPE_DAML_COMMITTER]
 
-def participants_of(fxBlockchain):
-  return fxBlockchain.replicas[helper.TYPE_DAML_PARTICIPANT]
+def committers_of(replicas):
+  return replicas[helper.TYPE_DAML_COMMITTER]
 
-def get_all_node(fxBlockchain):
-  return committers_of(fxBlockchain) + participants_of(fxBlockchain)
 
-def echo_current_state_info(fxBlockchain):
+def participants_of(replicas):
+  return replicas[helper.TYPE_DAML_PARTICIPANT]
+
+
+def get_all_node(replicas):
+  return committers_of(replicas) + participants_of(replicas)
+
+
+# This function used only in refresh_current_state_info (unused)
+# There seems to be a bug in below mentioned method. To be fixed later
+def echo_current_state_info(replicas):
   log.info("       Current primary rid={}, is {} (committer idx {}), submissions on {}".format(
-    fxBlockchain.replicas["primary_rid"],
-    fxBlockchain.replicas["primary_ip"],
-    fxBlockchain.replicas["primary_index"],
-    ", ".join(fxBlockchain.replicas["submission_endpoints"]),
+    replicas["primary_rid"],
+    replicas["primary_ip"],
+    replicas["primary_index"],
+    ", ".join(replicas["submission_endpoints"]),
   ))
 
-def fetch_master_replica(fxBlockchain):
+
+def fetch_master_replica(blockchain_replicas):
   '''
   Get master replica IP
   :param fxBlockchain: blockchain fixture
@@ -396,7 +405,7 @@ def fetch_master_replica(fxBlockchain):
   username, password = helper.getNodeCredentials()
   cmd = "cat /config/daml-ledger-api/environment-vars"
   master_replica = None
-  for ip in participants_of(fxBlockchain):
+  for ip in participants_of(blockchain_replicas):
     ssh_output = helper.ssh_connect(ip, username, password, cmd)
     if ssh_output:
       for line in ssh_output.split():
@@ -409,13 +418,14 @@ def fetch_master_replica(fxBlockchain):
   return master_replica
 
 
-def print_replica_info(fxBlockchain, interrupted_nodes=[]):
+# This function is not used anywhere so far
+def print_replica_info(blockchain_replicas, interrupted_nodes=[]):
   username, password = helper.getNodeCredentials()
   cmd = 'grep -2 -w private_key /config/concord/config-local/concord.config | ' \
         'grep principal_id ; docker exec -t telegraf /bin/bash -c "curl concord:9891/metrics" | ' \
         'grep concord_concordbft_current | grep source='
 
-  filtered_ips = [ip for ip in committers_of(fxBlockchain) if ip not in interrupted_nodes]
+  filtered_ips = [ip for ip in committers_of(blockchain_replicas) if ip not in interrupted_nodes]
   log.info("")
   for ip in filtered_ips:
     ssh_output = helper.ssh_connect(ip, username, password, cmd)
@@ -428,7 +438,7 @@ def print_replica_info(fxBlockchain, interrupted_nodes=[]):
           if "concord_concordbft_currentActiveView" in line:
             concord_concordbft_currentActiveView = line.split(' ')[1]
             if concord_concordbft_currentActiveView:
-              primary_should_be = int(concord_concordbft_currentActiveView.split('.')[0]) % len(committers_of(fxBlockchain))
+              primary_should_be = int(concord_concordbft_currentActiveView.split('.')[0]) % len(committers_of(blockchain_replicas))
           if "concord_concordbft_currentPrimary" in line:
             concord_concordbft_currentPrimary = line.split(' ')[1]
             if concord_concordbft_currentPrimary:
@@ -658,6 +668,7 @@ def reboot(host, timeout=20):
   vm = shutdown(host, timeout)
   powerup(vm, timeout)
 
+
 def move_vms(blockchain_id, dest_dir="HermesTesting", sddcs=None):
   '''
   Move VMs to a destination folder (garbage collecttion after a testrun)
@@ -672,11 +683,11 @@ def move_vms(blockchain_id, dest_dir="HermesTesting", sddcs=None):
     sddc_conn.vmMoveToFolderByName(dest_dir, [blockchain_id])
 
 
-def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
+def get_all_crashed_nodes(blockchain_replicas, results_dir, interrupted_node_type=None,
                           interrupted_nodes=[]):
   '''
   Get list of all crashed nodes
-  :param fxBlockchain: blockchain fixture
+  :param blockchain_replicas: replica dict of blockchain
   :param results_dir: results dir
   :param interrupted_nodes: test interrupted nodes
   :return: list of all crashed nodes, and crash log directory
@@ -685,7 +696,7 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   log.info("** Verifying health of all nodes...")
   username, password = helper.getNodeCredentials()
   all_committers_other_than_interrupted = [ip for ip in
-                                           committers_of(fxBlockchain) if
+                                           committers_of(blockchain_replicas) if
                                            ip not in interrupted_nodes]
   log.info("** committers **")
   unexpected_interrupted_committers = []
@@ -697,7 +708,7 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
       log.warning("  ** Unexpected crash")
       unexpected_interrupted_committers.append(ip)
 
-  uninterrupted_participants = [ip for ip in participants_of(fxBlockchain) if
+  uninterrupted_participants = [ip for ip in participants_of(blockchain_replicas) if
                                 ip not in interrupted_nodes]
 
   log.info("** participants **")
@@ -744,15 +755,15 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
     log.info(
       "Collect support logs ({})...".format(unexpected_crash_results_dir))
     helper.create_concord_support_bundle(
-      [ip for ip in committers_of(fxBlockchain) if
+      [ip for ip in committers_of(blockchain_replicas) if
        ip not in interrupted_nodes], helper.TYPE_DAML_COMMITTER,
       unexpected_crash_results_dir, verbose=False)
     helper.create_concord_support_bundle(
-      participants_of(fxBlockchain),
+      participants_of(blockchain_replicas),
       helper.TYPE_DAML_PARTICIPANT, unexpected_crash_results_dir,
       verbose=False)
 
-  if total_no_of_committers_crashed > get_f_count(fxBlockchain):
+  if total_no_of_committers_crashed > get_f_count(blockchain_replicas):
     log.error("**** System is unhealthy")
 
   return crashed_committers, crashed_participants, unexpected_crash_results_dir
@@ -765,24 +776,24 @@ def get_docker_timestamp(host, username, password, service):
                                         "docker logs --tail 1 {}".format(service))
     return output.split("|")[0]
 
-def get_all_committers(fxBlockchain):
+def get_all_committers(replicas):
   '''
   This function will return the list of committers based on the type of Blockchain fixture.
   '''
   all_committers = []
 
-  if isinstance(fxBlockchain, list) and isinstance(fxBlockchain[0], str):
+  if isinstance(replicas, list) and isinstance(replicas[0], str):
     # After BC-5236, this should be the only code path.
-    all_committers = fxBlockchain
-  elif helper.TYPE_DAML_COMMITTER in fxBlockchain.replicas and \
-        isinstance(committers_of(fxBlockchain)[0], str):
+    all_committers = replicas
+  elif helper.TYPE_DAML_COMMITTER in replicas and \
+        isinstance(committers_of(replicas)[0], str):
     # What we currently get when someone uses --replicasConfig: A dict with
     # two entries, one for committer IPs and another for participant IPs.
-    all_committers = committers_of(fxBlockchain)
+    all_committers = committers_of(replicas)
   else:
     # What we get with a deployment: A dict with two entries, one for committer
     # nodes and one for participant nodes.  Each node is a dict with an IP.
-    objs = committers_of(fxBlockchain)
+    objs = committers_of(replicas)
     # Code fix - Committer array (objs) was passed to extract_ip_lists_from_fxBlockchain
     # But that function expects Blockchain fixture
     # Correct function to call is fetch_ips_from_fxBlockchain_entry here.
