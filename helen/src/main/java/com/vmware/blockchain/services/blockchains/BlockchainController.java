@@ -227,7 +227,7 @@ public class BlockchainController {
             throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_LIMIT, authHelper.getUpdateChains().size());
         }
         if (body.getBlockchainType() == null) {
-            throw new BadRequestException(ErrorCodeType.BAD_REQUEST, "Invalid blockchain type.");
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_UNSPECIFIED);
         }
 
         // Make sure we have access to given consortium.
@@ -341,9 +341,8 @@ public class BlockchainController {
             return new ResponseEntity<>(new BlockchainApiObjects.GenerateConfigResponse(UUID.fromString(configId)),
                                         HttpStatus.OK);
         } catch (Exception e) {
-            logger.error("Error1 generating new configuration for blockchain {}", bid);
-            throw new HelenException(ErrorCodeType.INTERNAL_ERROR,
-                                     "Error generating new configuration for blockchain.");
+            logger.error("Error generating new configuration for blockchain {}", bid);
+            throw new HelenException(ErrorCodeType.INTERNAL_ERROR);
         }
     }
 
@@ -652,7 +651,7 @@ public class BlockchainController {
                                                 || !Strings.isNullOrEmpty(k.getObjectStoreUrl());
 
                 if (incompleteDetails) {
-                    throw new BadRequestException(ErrorCode.BAD_REQUEST, "all parameters not enabled");
+                    throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
                 }
 
                 nodeAssignment.addEntries(NodeAssignment.Entry
