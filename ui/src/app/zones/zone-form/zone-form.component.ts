@@ -53,6 +53,7 @@ export class ZoneFormComponent implements AfterViewInit {
     metrics: false,
     containerReg: false,
     outboundProxy: false,
+    notary_server: false
   };
 
   onPremZone: OnPremZone;
@@ -295,6 +296,7 @@ export class ZoneFormComponent implements AfterViewInit {
     this.someValueMap.elasticsearch = someKeysHaveValue(ctrls.metrics.get('elasticsearch').value);
     this.someValueMap.metrics = this.someValueMap.wavefront || this.someValueMap.elasticsearch;
     this.someValueMap.containerReg = someKeysHaveValue(ctrls.container_repo.value);
+    this.someValueMap.notary_server = someKeysHaveValue(ctrls.notary_server.value);
     this.someValueMap.outboundProxy = someKeysHaveValue(ctrls.outbound_proxy.value);
     const vCenterChanged = this.onPremConnectionLastTested !== this.getVCenterCredentialIndex().index;
     if (vCenterChanged) { this.onPremConnectionSuccessful = false; }

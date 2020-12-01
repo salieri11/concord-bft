@@ -71,7 +71,6 @@ const validCert = (control, header, footer): boolean => {
 
 export function validateCert(): ValidatorFn {
   return (control: AbstractControl): {[key: string]: any} | null => {
-    console.log(control);
     return validCert(
       control,
       '-----BEGIN CERTIFICATE-----',
@@ -86,8 +85,8 @@ export function validatePEM(): ValidatorFn {
 
     return validCert(
       control,
-      '-----BEGIN RSA PRIVATE KEY-----',
-      '-----END RSA PRIVATE KEY-----'
+      '-----BEGIN PRIVATE KEY-----',
+      '-----END PRIVATE KEY-----'
     ) ? null : {'validCert': {value: control.value}};
   };
 }
