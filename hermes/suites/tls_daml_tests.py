@@ -10,7 +10,7 @@ import time
 import atexit
 import collections
 
-from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct
+from fixtures.common_fixtures import fxBlockchain, fxConnection, fxInitializeOrgs, fxProduct, fxInstallDamlSdk
 from suites.case import describe, passed, failed
 
 import util.daml.daml_helper
@@ -21,16 +21,6 @@ log = util.hermes_logging.getMainLogger()
 daml_sdk_path = None
 
 LocalSetupfixture = collections.namedtuple("LocalSetupfixture", ["run_test", "participant_nodes", "warning"])
-
-@pytest.fixture(scope="module")
-def fxInstallDamlSdk(fxBlockchain):
-    global daml_sdk_path
-    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
-    log.info(participants)
-    host = participants[0]
-    log.info(host)
-    daml_sdk_version = util.daml.daml_helper.get_ledger_api_version(host)
-    daml_sdk_path = util.daml.daml_helper.install_daml_sdk(daml_sdk_version)
 
 
 @pytest.fixture

@@ -595,7 +595,7 @@ def daml_tls_setup(host, port = "6865", path=TLS_CERT_PATH, parameter='', dar_pa
 def daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='', dar_path='', daml_test_type = ''):
    os.chmod(DAML_SETUP_SCRIPT, 0o777)
    cmd = [DAML_SETUP_SCRIPT, TLS_HOSTNAME, port, path, parameter, dar_path,daml_test_type]
-   success, stdout = util.helper.execute_ext_command(cmd, timeout=6000, working_dir=path)
+   success, stdout = util.helper.execute_ext_command(cmd, timeout=15000, working_dir=path)
    log.info("\nSuccess and Output are {} and {}".format(success, stdout))
    return success,stdout 
 
