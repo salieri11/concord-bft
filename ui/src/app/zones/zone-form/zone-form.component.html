@@ -266,7 +266,7 @@
       </clr-input-container>
       <clr-textarea-container>
         <label>{{ 'common.tlsCert' | translate }}</label>
-        <textarea clrTextarea
+        <textarea clrTextarea id="conCert"
                 formControlName="tls_certificate_data" [placeholder]="'blockchainWizard.clients.crtPH' | translate" (keyup)="onchange($event,'container_repo.tls_certificate_data')"></textarea>
         <clr-control-error>{{ 'tls.validationError' | translate }}</clr-control-error>
       </clr-textarea-container>
@@ -288,18 +288,19 @@
     <clr-step-content *clrIfExpanded>
       <clr-input-container>
         <label>{{ 'onPrem.containerReg.notaryUrl' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate"
+        <input clrInput type="text" id="notaryUrl" [placeholder]="'onPrem.containerReg.urlPH' | translate"
                 formControlName="url" (keyup)="onchange($event,'notary_server.url')"/>
         <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
       </clr-input-container>
       <clr-textarea-container>
         <label>{{ 'common.tlsCert' | translate }}</label>
-        <textarea clrTextarea
-                formControlName="tls_certificate_data" [placeholder]="'blockchainWizard.clients.crtPH' | translate" (keyup)="onchange($event,'notary_server.tls_certificate_data')"></textarea>
+        <textarea clrTextarea id="notaryCert"
+                formControlName="tls_certificate_data" [placeholder]="'blockchainWizard.clients.crtPH' | translate"
+                (keyup)="onchange($event,'notary_server.tls_certificate_data')"></textarea>
         <clr-control-error>{{ 'tls.validationError' | translate }}</clr-control-error>
       </clr-textarea-container>
       <div class="form-next">
-        <button [ngClass]="{'grayscale':insufficientSection.notary}" clrStepButton="next">
+        <button [ngClass]="{'grayscale':insufficientSection.notary}" clrStepButton="next" id="notaryServer">
           <span *ngIf="insufficientSection.containerReg">{{ 'common.skip' | translate }}</span>
           <span *ngIf="!insufficientSection.containerReg">{{ 'common.next' | translate }}</span>
         </button>

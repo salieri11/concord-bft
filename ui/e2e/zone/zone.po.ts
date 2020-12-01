@@ -10,6 +10,26 @@ const stepperExpandDelay = 1000;
 export class Zone {
   progressEl = '#deployProgress';
   progPerceEl = `${this.progressEl} .progress span`;
+  cert = `-----BEGIN CERTIFICATE-----
+MIIDMTCCAhkCFDNALduPhMbX4lfTpo/2cDz6r9/cMA0GCSqGSIb3DQEBCwUAMGcx
+CzAJBgNVBAYTAlVTMQ0wCwYDVQQIDARVdGFoMQ4wDAYDVQQHDAVQcm92bzEjMCEG
+A1UECgwaQUNNRSBTaWduaW5nIEF1dGhvcml0eSBJbmMxFDASBgNVBAMMC2V4YW1w
+bGUubmV0MB4XDTIwMTAyMTE3MTYyOVoXDTQ1MTAyMTE3MTYyOVowQzELMAkGA1UE
+BhMCVVMxDTALBgNVBAgMBFV0YWgxDjAMBgNVBAcMBVByb3ZvMRUwEwYDVQQKDAxB
+Q01FIFNlcnZpY2UwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC0WMUO
+rxvbC1usjcX7f+o7MnMCJM1spHMD9qwGq5hI/rSaoCWvvWqjn4vw1jA2W/JCk6b1
+IxGrKgfzKKWd0uN0M8dyNuiXntURF1SFnCEmFcnRQg7iFICYdUPTnLryeQUUe68+
+wf0QQlyu4tu5M+EqWOTMI1T1TaDqtAaTPTvTKOAt1Gi3FAn4ZkJsjJZ1K2On/UtO
+z21DsCJqrY4HAcVFsbDU+OoipD5QWpQ3V5VE8BfVQq6fqxhT4x/WuKgfprIfq3Hc
+TtyNPpHQ6ezbksA/l3UaGAGG0QY94cmGfbwZhgehg7Jg/YtAQRKQ92rPOTaQRKZX
+0m+m19QY6E3WTCzJAgMBAAEwDQYJKoZIhvcNAQELBQADggEBAEsEHtPwUzDEbBWQ
+jeuQRr3ln0QCfG4zKUhlfpycBVTDk1iqX7OrFzTNlCDIoDM7dlgSDa0JvEeHEt8R
+BVbFjyb/3DBVKuX04kgQ83Iq9PBuLss3GhP99HMyXE5Tnnm0mRhK/gjJUSA5UG0T
+UKMXdeSgWbDyEldteJSLO6ozEyBuaFIBDV+FeuIP5y1KY7h7ASTZVP8o1juVxwX5
++/ow0JunohcBummGh4ioeC0QApoL5tNTWfcGKIZI+Vv0POeOuArznuIIYGE3BlDE
+NpYrS3O1uxP+5B9AIZ6yyT1sknn/X2AfC38zkfEZDxfbF182Jc5cZ4/XeCUvn3jS
+MzhxUzs=
+-----END CERTIFICATE-----`;
 
   openNewZone() {
     return element(by.css('#newZone')).click();
@@ -67,7 +87,13 @@ export class Zone {
     element(by.css('#conUrl')).sendKeys('https://vmware-docker-blockchainsaas.bintray.io');
     element(by.css('#conUsername')).sendKeys(zoneCreds.bintray.username);
     element(by.css('#conPassword')).sendKeys(zoneCreds.bintray.password);
+    element(by.css('#conCert')).sendKeys(this.cert);
     element(by.css('#nextButtonContainerRegistry')).click();
+    browser.sleep(stepperExpandDelay);
+    // Notary Server
+    element(by.css('#notaryUrl')).sendKeys('https://notaryurl.com');
+    element(by.css('#notaryCert')).sendKeys(this.cert);
+    element(by.css('#notaryServer')).click();
     browser.sleep(stepperExpandDelay);
     // Outbound Proxy
     element(by.css('#opHttpHost')).sendKeys('127.0.0.1');
@@ -109,6 +135,9 @@ export class Zone {
         element(by.css('#conUrl')).getAttribute('value'),
         element(by.css('#conUsername')).getAttribute('value'),
         element(by.css('#conPassword')).getAttribute('value'),
+        element(by.css('#conCert')).getAttribute('value'),
+        element(by.css('#notaryUrl')).getAttribute('value'),
+        element(by.css('#notaryCert')).getAttribute('value'),
         element(by.css('#opHttpHost')).getAttribute('value'),
         element(by.css('#opHttpPort')).getAttribute('value'),
         element(by.css('#opHttpsHost')).getAttribute('value'),

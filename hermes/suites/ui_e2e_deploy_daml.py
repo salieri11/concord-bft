@@ -54,7 +54,7 @@ def fxLocalSetup(fxHermesRunSettings, fxProduct, fxConnection):
     repoPath = os.getcwd().split('/')[:-1]
     repoPath.append("ui")
     uiPath = '/'.join(repoPath)
-    vdisplay = Xvfb(width=4000, height=4000)
+    vdisplay = Xvfb(width=4000, height=6000)
     yield LocalSetupFixture(testLogDir=testLogDir, uiPath=uiPath, vdisplay=vdisplay)
     stopVDisplay(vdisplay)
 

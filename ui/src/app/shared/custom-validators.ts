@@ -47,8 +47,9 @@ export function protocolNotAllowed(options?: {optional?: boolean}): ValidatorFn 
 
 const validCert = (control, header, footer): boolean => {
   if (!control.value) {
-    return true
+    return true;
   }
+
   const cert = control.value.trim();
   const certArr = cert.split('\n');
   const validHeader: boolean = certArr[0] === header;
@@ -61,13 +62,14 @@ const validCert = (control, header, footer): boolean => {
 
     try {
       window.atob(body);
-    } catch(_) {
+    } catch (_) {
       valid = false;
     }
     return valid;
-  }
-   return validHeader && validFooter && validBody();
-}
+  };
+
+  return validHeader && validFooter && validBody();
+};
 
 export function validateCert(): ValidatorFn {
   return (control: AbstractControl): {[key: string]: any} | null => {

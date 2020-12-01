@@ -287,7 +287,7 @@ export class ZoneFormComponent implements AfterViewInit {
     this.insufficientSection.wavefront = !allKeysHaveValue(ctrls.metrics.get('wavefront').value);
     this.insufficientSection.elasticsearch = !allKeysHaveValue(ctrls.metrics.get('elasticsearch').value);
     this.insufficientSection.metrics = this.insufficientSection.wavefront && this.insufficientSection.elasticsearch;
-    this.insufficientSection.containerReg = !allKeysHaveValue(ctrls.container_repo.value);
+    this.insufficientSection.containerReg = !allKeysHaveValue(ctrls.container_repo.value, ['tls_certificate_data']);
     this.insufficientSection.notary_server = !allKeysHaveValue(ctrls.notary_server.value);
     this.insufficientSection.outboundProxy = !allKeysHaveValue(ctrls.outbound_proxy.value);
     // Some fields have value
@@ -295,7 +295,7 @@ export class ZoneFormComponent implements AfterViewInit {
     this.someValueMap.wavefront = someKeysHaveValue(ctrls.metrics.get('wavefront').value);
     this.someValueMap.elasticsearch = someKeysHaveValue(ctrls.metrics.get('elasticsearch').value);
     this.someValueMap.metrics = this.someValueMap.wavefront || this.someValueMap.elasticsearch;
-    this.someValueMap.containerReg = someKeysHaveValue(ctrls.container_repo.value);
+    this.someValueMap.containerReg = someKeysHaveValue(ctrls.container_repo.value, ['tls_certificate_data']);
     this.someValueMap.notary_server = someKeysHaveValue(ctrls.notary_server.value);
     this.someValueMap.outboundProxy = someKeysHaveValue(ctrls.outbound_proxy.value);
     const vCenterChanged = this.onPremConnectionLastTested !== this.getVCenterCredentialIndex().index;
@@ -306,7 +306,8 @@ export class ZoneFormComponent implements AfterViewInit {
   async afterLoadingFormForUpdate() {
     const wait = async (ms) => new Promise(r => { setTimeout(() => { r(); }, ms); });
     const buttonIds = [ 'nextButtonNameLocation', 'nextButtonVCenter', 'nextButtonLogManagement',
-                      'nextButtonMetricsManagement', 'nextButtonContainerRegistry', 'nextButtonOutboundProxy'];
+                      'nextButtonMetricsManagement', 'nextButtonContainerRegistry', 'notaryServer',
+                      'nextButtonOutboundProxy'];
     for (const buttonId of buttonIds) {
       for (let i = 0; i < 50; ++i) {
         const a = document.getElementById(buttonId);
