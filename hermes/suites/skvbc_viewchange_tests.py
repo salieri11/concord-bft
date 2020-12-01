@@ -70,7 +70,6 @@ async def _test_skvbc_view_change(bft_network):
     await skvbc_view_change_test.test_single_vc_only_primary_down(
         bft_network=bft_network,
         already_in_trio=True,
-        disable_linearizability_checks=True,
         exchange_keys=False
     )
     log.info("SKVBC view change test: OK")
