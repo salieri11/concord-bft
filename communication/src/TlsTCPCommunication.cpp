@@ -65,6 +65,44 @@ typedef unique_ptr<SSL_SOCKET> B_TLS_SOCKET_PTR;
 
 enum ConnType : uint8_t { NotDefined = 0, Incoming, Outgoing };
 
+const size_t kIOServicesThreadsNum = 8;
+
+class IoServices {
+ public:
+  IoServices(std::size_t number) : running{false}, m_ioServices(number) {}
+
+  IoServices() : IoServices(kIOServicesThreadsNum) {}
+
+  void start() {
+    for (auto &ioService : m_ioServices) {
+      m_idleWorks.emplace_back(ioService);
+      m_threads.emplace_back([&] { ioService.run(); });
+    }
+    running = true;
+  }
+
+  void stop() {
+    running = false;
+    for (auto &ioService : m_ioServices) ioService.stop();
+
+    for (auto &thread : m_threads)
+      if (thread.joinable()) thread.join();
+  }
+
+  bool isRunning() const { return running; }
+
+  ~IoServices() { stop(); }
+
+  asio::io_service &get() { return m_ioServices[(m_nextService++ % m_ioServices.size())]; }
+
+ private:
+  std::atomic<bool> running;
+  std::atomic<std::size_t> m_nextService{0};
+  std::vector<asio::io_service> m_ioServices;
+  std::vector<asio::io_service::work> m_idleWorks;
+  std::vector<std::thread> m_threads;
+};
+
 /**
  * this class will handle single connection using boost::make_shared idiom
  * will receive the IReceiver as a parameter and call it when new message
@@ -1065,7 +1103,8 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
 
   // NodeNum mapped to tuple<host, port> //
   NodeMap _nodes;
-  asio::io_service _service;
+  // asio::io_service _service;
+  IoServices _ioServices;
   uint16_t _listenPort;
   string _listenHost;
   uint32_t _bufferLength;
@@ -1147,7 +1186,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
   void start_accept() {
     LOG_DEBUG(_logger, "start_accept, node: " << _selfId);
     auto conn = AsyncTlsConnection::create(
-        &_service,
+        &_ioServices.get(),
         std::bind(&TlsTcpImpl::on_async_connection_error, shared_from_this(), std::placeholders::_1),
         std::bind(
             &TlsTcpImpl::on_connection_authenticated, shared_from_this(), std::placeholders::_1, std::placeholders::_2),
@@ -1194,7 +1233,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
 
   void create_outgoing_connection(NodeNum nodeId, string peerHost, uint16_t peerPort) {
     auto conn = AsyncTlsConnection::create(
-        &_service,
+        &_ioServices.get(),
         std::bind(&TlsTcpImpl::on_async_connection_error, shared_from_this(), std::placeholders::_1),
 
         std::bind(
@@ -1253,13 +1292,13 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
       // a protocol, host, and service directly, instead of a query object. That
       // overload is not yet available in boost 1.64, which we're using today.
       tcp::resolver::query query(tcp::v4(), _listenHost, std::to_string(_listenPort));
-      tcp::resolver resolver(_service);
+      tcp::resolver resolver(_ioServices.get());
       boost::system::error_code ec;
       tcp::resolver::iterator results = resolver.resolve(query, ec);
       if (!ec && results != tcp::resolver::iterator()) {
         tcp::endpoint ep = *results;
         LOG_INFO(_logger, "Resolved " << _listenHost << ":" << _listenPort << " to " << ep);
-        _pAcceptor = boost::make_unique<asio::ip::tcp::acceptor>(_service, ep);
+        _pAcceptor = boost::make_unique<asio::ip::tcp::acceptor>(_ioServices.get(), ep);
         start_accept();
       } else {
         LOG_WARN(_logger, "Unable to resolve listen host (" << _listenHost << ") for node " << _selfId << ": " << ec);
@@ -1289,8 +1328,9 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
       }
     }
 
-    _pIoThread = new std::thread(std::bind(
-        static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+    // _pIoThread = new std::thread(std::bind(
+    //    static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+    _ioServices.start();
 
     return 0;
   }
@@ -1306,7 +1346,8 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
       return 0;  // stopped
     }
 
-    _service.stop();
+    // _service.stop();
+    _ioServices.stop();
     if (_pIoThread->joinable()) {
       _pIoThread->join();
     }

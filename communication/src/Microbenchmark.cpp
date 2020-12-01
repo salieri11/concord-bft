@@ -58,7 +58,7 @@ auto log = logging::getLogger("comm_microbench");
 void signal_callback_handler(int signum) {
   cout << "Caught signal " << signum << endl;
   done = true;
-  if(is_server)
+  if (is_server)
     server_cv.notify_all();
   else
     client_cv.notify_all();
@@ -69,6 +69,7 @@ void signal_callback_handler(int signum) {
 class ServerReceiver : IReceiver {
   char* reply;
   int count = 0;
+
  public:
   ServerReceiver() {
     reply = new char[req_size_bytes];
@@ -82,7 +83,8 @@ class ServerReceiver : IReceiver {
     ++count;
     if (verbose && count > 0 && count % 1000 == 0) LOG_INFO(log, "total " << count);
     LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << count);
-    while(server->sendAsyncMessage(sourceNode, reply, req_size_bytes) != 0);
+    while (server->sendAsyncMessage(sourceNode, reply, req_size_bytes) != 0)
+      ;
   }
 };
 
@@ -96,12 +98,11 @@ class ClientReceiver : public IReceiver {
       received_bytes += messageLength;
       if (receive_counter == num_of_requests * num_of_clients) {
         done = true;
-    }
-    if(done)
-      client_cv.notify_all();
+      }
+      if (done) client_cv.notify_all();
 
-    if (verbose && receive_counter > 0 && receive_counter % 1000 == 0) LOG_INFO(log, "total " << receive_counter);
-    LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << receive_counter);
+      if (verbose && receive_counter > 0 && receive_counter % 1000 == 0) LOG_INFO(log, "total " << receive_counter);
+      LOG_DEBUG(log, "got " << messageLength << " bytes from " << sourceNode << ", total " << receive_counter);
     }
   }
 };
@@ -123,7 +124,8 @@ void start_client(const COMM_PTR&& client, uint&& client_id) {
   uint sent_counter = 0;
   while (sent_counter < num_of_requests) {
     // LOG_INFO(log, "sending " << i);
-    while (client->sendAsyncMessage(0, (const char*)request_bytes, req_size_bytes) != 0);
+    while (client->sendAsyncMessage(0, (const char*)request_bytes, req_size_bytes) != 0)
+      ;
     ++sent_counter;
     // std::this_thread::sleep_for(chrono::milliseconds(1));
   }
@@ -131,9 +133,7 @@ void start_client(const COMM_PTR&& client, uint&& client_id) {
   // std::this_thread::sleep_for(chrono::milliseconds(10));
   {
     unique_lock<mutex> ul(client_done_mutex);
-    client_cv.wait(ul, [&](){
-      return done;
-    });
+    client_cv.wait(ul, [&]() { return done; });
   }
 }
 
@@ -208,9 +208,7 @@ int main(int argc, char** argv) {
 
     auto start = chrono::steady_clock::now();
     for (int i = 0; i < num_of_clients; ++i) {
-      auto conf_client = TlsTcpConfig(
-          "0.0.0.0", 3501, 64000, nodes,
-          0, first_client_id + i, "certs", cipherSuite);
+      auto conf_client = TlsTcpConfig("0.0.0.0", 3501, 64000, nodes, 0, first_client_id + i, "certs", cipherSuite);
       clients.emplace_back(TlsTCPCommunication::create(conf_client));
       auto receiver = new ClientReceiver();
       clients.back()->setReceiver(i, receiver);
@@ -220,8 +218,7 @@ int main(int argc, char** argv) {
       t.join();
     }
 
-    for(auto &t : clients)
-      t->Stop();
+    for (auto& t : clients) t->Stop();
 
     threads.clear();
     clients.clear();
@@ -231,7 +228,8 @@ int main(int argc, char** argv) {
     auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count() - client_wait;
     double tp = (double)num_of_requests * num_of_clients / dur * 1000.0;
     ulong tp1 = num_of_requests * req_size_bytes * num_of_clients / dur * 1000;
-    cout << "Total: " << num_of_requests * num_of_clients << " requests, bytes sent: " << num_of_requests * req_size_bytes * num_of_clients
+    cout << "Total: " << num_of_requests * num_of_clients
+         << " requests, bytes sent: " << num_of_requests * req_size_bytes * num_of_clients
          << ", bytes received: " << received_bytes << ", dur: " << dur << " ms" << endl;
     cout << "TP: " << tp << " req/sec" << endl;
     cout << "TP: " << tp1 << " bytes/sec" << endl;
