@@ -819,14 +819,13 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
    log.debug("request {}".format(request))
    return ConnectionFixture(request=request, rpc=rpc)
 
-
 @pytest.fixture(scope="module")
 @describe("fixture; Install DAML")
 def fxInstallDamlSdk(fxBlockchain):
     global daml_sdk_path
-    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    participants, committers = helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
     log.info(participants)
     host = participants[0]
     log.info(host)
-    daml_sdk_version = util.daml.daml_helper.get_ledger_api_version(host)
-    daml_sdk_path = util.daml.daml_helper.install_daml_sdk(daml_sdk_version)
+    daml_sdk_version = daml_helper.get_ledger_api_version(host)
+    daml_sdk_path = daml_helper.install_daml_sdk(daml_sdk_version)

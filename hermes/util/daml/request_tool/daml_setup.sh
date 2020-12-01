@@ -73,8 +73,9 @@ then
   fi
 elif [ "$parameter" == "daml_test_crt" ]
 then
-test_type="${5}"
-java -jar /var/jenkins/workspace/vmwathena_blockchain/hermes/resources/mvn_repo/com/daml/ledger-api-test-tool/1.8.0-snapshot.20201110.5615.0.b35c9fcb/ledger-api-test-tool-1.8.0-snapshot.20201110.5615.0.b35c9fcb.jar --include "${test_type}" --timeout-scale-factor 20 --no-wait-for-parties --cacrt root-ca.crt --pem client.key --crt client.crt --concurrent-test-runs 1 "${ledger_host}":"${ledger_port}"
+test_type="${6}"
+test_jar="${7}"
+java -jar "${test_jar}" --include "${test_type}" --timeout-scale-factor 20 --no-wait-for-parties --cacrt root-ca.crt --pem client.key --crt client.crt --concurrent-test-runs 1 "${ledger_host}":"${ledger_port}"
 else
   error "**** Type not valid"
 fi

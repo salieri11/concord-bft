@@ -333,7 +333,7 @@ def verify_ledger_api_test_tool(ledger_endpoints=[('localhost','6861')],
       if verbose: log.info("")
       if verbose: log.info("#### Run test '{}'... ####".format(test))      
       if tls_enable_client:
-         status, output = daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='daml_test_crt', dar_path='', daml_test_type = test)
+         status, output = daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='daml_test_crt', dar_path='', daml_test_type = test, test_jar = download_ledger_api_test_tool(host)[0])
       else:
          cmd = [
          "java", "-jar", download_ledger_api_test_tool(host)[0],
@@ -592,9 +592,9 @@ def daml_tls_setup(host, port = "6865", path=TLS_CERT_PATH, parameter='', dar_pa
    log.info("\nSuccess and Output are {} and {}".format(success, stdout))
    return success,stdout 
    
-def daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='', dar_path='', daml_test_type = ''):
+def daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='', dar_path='', daml_test_type = '', test_jar = ''):
    os.chmod(DAML_SETUP_SCRIPT, 0o777)
-   cmd = [DAML_SETUP_SCRIPT, TLS_HOSTNAME, port, path, parameter, dar_path,daml_test_type]
+   cmd = [DAML_SETUP_SCRIPT, TLS_HOSTNAME, port, path, parameter, dar_path,daml_test_type,test_jar]
    success, stdout = util.helper.execute_ext_command(cmd, timeout=15000, working_dir=path)
    log.info("\nSuccess and Output are {} and {}".format(success, stdout))
    return success,stdout 
