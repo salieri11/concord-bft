@@ -536,17 +536,13 @@ void RunThinReplicaServer(
                  << thin_replica_tls_cert_path);
     std::string server_cert, server_key, server_root;
 
-    std::string server_cert_path =
-        thin_replica_tls_cert_path + "/" +
-        commConfig->nodes[replicaConfig->replicaId].host;
-
     // Read the certs
-    readCert(server_cert_path + "/server.cert", server_cert);
-    readCert(server_cert_path + "/pk.pem", server_key);
+    readCert(thin_replica_tls_cert_path + "/server.cert", server_cert);
+    readCert(thin_replica_tls_cert_path + "/pk.pem", server_key);
 
     // client.cert is a composite cert file i.e., a concatentation of the
     // certificates of all known clients
-    readCert(server_cert_path + "/client.cert", server_root);
+    readCert(thin_replica_tls_cert_path + "/client.cert", server_root);
 
     grpc::SslServerCredentialsOptions::PemKeyCertPair keycert = {server_key,
                                                                  server_cert};

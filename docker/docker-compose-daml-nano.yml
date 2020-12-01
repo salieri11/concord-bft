@@ -30,7 +30,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord1:/concord/trs_trc_tls_certs:ro
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
@@ -51,7 +51,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord2:/concord/trs_trc_tls_certs:ro
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
@@ -72,7 +72,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord3:/concord/trs_trc_tls_certs:ro
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
@@ -93,7 +93,7 @@ services:
       - ./config-public:/concord/config-public:ro
       - ./signing_keys:/concord/signing_keys:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord4:/concord/trs_trc_tls_certs:ro
 
   daml_ledger_api1:
     image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
@@ -119,7 +119,7 @@ services:
     volumes:
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/daml_ledger_api1:/concord/trs_trc_tls_certs:ro
 
   daml_execution_engine1:
     image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
