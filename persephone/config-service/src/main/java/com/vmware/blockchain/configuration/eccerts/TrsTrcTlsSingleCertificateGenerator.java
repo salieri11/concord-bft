@@ -16,12 +16,6 @@ import com.vmware.blockchain.deployment.v1.IdentityFactors;
  */
 public class TrsTrcTlsSingleCertificateGenerator implements CertificatesGenerator {
 
-    private String identifier;
-
-    public TrsTrcTlsSingleCertificateGenerator(String identifier) {
-        this.identifier = identifier;
-    }
-
     @Override
     public List<Identity> generateSelfSignedCertificates(int numCerts, ServiceType type) {
         throw new UnsupportedOperationException("CN and OU needs to be provided for TRC and TRS certificates.");
@@ -35,14 +29,13 @@ public class TrsTrcTlsSingleCertificateGenerator implements CertificatesGenerato
         if (numCerts > 1) {
             throw new UnsupportedOperationException("Only single certificate generation is supported.");
         }
-        String pathEnd = "/" + this.identifier;
         String path;
         String certName;
         if (type.equals(ServiceType.CONCORD)) {
-            path = FILE_PREFIX + TRS_TLS_IDENTITY_PATH + pathEnd;
+            path = FILE_PREFIX + TRS_TLS_IDENTITY_PATH;
             certName = "server.cert";
         } else if (type.equals(ServiceType.DAML_LEDGER_API)) {
-            path = FILE_PREFIX + TRC_TLS_IDENTITY_PATH + pathEnd;
+            path = FILE_PREFIX + TRC_TLS_IDENTITY_PATH;
             certName = "client.cert";
         } else {
             throw new IllegalArgumentException("Certs only for TRS and TRC are supported.");

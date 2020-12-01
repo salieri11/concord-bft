@@ -183,52 +183,29 @@ public class IdentityManagementUtilTest {
         identityComponentsLists.getTrsIdentityComponents().forEach((key, value) -> {
             Assertions.assertEquals(3, value.size());
             value.forEach(val -> {
-                testTrsTrcTlsIdentities(key, val.getUrl(), clientGroupIdList, addrList);
+                testTrsTrcTlsIdentities(key, val.getUrl(), serverIdList, clientIdList);
             });
         });
 
         identityComponentsLists.getTrcIdentityComponents().forEach((key, value) -> {
             Assertions.assertEquals(3, value.size());
             value.forEach(val -> {
-                testTrsTrcTlsIdentities(key, val.getUrl(), clientGroupIdList, addrList);
+                testTrsTrcTlsIdentities(key, val.getUrl(), serverIdList, clientIdList);
             });
         });
 
     }
 
     private void testTrsTrcTlsIdentities(String key, String url,
-                                         List<String> clientGroupIdList, List<String> addrList) {
-        switch (key) {
-            case "node1":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + addrList.get(0)));
-                break;
-            case "node2":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + addrList.get(1)));
-                break;
-            case "node3":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + addrList.get(2)));
-                break;
-            case "node4":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + addrList.get(3)));
-                break;
-            case "participant0":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + clientGroupIdList.get(0)));
-                break;
-            case "participant1":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + clientGroupIdList.get(1)));
-                break;
-            case "participant2":
-                Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
-                        + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + clientGroupIdList.get(1)));
-                break;
-            default:
-                Assertions.assertTrue(false, "No other path structure should be allowed.");
+                                         List<String> replicaList, List<String> clientList) {
+        if (replicaList.contains(key)) {
+            Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
+                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH));
+        } else if (clientList.contains(key)) {
+            Assertions.assertTrue(url.contains(CertificatesGenerator.FILE_PREFIX
+                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH));
+        } else {
+            Assertions.fail("No other path structure should be allowed.");
         }
     }
 

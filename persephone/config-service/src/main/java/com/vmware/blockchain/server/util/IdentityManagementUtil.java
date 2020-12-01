@@ -174,7 +174,6 @@ public class IdentityManagementUtil {
         });
         String concatReplica = concatCerts(replicaIdentities);
         String concatClient = concatCerts(clientIdentities);
-        Map<String, String> nodesMap = this.nodeList.getAllNodesIdsAndIps();
         futRes.forEach(res -> {
             List<IdentityComponent> components = new ArrayList<>();
             components.add(res.getValue().getCertificate());
@@ -183,14 +182,14 @@ public class IdentityManagementUtil {
                 components.add(getCertIdentity(concatClient,
                         CertificatesGenerator.FILE_PREFIX
                                 + CertificatesGenerator.TRS_TLS_IDENTITY_PATH
-                                + "/" + nodesMap.get(res.getKey()) + "/" + "client.cert"));
+                                + "/client.cert"));
                 trsIdentityComponents.put(res.getKey(), components);
             }
             if (clientIds.contains(res.getKey())) {
                 components.add(getCertIdentity(concatReplica,
                         CertificatesGenerator.FILE_PREFIX
                                 + CertificatesGenerator.TRC_TLS_IDENTITY_PATH
-                                + "/" + clientIdMap.get(res.getKey()) + "/" + "server.cert"));
+                                + "/server.cert"));
                 trcIdentityComponents.put(res.getKey(), components);
             }
         });
@@ -327,7 +326,7 @@ public class IdentityManagementUtil {
      */
     private Map.Entry<String, Identity> getTrsTrcIdentityPerNode(String id, ServiceType serviceType,
                                                                         String identifier, String blockchainId) {
-        CertificatesGenerator certificatesGenerator = new TrsTrcTlsSingleCertificateGenerator(identifier);
+        CertificatesGenerator certificatesGenerator = new TrsTrcTlsSingleCertificateGenerator();
         List<Identity> identity = certificatesGenerator
                 .generateSelfSignedCertificates(1, serviceType, identifier, blockchainId);
 

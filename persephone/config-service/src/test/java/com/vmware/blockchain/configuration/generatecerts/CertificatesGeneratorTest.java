@@ -115,24 +115,24 @@ class CertificatesGeneratorTest {
             String id = "myId";
             String cn = "myCN";
             String ou = "myOU";
-            CertificatesGenerator certGen = new TrsTrcTlsSingleCertificateGenerator(id);
+            CertificatesGenerator certGen = new TrsTrcTlsSingleCertificateGenerator();
             var actual = certGen.generateSelfSignedCertificates(1, ServiceType.CONCORD, cn, ou);
             assert (actual.size() == 1);
             Identity identity = actual.get(0);
             testCertificate(identity, cn, ou);
             assert (identity.getCertificate().getUrl().equals(CertificatesGenerator.FILE_PREFIX
-                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + id + "/server.cert"));
+                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/server.cert"));
             assert (identity.getKey().getUrl().equals(CertificatesGenerator.FILE_PREFIX
-                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/" + id + "/pk.pem"));
+                    + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/pk.pem"));
 
             actual = certGen.generateSelfSignedCertificates(1, ServiceType.DAML_LEDGER_API, cn, ou);
             assert (actual.size() == 1);
             identity = actual.get(0);
             testCertificate(identity, cn, ou);
             assert (identity.getCertificate().getUrl().equals(CertificatesGenerator.FILE_PREFIX
-                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + id + "/client.cert"));
+                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/client.cert"));
             assert (identity.getKey().getUrl().equals(CertificatesGenerator.FILE_PREFIX
-                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/" + id + "/pk.pem"));
+                    + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/pk.pem"));
         });
     }
 
@@ -141,7 +141,7 @@ class CertificatesGeneratorTest {
         CertificatesGenerator certGen = new ConcordEcCertificatesGenerator();
         testIdentityFactor(certGen.getIdentityFactor());
 
-        certGen = new TrsTrcTlsSingleCertificateGenerator("myId");
+        certGen = new TrsTrcTlsSingleCertificateGenerator();
         testIdentityFactor(certGen.getIdentityFactor());
     }
 
