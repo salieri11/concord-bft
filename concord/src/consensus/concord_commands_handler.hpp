@@ -113,6 +113,10 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
               uint32_t &out_replica_specific_info_size,
               concordUtils::SpanWrapper &parent_span) override;
 
+  virtual void execute(ExecutionRequestsQueue &requests,
+                       const std::string &batchCid,
+                       concordUtils::SpanWrapper &parent_span) override;
+
   // Parses the request buffer in case it contains a pre-execution response
   static bool parseFromPreExecutionResponse(
       const char *request_buffer, uint32_t request_size,
