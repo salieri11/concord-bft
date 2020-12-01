@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 
 import com.google.common.base.Strings;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
+import com.vmware.blockchain.configuration.generateconfig.ConcordOperatorConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
 import com.vmware.blockchain.configuration.generateconfig.Constants;
 import com.vmware.blockchain.configuration.generateconfig.DamlExecutionEngineUtil;
@@ -125,7 +126,8 @@ public class ConfigurationServiceHelper {
     }
 
     List<ConfigurationComponent> nodeIndependentConfigs(String consortiumId, String blockchainId,
-                                                        NodesInfo.Entry nodeInfo, String nodeType)
+                                                        NodesInfo.Entry nodeInfo, String nodeType,
+                                                        String operatorConfig)
             throws ConfigServiceException {
         if (consortiumId == null || blockchainId == null || nodeInfo == null || nodeType == null) {
             log.error("consortiumId {} blockchainId {} nodeInfo {} nodeType {}", consortiumId, blockchainId, nodeInfo,
@@ -201,6 +203,15 @@ public class ConfigurationServiceHelper {
                                 .build());
                     }
 
+                    if (!Strings.isNullOrEmpty(operatorConfig)) {
+                        nodeIsolatedConfiguration.add(ConfigurationComponent.newBuilder()
+                                                              .setType(serviceType)
+                                                              .setComponentUrl(
+                                                                      ConcordOperatorConfigUtil.operatorConfigPath)
+                                                              .setComponent(operatorConfig)
+                                                              .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                                              .build());
+                    }
                     break;
                 case DAML_INDEX_DB:
                     DamlIndexDbUtil damlIndexDbUtil = new DamlIndexDbUtil();
@@ -319,7 +330,8 @@ public class ConfigurationServiceHelper {
                                                   ConcordEcCertificatesGenerator certGen,
                                                   Map<String, Map<String, String>> concordConfig,
                                                   Map<String, String> bftClientConfig,
-                                                  IdentityComponentsLists identityComponentsLists) {
+                                                  IdentityComponentsLists identityComponentsLists,
+                                                  String operatorKey) {
 
         Map<String, List<IdentityComponent>> concordIdentityComponents = identityComponentsLists
                 .getConcordIdentityComponents();
@@ -368,6 +380,17 @@ public class ConfigurationServiceHelper {
                             .build());
                 }
             });
+
+            // Placing operator keys
+            if (!Strings.isNullOrEmpty(operatorKey)) {
+                output.add(ConfigurationComponent.newBuilder()
+                                   .setType(ServiceType.CONCORD)
+                                   .setComponentUrl(Constants.CONCORD_OPERATOR_KEY_FOLDER_PATH + "/operator_pub.pem")
+                                   .setComponent(operatorKey)
+                                   .setIdentityFactors(IdentityFactors.newBuilder().build())
+                                   .setFilePermissions(Constants.CONCORD_CONFIG_FILE_PERMISSIONS)
+                                   .build());
+            }
         }
 
         if (concordIdentityComponents.containsKey(nodeId)) {

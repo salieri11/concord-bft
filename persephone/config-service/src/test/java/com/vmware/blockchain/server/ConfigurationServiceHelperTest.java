@@ -263,7 +263,7 @@ public class ConfigurationServiceHelperTest {
         nodes.forEach(nodeId -> {
             List<ConfigurationComponent> nodeConfig =
                     helper.buildNodeConfigs(nodeId, componentList, certGen, concordConfig, bftClientConfig,
-                            identityComponentsList);
+                            identityComponentsList, null);
             Assertions.assertTrue(nodeConfig.size() >= 9);
         });
     }
@@ -274,7 +274,7 @@ public class ConfigurationServiceHelperTest {
         nodes.forEach(nodeId -> {
             List<ConfigurationComponent> nodeConfig =
                     helper.buildNodeConfigs(nodeId, componentList, certGen, concordConfig, bftClientConfig,
-                            identityComponentsList);
+                            identityComponentsList, null);
             Assertions.assertTrue(nodeConfig.size() == 4);
         });
     }

@@ -19,6 +19,8 @@ public enum ErrorCode {
                                      "CS could not generate configuration.", null),
     CONCORD_CONFIGURATION_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, Status.INTERNAL,
                                      "CS could not generate Concord configuration.", null),
+    CONCORD_OPERATOR_CONFIGURATION_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, Status.INTERNAL,
+                                  "CS could not generate Operator configuration.", null),
     BFT_CONFIGURATION_FAILURE(HttpStatus.INTERNAL_SERVER_ERROR, Status.INTERNAL,
                                      "CS could not generate BFT configuration.", null),
     CONFIGURATION_SERVICE_INPUT_MISSING_NODES(HttpStatus.BAD_REQUEST, Status.INVALID_ARGUMENT,

@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,6 @@ import org.yaml.snakeyaml.Yaml;
 import com.vmware.blockchain.configuration.util.BlockchainClient;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReplica;
-import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 
 /**
@@ -25,7 +25,7 @@ import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 public class BftClientConfigUtilTest {
 
     private static String filePath = "/tmp/bftConfigUtilTest";
-    private static ConfigurationSessionIdentifier sessionId = ConfigurationSessionIdentifier.newBuilder().build();
+    private static UUID sessionId = UUID.randomUUID();
 
     @Test
     void testConfigUtilPositive() throws IOException {

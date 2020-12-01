@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -24,7 +25,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
 
@@ -43,7 +43,7 @@ public class ConfigUtilHelpers {
 
     // Default script command, can be overwritten for tests.
     private static final String CONCORD_GEN_CONFIG_CMD_DEFAULT = "/app/conc_genconfig";
-    private static List<String> concordGenConfigCmd = List.of(CONCORD_GEN_CONFIG_CMD_DEFAULT);
+    public static List<String> concordGenConfigCmd = List.of(CONCORD_GEN_CONFIG_CMD_DEFAULT);
     private static final String CLIENTS_KEY = "clients";
     private static final String READ_REPLICAS_KEY = "ro-replicas";
     private static final String REPLICAS_KEY = "replicas";
@@ -77,7 +77,8 @@ public class ConfigUtilHelpers {
         OBJ_STORE_RO_NODE("ro_node"),
         OBJ_STORE_NUM_RO_REPLICAS("num_ro_replicas"),
         OBJ_STORE_RO_NODE_TEMPLATE("ro_node__TEMPLATE"),
-        INSECURE_TRC_SERVER("insecure_thin_replica_server");
+        INSECURE_TRC_SERVER("insecure_thin_replica_server"),
+        OPERATOR_SIGNING_KEYS("signing_key_path");
 
         String name;
 
@@ -282,7 +283,7 @@ public class ConfigUtilHelpers {
      * @throws ConfigServiceException during any configuration error
      */
     protected static Map<Integer, List<Integer>> getPrincipals(String principalsMapFile,
-                                                               ConfigurationSessionIdentifier sessionId)
+                                                               UUID sessionId)
             throws IOException, ConfigServiceException {
         var principalStr = Files.readString(Path.of(principalsMapFile));
         if (principalStr.isBlank() || principalStr.isEmpty()) {

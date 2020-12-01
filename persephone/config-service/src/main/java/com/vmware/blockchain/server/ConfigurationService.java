@@ -9,6 +9,7 @@ import java.security.Security;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +27,7 @@ import com.google.common.cache.CacheBuilder;
 import com.vmware.blockchain.configuration.eccerts.ConcordEcCertificatesGenerator;
 import com.vmware.blockchain.configuration.generateconfig.BftClientConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ConcordConfigUtil;
+import com.vmware.blockchain.configuration.generateconfig.ConcordOperatorConfigUtil;
 import com.vmware.blockchain.configuration.generateconfig.ValidationUtil;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
@@ -67,6 +69,11 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     private String bftClientConfigPath;
 
     /**
+     * Operator config Template path.
+     **/
+    private String operatorConfigTemplatePath;
+
+    /**
      * Executor to use for all async service operations.
      */
     private final ExecutorService executor;
@@ -86,9 +93,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                  String concordConfigTemplatePath,
                          @Value("${config.template.path:BFTClientConfigTemplate.yaml}")
                                  String bftClientConfigTemplatePath,
+                         @Value("${config.template.path:ConcordOperatorConfigTemplate.yaml}")
+                                 String operatorConfigTemplatePath,
                          ConfigurationServiceHelper configurationServiceHelper) {
         this.concordConfigPath = concordConfigTemplatePath;
         this.bftClientConfigPath = bftClientConfigTemplatePath;
+        this.operatorConfigTemplatePath = operatorConfigTemplatePath;
         this.executor = executor;
         this.configurationServiceHelper = configurationServiceHelper;
         initialize();
@@ -141,9 +151,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void createConfigurationV2(@NotNull ConfigurationServiceRequestV2 request,
                                       @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
-        var sessionId = ConfigurationServiceUtil.newSessionUId();
+        var sessionId = UUID.randomUUID();
         log.info("Request received. Session Id : {}\n Request : {}", sessionId, request.toString());
-        BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(request.getNodesMap(), sessionId.getId());
+        BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(request.getNodesMap(), sessionId);
 
         // Validate the nodes based on the blockchain type.
         if (!ValidationUtil.isValidNodeCount(nodeList, request.getBlockchainType())) {
@@ -207,20 +217,21 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                 .isSplitConfig(isSplitConfig)
                 .isObjectStoreEnabled(isObjStoreEnabled)
                 .isTrcTlsEnabled(isTrsTrcTlsEnabled)
+                .operatorSigningKey(request.getGenericProperties().getValuesMap()
+                                            .getOrDefault(DeploymentAttributes.DEPLOY_OPERATOR.name(), null))
                 .build();
 
-        Map<String, Map<String, String>> concordConfig = null;
-        try {
-            concordConfig = configUtil.getConcordConfig(nodeList,
+        Map<String, Map<String, String>> concordConfig = configUtil.getConcordConfig(nodeList,
                                                         convertToLegacy(request.getBlockchainType()), numClients,
                                                         bcFeatures);
-        } catch (IOException e) {
-            var msg = "Failed to generate Concord configurations for session Id : " + sessionId;
-            log.error(msg, e);
-            throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_FAILURE, msg, e);
-        }
-
         log.info("Generated concord configurations for session Id : {}", sessionId);
+
+        var operatorConfigUtil =
+                new ConcordOperatorConfigUtil(operatorConfigTemplatePath, sessionId);
+        final String operatorConfig = operatorConfigUtil.getConcordOperatorConfig(nodeList, clientProxyPerParticipant,
+                                                                                  bcFeatures);
+
+        log.info("Generated operator configurations for session Id : {}", sessionId);
 
         Map<String, List<ConfigurationComponent>> configByNodeId = new HashMap<>();
         // TODO: There is inconsistency here wrt nodesInfo != deploymentAttributes.
@@ -235,7 +246,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                                                                              request.getConsortiumId(),
                                                                                              request.getBlockchainId(),
                                                                                              eachNode,
-                                                                                             nodeType))));
+                                                                                             nodeType,
+                                                                                             operatorConfig))));
         } catch (ConfigServiceException e) {
             throw e;
         } catch (Exception e) {
@@ -266,11 +278,12 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             // Need these copy objects to satisfy lambda function.
             Map<String, Map<String, String>> finalConcordConfig = concordConfig;
             configByNodeId.forEach((nodeId, componentList) -> {
-                String key = String.join(separator, sessionId.getId(), nodeId);
+                String key = String.join(separator, sessionId.toString(), nodeId);
                 log.info("Persisting configurations for session: {}, node: {} in memory...", sessionId, nodeId);
                 cacheByNodeId.put(key, configurationServiceHelper.buildNodeConfigs(nodeId, componentList, certGen,
                                                                                     finalConcordConfig, bftClientConfig,
-                                                                                    identityComponentsLists));
+                                                                                    identityComponentsLists,
+                                                                                   bcFeatures.getOperatorSigningKey()));
             });
         } catch (ConfigServiceException e) {
             throw e;
@@ -280,9 +293,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                              "Error organizing the configurations for sessions {}" + sessionId, e);
         }
 
-
-
-        observer.onNext(sessionId);
+        observer.onNext(ConfigurationSessionIdentifier.newBuilder()
+                                .setId(sessionId.toString())
+                                .build());
         observer.onCompleted();
     }
 

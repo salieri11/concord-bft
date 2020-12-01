@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.AfterAll;
@@ -67,17 +68,19 @@ public class ConfigurationServiceUtilTest {
                 .build();
         nodesInfoMap.put(NodeType.REPLICA.name(), NodesInfo.newBuilder().addEntries(entry).build());
         List<BlockchainReplica> replicas = ConfigurationServiceUtil.getNodeListOfType(nodesInfoMap, NodeType.REPLICA,
-                                                                            BlockchainReplica.class, "id");
+                                                                                      BlockchainReplica.class,
+                                                                                      UUID.randomUUID());
         Assertions.assertTrue(!replicas.isEmpty());
     }
 
 
     @Test
     void testGetNodeListOfTypeNegative() {
+        var id = UUID.randomUUID();
         org.assertj.core.api.Assertions.assertThatExceptionOfType(ConfigServiceException.class)
                 .isThrownBy(() -> ConfigurationServiceUtil.getNodeListOfType(null, NodeType.READ_REPLICA,
-                                                                             BlockchainReplica.class, "id"))
-                .withMessage("Invalid node data in the request : id");
+                                                                             BlockchainReplica.class, id))
+                .withMessage("Invalid node data in the request : " + id);
     }
 
     @Test
@@ -93,7 +96,7 @@ public class ConfigurationServiceUtilTest {
         nodesInfoMap.put(NodeType.READ_REPLICA.name(), NodesInfo.newBuilder().addEntries(entry2).build());
         nodesInfoMap.put(NodeType.CLIENT.name(), NodesInfo.newBuilder().addEntries(entry3).build());
 
-        BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(nodesInfoMap, "id");
+        BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(nodesInfoMap, UUID.randomUUID());
         Assertions.assertEquals(1, nodeList.getReplicaSize(), "Replica size is not correct.");
         Assertions.assertEquals(1, nodeList.getClientSize(), "Client size is not correct.");
         Assertions.assertEquals(1, nodeList.getReadReplicaSize(),
@@ -105,9 +108,10 @@ public class ConfigurationServiceUtilTest {
 
     @Test
     void testGetNodeListNegative() {
+        var id = UUID.randomUUID();
         org.assertj.core.api.Assertions.assertThatExceptionOfType(ConfigServiceException.class)
-                .isThrownBy(() -> ConfigurationServiceUtil.getNodeList(null, "id"))
-                .withMessage("Invalid node data in the request : id");
+                .isThrownBy(() -> ConfigurationServiceUtil.getNodeList(null, id))
+                .withMessage("Invalid node data in the request : " + id);
     }
 
 }

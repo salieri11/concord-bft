@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.configuration.generateconfig;
 
+import static com.vmware.blockchain.configuration.generateconfig.Constants.CONCORD_OPERATOR_KEY_FOLDER_PATH;
+
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
@@ -23,13 +26,13 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReadReplica;
 import com.vmware.blockchain.configuration.util.BlockchainReplica;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification.BlockchainType;
-import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
 import com.vmware.blockchain.server.exceptions.ErrorCode;
 
@@ -42,12 +45,12 @@ public class ConcordConfigUtil {
 
     private String concordConfigTemplatePath;
 
-    private ConfigurationSessionIdentifier sessionId;
+    private UUID sessionId;
 
     // Do we want to keep temporary files?
     private boolean keepTempFiles;
 
-    public ConcordConfigUtil(String concordConfigTemplatePath, ConfigurationSessionIdentifier sessionId) {
+    public ConcordConfigUtil(String concordConfigTemplatePath, UUID sessionId) {
         this.concordConfigTemplatePath = concordConfigTemplatePath;
         this.sessionId = sessionId;
     }
@@ -59,7 +62,7 @@ public class ConcordConfigUtil {
      * @param sessionId                 session id
      * @param keepTempFiles             Directive to keep temporary files
      */
-    public ConcordConfigUtil(String concordConfigTemplatePath, ConfigurationSessionIdentifier sessionId,
+    public ConcordConfigUtil(String concordConfigTemplatePath, UUID sessionId,
                              boolean keepTempFiles) {
         this.concordConfigTemplatePath = concordConfigTemplatePath;
         this.sessionId = sessionId;
@@ -82,8 +85,7 @@ public class ConcordConfigUtil {
      * @throws IOException when config generation fails.
      */
     public Map<String, Map<String, String>> getConcordConfig(BlockchainNodeList nodeList, BlockchainType blockchainType,
-                                                             int bftClients, BlockchainFeatures bcFeatures)
-            throws IOException, ConfigServiceException {
+                                                             int bftClients, BlockchainFeatures bcFeatures) {
         if (!ValidationUtil.isValid(nodeList) || !ValidationUtil.isValid(nodeList.getReplicas())
             || !ValidationUtil.isValid(blockchainType) || !ValidationUtil.isValid(bcFeatures)) {
             log.error("Essential parameters are missing. replicas: {}, blockchainType: {}, bcFeatures: {}.",
@@ -113,7 +115,7 @@ public class ConcordConfigUtil {
                                 var principalsMap = ConfigUtilHelpers.getPrincipals(principalsMapFile, sessionId);
                                 principalsMap.forEach((key, value) -> nodePrincipal.putIfAbsent(key - 1, value));
 
-                                // Add read replias only when object store feature is enabled.
+                                // Add read replicas only when object store feature is enabled.
                                 if (bcFeatures.isObjectStoreEnabled()) {
                                     putReadReplicasInNodePrincipals(nodePrincipal, nodeList);
                                 }
@@ -138,9 +140,9 @@ public class ConcordConfigUtil {
             work.join();
             return result;
         } catch (IOException e) {
-            log.error("Exception while generating concord config for session id : {} \n{}",
-                      sessionId, e);
-            throw e;
+            var msg = "Failed to generate Concord configurations for session Id : " + sessionId;
+            log.error(msg, e);
+            throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_FAILURE, msg, e);
         }
     }
 
@@ -222,6 +224,11 @@ public class ConcordConfigUtil {
         if (configInput == null) {
             throw new ConfigServiceException(ErrorCode.CONCORD_CONFIGURATION_INVALID_INPUT_FAILURE,
                                              "Configuration input file is missing.");
+        }
+
+        if (!Strings.isNullOrEmpty(bcFeatures.getOperatorSigningKey())) {
+            configInput.put(ConfigUtilHelpers.ConfigProperty.OPERATOR_SIGNING_KEYS.name,
+                            CONCORD_OPERATOR_KEY_FOLDER_PATH);
         }
 
         //FIXME: Add provision to have more than one BlockchainType

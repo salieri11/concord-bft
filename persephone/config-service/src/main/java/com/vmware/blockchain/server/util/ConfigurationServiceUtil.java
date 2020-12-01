@@ -15,7 +15,6 @@ import com.vmware.blockchain.configuration.util.BlockchainNode;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReadReplica;
 import com.vmware.blockchain.configuration.util.BlockchainReplica;
-import com.vmware.blockchain.deployment.v1.ConfigurationSessionIdentifier;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodeType;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
@@ -32,17 +31,6 @@ import lombok.extern.slf4j.Slf4j;
 public class ConfigurationServiceUtil {
 
     /**
-     * Generate a new {@link ConfigurationSessionIdentifier}.
-     *
-     * @return
-     *   a new {@link ConfigurationSessionIdentifier} instance.
-     */
-
-    public static ConfigurationSessionIdentifier newSessionUId() {
-        return ConfigurationSessionIdentifier.newBuilder().setId(UUID.randomUUID().toString()).build();
-    }
-
-    /**
      * Create and return a list of Node type objects. NodeType values are mapped to a subclass of Node class. For
      * example: NodeType.REPLICA is mapped to Replica NodeType.READ_REPLICA is mapped to ReadReplica NodeType.CLIENT is
      * mapped to Client
@@ -56,7 +44,7 @@ public class ConfigurationServiceUtil {
      */
     protected static <T extends BlockchainNode> List<T> getNodeListOfType(Map<String, NodesInfo> nodesInfoMap,
                                                                           NodeType nodeType, Class<T> clazz,
-                                                                          String sessionId)
+                                                                          UUID sessionId)
             throws ConfigServiceException {
         if (nodesInfoMap == null || nodesInfoMap.isEmpty() || nodeType == null) {
             log.error("NodesInfo map is empty or Invalid node type.");
@@ -105,7 +93,7 @@ public class ConfigurationServiceUtil {
      * @param nodesInfoMap Node map from request.
      * @return NodeList
      */
-    public static BlockchainNodeList getNodeList(Map<String, NodesInfo> nodesInfoMap, String sessionId)
+    public static BlockchainNodeList getNodeList(Map<String, NodesInfo> nodesInfoMap, UUID sessionId)
             throws ConfigServiceException {
         if (nodesInfoMap == null || nodesInfoMap.isEmpty()) {
             log.error("Nodes info map is empty.");
