@@ -100,6 +100,31 @@ def _get_castor_output_file(castorOutputDir):
     castorOutputFile = os.path.join(castorOutputDir, outputFileBase)
     return castorOutputFile
 
+def _get_docker_container_registry_settings():
+    # We need the docker information.  Currently, we put this in the Persephone properties
+    # file when we are testing.  Let's keep that as the source of truth for now.
+    with open(util.product.persephoneConfigFile, "r") as f:
+        for line in f.readlines():
+            if line.startswith("provisioning.container.registry.address="):
+                container_address = line.split("=")[1].strip()
+                log.info("docker container registry address: %s" % container_address)
+            elif line.startswith("provisioning.container.registry.username="):
+                container_user = line.split("=")[1].strip()
+                log.info("docker container registry user: %s" % container_user)
+            elif line.startswith("provisioning.container.registry.password="):
+                container_pwd = line.split("=")[1].strip()
+                log.info("docker container registry key exists, of length: %s" % len(container_pwd))
+
+    if container_pwd.startswith("<") and container_pwd.endswith(">"):
+        raise Exception("Ensure that usernames, passwords, etc... are valid in " \
+                        "{}".format(util.product.persephoneConfigFile))
+
+    return {
+        'container_address': container_address,
+        'container_user': container_user,
+        'container_pwd': container_pwd
+    }
+
 
 def _populateDescriptorFiles(fxHermesRunSettings):
     """
@@ -127,17 +152,26 @@ def _populateDescriptorFiles(fxHermesRunSettings):
 
     infraDescriptor = json.loads(data)
 
-    infraDescriptor['zones'][0]['vCenter']['url'] = url
-    infraDescriptor['zones'][0]['vCenter']['userName'] = userName
-    infraDescriptor['zones'][0]['vCenter']['password'] = password
-    infraDescriptor['zones'][0]['vCenter']['resourcePool'] = resource
-    infraDescriptor['zones'][0]['vCenter']['storage'] = storage
-    infraDescriptor['zones'][0]['vCenter']['folder'] = folder
+    # Retrieve docker container settings for the infra descriptor
+    dcr = _get_docker_container_registry_settings();
 
-    infraDescriptor['zones'][0]['network']['name'] = networkName
-    infraDescriptor['zones'][0]['network']['gateway'] = gateway
-    infraDescriptor['zones'][0]['network']['subnet'] = subnet
-    infraDescriptor['zones'][0]['network']['nameServers'] = nameServers
+    for zoneNum in range(2):
+        infraDescriptor['zones'][zoneNum]['vCenter']['url'] = url
+        infraDescriptor['zones'][zoneNum]['vCenter']['userName'] = userName
+        infraDescriptor['zones'][zoneNum]['vCenter']['password'] = password
+        infraDescriptor['zones'][zoneNum]['vCenter']['resourcePool'] = resource
+        infraDescriptor['zones'][zoneNum]['vCenter']['storage'] = storage
+        infraDescriptor['zones'][zoneNum]['vCenter']['folder'] = folder
+
+        infraDescriptor['zones'][zoneNum]['network']['name'] = networkName
+        infraDescriptor['zones'][zoneNum]['network']['gateway'] = gateway
+        infraDescriptor['zones'][zoneNum]['network']['subnet'] = subnet
+        infraDescriptor['zones'][zoneNum]['network']['nameServers'] = nameServers
+
+        infraDescriptor['zones'][zoneNum]['containerRegistry'] = {}
+        infraDescriptor['zones'][zoneNum]['containerRegistry']['url'] = dcr['container_address']
+        infraDescriptor['zones'][zoneNum]['containerRegistry']['userName'] = dcr['container_user']
+        infraDescriptor['zones'][zoneNum]['containerRegistry']['password'] = dcr['container_pwd']
 
     # Write back the updated model
     with open(infraFilePath, "w") as infraFile:

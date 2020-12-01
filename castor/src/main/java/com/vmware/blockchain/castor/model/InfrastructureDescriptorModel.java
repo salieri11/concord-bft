@@ -220,6 +220,7 @@ public class InfrastructureDescriptorModel {
         private OutboundProxy outboundProxy;
 
         @Valid
+        @NotNull(message = "container.registry.not.specified")
         private ContainerRegistry containerRegistry;
 
         @Valid

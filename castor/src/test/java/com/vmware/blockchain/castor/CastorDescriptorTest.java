@@ -67,6 +67,8 @@ public class CastorDescriptorTest {
             "classpath:descriptors/test01_invalid_url_infrastructure_descriptor_1.json";
     private static final String INVALID_INFRASTRUCTURE_DESCRIPTOR_2 =
             "classpath:descriptors/test01_invalid_infrastructure_descriptor_2.json";
+    private static final String INVALID_INFRASTRUCTURE_DESCRIPTOR_NO_CONTAINER_REGISTRY =
+            "classpath:descriptors/test01_infrastructure_descriptor_no_container_registry.json";
     private static final String INVALID_DEPLOYMENT_DESCRIPTOR =
             "classpath:descriptors/test01_invalid_deployment_descriptor.json";
     // Client group validation
@@ -381,6 +383,23 @@ public class CastorDescriptorTest {
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
     }
+
+    @Test
+    public void testContainerRegistryNotSpecified() throws IOException {
+        Resource infraResource = resourceLoader.getResource(INVALID_INFRASTRUCTURE_DESCRIPTOR_NO_CONTAINER_REGISTRY);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInvalidInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        // This file has 1 error:
+        Set<String> expectedErrorCodes = new HashSet<>();
+        expectedErrorCodes.add("container.registry.not.specified");
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.PROVISION, readInvalidInfra, validDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+    }
+
 
     @Test
     public void testInvalidInfraDeployment() throws IOException {

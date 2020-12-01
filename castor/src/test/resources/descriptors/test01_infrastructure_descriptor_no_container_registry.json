@@ -1,0 +1,27 @@
+{
+  "organization": {
+    "damlSdk": "1.0.1",
+    "generatePassword": true
+  },
+  "zones": [
+    {
+      "name": "test-zone-1 - A",
+      "vCenter": {
+        "url": "https://vcenter.sddc.vmware.com/",
+        "userName": "admin@vsphere.local",
+        "password": "The rain in Spain falls mainly on the plain",
+        "resourcePool": "testresourcepool",
+        "storage": "teststorage",
+        "folder": "testfolder"
+      },
+      "network": {
+        "name": "testnetwork",
+        "gateway": "10.20.30.1",
+        "subnet": 24,
+        "nameServers": [
+          "1.1.1.1", "1.0.0.1"
+        ]
+      }
+    }
+  ]
+}
