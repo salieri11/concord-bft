@@ -3541,7 +3541,7 @@ void outputConcordNodeConfiguration(const ConcordConfiguration& config,
   Logger logger = Logger::getInstance("concord.configuration");
   ConcordConfiguration node_config = config;
   if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
-      config.getValue<bool>("use_loopback_for_local_hosts")) {
+      config.getValue<bool>("use_loopback_for_local_hosts") && !isReadOnly) {
     ParameterSelection node_local_hosts(
         node_config, make_shared<HostsToMakeLoopbackSelector>(node));
     for (auto& path : node_local_hosts) {
