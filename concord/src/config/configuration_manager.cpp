@@ -2741,11 +2741,15 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("jaeger_agent", privateOptionalTags);
   node.tagParameter("jaeger_agent", deploymentTag);
 
-  node.declareParameter("prometheus_port",
-                        "Port of prometheus client to publish metrics on "
-                        "(9891 by default).");
-  node.tagParameter("prometheus_port", privateOptionalTags);
-  node.tagParameter("prometheus_port", deploymentTag);
+  auto prometheus_port_param = [&](ConcordConfiguration& c) {
+    c.declareParameter("prometheus_port",
+                       "Port of prometheus client to publish metrics on "
+                       "(9891 by default).");
+    c.tagParameter("prometheus_port", privateOptionalTags);
+    c.tagParameter("prometheus_port", deploymentTag);
+  };
+  prometheus_port_param(node);
+  prometheus_port_param(ro_node);
 
   node.declareParameter(
       "enable_histograms_or_summaries",
