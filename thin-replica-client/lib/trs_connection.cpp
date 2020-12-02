@@ -72,15 +72,12 @@ void TrsConnection::createChannel() {
 
     std::string client_cert, client_key, root_cert;
 
-    std::string client_cert_path =
-        thin_replica_tls_cert_path + "/" + client_id_;
-
-    readCert(client_cert_path + "/client.cert", client_cert);
-    readCert(client_cert_path + "/pk.pem", client_key);
+    readCert(thin_replica_tls_cert_path + "/client.cert", client_cert);
+    readCert(thin_replica_tls_cert_path + "/pk.pem", client_key);
 
     // server.cert is a composite cert file i.e., a concatentation of the
     // certificates of all known servers
-    readCert(client_cert_path + "/server.cert", root_cert);
+    readCert(thin_replica_tls_cert_path + "/server.cert", root_cert);
 
     grpc::SslCredentialsOptions opts = {root_cert, client_key, client_cert};
     channel_ =

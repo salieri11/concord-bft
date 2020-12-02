@@ -24,7 +24,7 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord1:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica1
 
@@ -47,7 +47,7 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord2:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica2
 
@@ -70,7 +70,7 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord3:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica3
 
@@ -93,7 +93,7 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord4:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica4
 
@@ -116,7 +116,7 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord5:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica5
 
@@ -139,7 +139,7 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord6:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica6
 
@@ -162,6 +162,6 @@ services:
       - ./config-local:/concord/config-local
       - ./config-public:/concord/config-public:ro
       - ./tls_certs:/concord/tls_certs:ro
-      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./trs_trc_tls_certs/concord7:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica7
