@@ -114,6 +114,17 @@ public interface DeploymentDescriptorModel {
     }
 
     /**
+     * Blockchain operator attributes.
+     */
+    @Getter
+    @Setter
+    @SuperBuilder
+    @EqualsAndHashCode
+    class OperatorSpecifications {
+        private String operatorPublicKey;
+    }
+
+    /**
      * Defines node size.
      */
     @Getter
@@ -192,5 +203,11 @@ public interface DeploymentDescriptorModel {
      * @return a blockchain
      */
     Blockchain getBlockchain();
+
+    /**
+     * Get the attributes for Blockchain operator.
+     * @return a spec
+     */
+    OperatorSpecifications getOperatorSpecifications();
 
 }

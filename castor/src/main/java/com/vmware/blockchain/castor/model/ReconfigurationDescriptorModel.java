@@ -48,4 +48,7 @@ public class ReconfigurationDescriptorModel implements DeploymentDescriptorModel
 
     @Valid
     private Blockchain blockchain;
+
+    @Valid
+    private OperatorSpecifications operatorSpecifications;
 }

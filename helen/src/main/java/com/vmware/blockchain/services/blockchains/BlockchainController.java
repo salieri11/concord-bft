@@ -15,6 +15,7 @@ import static com.vmware.blockchain.services.blockchains.BlockchainUtils.toInfo;
 
 import java.io.ByteArrayInputStream;
 import java.security.KeyFactory;
+import java.security.KeyPair;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -84,6 +85,7 @@ import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.clients.ClientService;
 import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplate;
 import com.vmware.blockchain.services.blockchains.nodesizing.NodeSizeTemplateService;
+import com.vmware.blockchain.services.blockchains.operator.helper.BlockchainOperatorCertificateGenerator;
 import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
 import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -402,7 +404,7 @@ public class BlockchainController {
                 .setProperties(genericProperties)
                 .build();
 
-        invokeDeploymentRequest(blockchain.consortium, blockchain.type, task, nodeAssignment, deploymentSpec);
+        invokeDeploymentRequest(blockchain, task, nodeAssignment, deploymentSpec);
         logger.info("Deployment scheduled");
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
@@ -645,10 +647,10 @@ public class BlockchainController {
                 addObjectStoretoProperties(propBuilder, k);
 
                 boolean incompleteDetails = !Strings.isNullOrEmpty(k.getObjectStoreAccessKey())
-                                                || !Strings.isNullOrEmpty(k.getObjectStoreBucketName())
-                                                || !Strings.isNullOrEmpty(k.getObjectStoreProtocol())
-                                                || !Strings.isNullOrEmpty(k.getObjectStoreSecretKey())
-                                                || !Strings.isNullOrEmpty(k.getObjectStoreUrl());
+                                            || !Strings.isNullOrEmpty(k.getObjectStoreBucketName())
+                                            || !Strings.isNullOrEmpty(k.getObjectStoreProtocol())
+                                            || !Strings.isNullOrEmpty(k.getObjectStoreSecretKey())
+                                            || !Strings.isNullOrEmpty(k.getObjectStoreUrl());
 
                 if (incompleteDetails) {
                     throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
@@ -667,11 +669,29 @@ public class BlockchainController {
             });
         }
 
+        Blockchain rawBlockchain = new Blockchain();
+        rawBlockchain.setType(body.getBlockchainType());
+        rawBlockchain.setConsortium(body.getConsortiumId());
+
+        Properties.Builder basePropBuilder = getPropertySpec(organization);
+
+        if (organization.getOrganizationProperties()
+                .getOrDefault(Constants.ORG_OPERATOR_KEY_ENABLED,
+                              "False").equalsIgnoreCase("True")) {
+            KeyPair operatorKeys = BlockchainOperatorCertificateGenerator.generateEcKeyPair();
+            basePropBuilder.putValues(DeploymentAttributes.DEPLOY_OPERATOR.name(),
+                                      BlockchainOperatorCertificateGenerator.returnPemString(operatorKeys.getPublic()));
+
+            // TODO move this to its own field once downstream feature is ready
+            rawBlockchain.setMetadata(new HashMap<>());
+            rawBlockchain.getMetadata().put(DeploymentAttributes.DEPLOY_OPERATOR.name(),
+                                            BlockchainOperatorCertificateGenerator
+                                                    .returnPemString(operatorKeys.getPrivate()));
+        }
+
         var blockChainType = enumMapForBlockchainType.get(body.getBlockchainType());
 
         List<OrchestrationSite> sitesInfo = getOrchestrationSites(new HashSet(zoneIds), organization);
-
-        Properties.Builder basePropBuilder = getPropertySpec(organization);
 
         var deploymentSpec = DeploymentSpec.newBuilder()
                 .setConsortiumId(body.getConsortiumId().toString())
@@ -682,11 +702,11 @@ public class BlockchainController {
                 .build();
 
         logger.debug("deployment spec {}", deploymentSpec);
-        invokeDeploymentRequest(body.getConsortiumId(), body.getBlockchainType(), task, nodeAssignment,
-                                deploymentSpec);
+
+        invokeDeploymentRequest(rawBlockchain, task, nodeAssignment, deploymentSpec);
     }
 
-    private void invokeDeploymentRequest(UUID consortiumId, BlockchainType type,
+    private void invokeDeploymentRequest(Blockchain rawBlockchain,
                                          Task task, NodeAssignment.Builder nodeAssignment,
                                          DeploymentSpec deploymentSpec)
             throws InterruptedException, java.util.concurrent.ExecutionException {
@@ -701,11 +721,7 @@ public class BlockchainController {
         var promise = new CompletableFuture<DeploymentRequestResponse>();
         provisioningClient.createDeployment(request, FleetUtils.blockedResultObserver(promise));
         String dsId = promise.get().getId();
-        logger.info("Deployment started, id {} for the consortium id {}", dsId, consortiumId);
-
-        Blockchain rawBlockchain = new Blockchain();
-        rawBlockchain.setType(type);
-        rawBlockchain.setConsortium(consortiumId);
+        logger.info("Deployment started, id {} for the consortium id {}", dsId, rawBlockchain.consortium);
 
         BlockchainObserver bo =
                 new BlockchainObserver(authHelper, operationContext, blockchainService, replicaService,
