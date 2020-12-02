@@ -80,7 +80,7 @@ class MaestroClient:
                     "preExecution": True,
                     "preExecutionThreshold": 0,
                     "preExecutionThreads": 0,
-                    "vCPUCommitter": 8,
+                    "vCPUCommitter": 16,
                     "vHDDCommitter": 64,
                     "updateCommitterConfig": True,
                     "updateParticipantConfig": True,
