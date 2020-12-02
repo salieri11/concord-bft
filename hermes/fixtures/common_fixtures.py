@@ -21,6 +21,7 @@ from util.blockchain import eth as eth_helper
 from suites.case import describe
 import util.generate_zones_migration as migration
 from util.node_creator import NodeCreator
+from util import cert as cert
 
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
@@ -342,8 +343,9 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
                                       service=hermes_data["hermesCmdlineArgs"].deploymentService)
             num_participants = int(hermes_data["hermesCmdlineArgs"].numParticipants)
             skip_verify_test = hermes_data["hermesCmdlineArgs"].skipDeploymentVerificationTest
+            tls_enable_client = hermes_data["hermesCmdlineArgs"].tlsEnabledClient
             success, daml_participant_replicas = validate_daml_participants(conAdminRequest, blockchainId, credentials,
-                                                                            num_participants, skip_verify_test)
+                                                                            num_participants, skip_verify_test, tls_enable_client)
             daml_participant_replicas = [{**replica_entry, **id_dict} for replica_entry in daml_participant_replicas]
       else:
          raise NotImplementedError("Deployment not supported for blockchain type: {}".format(blockchain_type))
@@ -408,7 +410,7 @@ def verify_daml_committers_deployment(replica_details, credentials):
     return success
 
 
-def validate_daml_participants(con_admin_request, blockchain_id, credentials, num_participants=1, skip_verify_test=False):
+def validate_daml_participants(con_admin_request, blockchain_id, credentials, num_participants=1, skip_verify_test=False, tls_enable_client = False):
     """
     Deploys participants in the given DAML blockchain
     :param con_admin_request: REST requests helper object
@@ -442,6 +444,14 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
 
             if skip_verify_test:
                log.info("Skipping the deployment verification DAML test.")
+               success = True
+            elif tls_enable_client:
+               cert.tlsCreateCrt("client")
+               log.info("Starting DAR upload on participant with tls {}:{}".format(public_ip, src_port))
+               daml_helper.upload_test_tool_dars(host=public_ip, port=str(src_port),tls_enable_client=True)
+               log.info("Starting DAR upload verification test on participant {}".format(public_ip))
+               daml_helper.verify_ledger_api_test_tool(ledger_endpoints=[(public_ip, str(src_port))], tls_enable_client=True)
+               log.info("DAR upload and verification successful on participant {}".format(public_ip))
                success = True
             else:
                log.info("Starting DAR upload on participant {}:{}".format(public_ip, src_port))
@@ -616,12 +626,12 @@ def fxProduct(request, hermes_info):
                            waitForStartupParams=waitForStartupParams,
                            checkProductStatusParams=checkProductStatusParams)
          product.launchProduct()
-
+         
          def post_product_processing():
             product.stopProduct()
 
          request.addfinalizer(post_product_processing)
-
+         
          # Instance of product, in case someone wants to access it
          return ProductFixture(product=product)
 
@@ -808,3 +818,14 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
 
    log.debug("request {}".format(request))
    return ConnectionFixture(request=request, rpc=rpc)
+
+@pytest.fixture(scope="module")
+@describe("fixture; Install DAML")
+def fxInstallDamlSdk(fxBlockchain):
+    global daml_sdk_path
+    participants, committers = helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    log.info(participants)
+    host = participants[0]
+    log.info(host)
+    daml_sdk_version = daml_helper.get_ledger_api_version(host)
+    daml_sdk_path = daml_helper.install_daml_sdk(daml_sdk_version)

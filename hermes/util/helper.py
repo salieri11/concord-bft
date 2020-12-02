@@ -2516,3 +2516,37 @@ def fetch_ips_from_fxBlockchain_entry(node_list):
          ips.append(n["private_ip"])
    log.info("\nReturning all committers : {}".format(ips))
    return ips
+
+
+def add_host_in_etc_hosts_file(host, hostName):
+   fileName = "/etc/hosts"
+   textToBeAdded = host + " " + hostName
+   try:
+      if os.path.exists(fileName) and os.path.isfile(fileName):
+         restore_etc_host(hostName)
+         outF = open(fileName, "a")
+         outF.write("\n")
+         outF.write(textToBeAdded)
+         outF.close()
+      else:
+         raise Exception("File not found")
+   except:
+      raise
+
+
+def restore_etc_host(hostName):
+   fileName = "/etc/hosts"
+   try:
+      if os.path.exists(fileName) and os.path.isfile(fileName):
+         readFile = open(fileName)
+         lines = readFile.readlines()
+         readFile.close()
+         w = open(fileName, 'w')
+         for item in lines:
+            if hostName not in item:
+               w.writelines(item)
+         w.close()
+      else:
+         raise Exception("File not found")
+   except:
+      raise

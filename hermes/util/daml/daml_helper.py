@@ -16,6 +16,7 @@ import time
 import urllib
 import util.auth
 import util.json_helper
+import shutil
 
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.upload_dar as darutil
@@ -26,7 +27,13 @@ else:
    from util import hermes_logging, helper
 
 log = hermes_logging.getMainLogger()
-
+#TLS variables
+TLS_CERT_PATH=os.path.join(os.path.dirname(os.path.abspath(__file__)), "request_tool")
+# hostname is used as common name in cert creation
+TLS_HOSTNAME = "server.ledgerapi.com"
+TLS_CERT_SCRIPT=os.path.join(TLS_CERT_PATH, "generateTlsCerts.sh")
+DAML_SETUP_SCRIPT =os.path.join(TLS_CERT_PATH,"daml_setup.sh")
+Invalid_CERT = "invalid"
 # Force using VMware artifactory for every external maven request.
 VMWARE_MAVEN_SETTINGS = "resources/vmware_mvn_settings.xml"
 
@@ -240,32 +247,35 @@ def download_ledger_api_test_tool(host, results_dir=None, verbose=True):
    return _ledger_api_test_tool_path, _ledger_api_dars
 
 
-def upload_test_tool_dars(host='localhost', port='6861', results_dir=None, verbose=True):
+def upload_test_tool_dars(host='localhost', port='6861',tls_enable_client=False, results_dir=None, verbose=True):
    '''
    Helper method to upload test tool dar files
    :param host: daml-ledger-api host IP
    :param port: daml-ledger-api service port
    '''
    dars = download_ledger_api_test_tool(host, results_dir=results_dir, verbose=verbose)[1]
+   log.info(dars)
    if verbose: log.info("Upload DAR files to host '{}' and port '{}'...".format(host, port))
 
    for test_dar in dars:
       dar_uploaded = False
       max_retry_attempts = 10
-      sleep_time = 30
-
+      sleep_time = 30      
       for i in range(0, max_retry_attempts):
          if verbose: log.info("  {} (attempt {}/{})...".format(test_dar, i+1, max_retry_attempts))
 
          try:
-            dar_uploaded = darutil.upload_dar(host=host, port=port, darfile=test_dar)
+            if tls_enable_client:
+               dar_uploaded, stdout = daml_tls_setup(host=host,port= port, parameter="upload_with_crt", dar_path=test_dar)
+            else:
+               dar_uploaded = darutil.upload_dar(host=host, port=port, darfile=test_dar)
 
             # upload_dar can also return False w/o raising an exception.
             if not dar_uploaded:
                raise Exception("DAR upload failed for an unknown reason.")
 
             break
-         except Exception as e:
+         except Error as e:
             if i != max_retry_attempts-1:
                if verbose: log.info("Retrying in 30 seconds...")
                time.sleep(sleep_time)
@@ -307,7 +317,7 @@ def get_list_of_tests(host, run_all_tests=False, verbose=True):
    return tests
 
 def verify_ledger_api_test_tool(ledger_endpoints=[('localhost','6861')],
-                                run_all_tests=False, results_dir=None, verbose=True):
+                                run_all_tests=False, results_dir=None, verbose=True, tls_enable_client=False):
    '''
    Helper method to perform sanity check with uploaded dar files
    :param ledger_endpoints: List of 2-tuples representing ledger endpoint (host, port)
@@ -319,21 +329,22 @@ def verify_ledger_api_test_tool(ledger_endpoints=[('localhost','6861')],
       results_sub_dir = helper.create_results_sub_dir(results_dir, host)
 
    overall_test_status = None
-   for test in get_list_of_tests(host, run_all_tests=run_all_tests, verbose=verbose):
-      cmd = [
+   for test in get_list_of_tests(host, run_all_tests=run_all_tests, verbose=verbose):         
+      if verbose: log.info("")
+      if verbose: log.info("#### Run test '{}'... ####".format(test))      
+      if tls_enable_client:
+         status, output = daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='daml_test_crt', dar_path='', daml_test_type = test, test_jar = download_ledger_api_test_tool(host)[0])
+      else:
+         cmd = [
          "java", "-jar", download_ledger_api_test_tool(host)[0],
          "--include", test,
          "--timeout-scale-factor", "20",
          "--no-wait-for-parties",
          "--concurrent-test-runs", "1",
          " ".join(["{}:{}".format(t[0], t[1]) for t in ledger_endpoints])
-      ]
-      if verbose: log.info("")
-      if verbose: log.info("#### Run test '{}'... ####".format(test))
-      log.debug("Command: {}".format(cmd))
-
-      status, output = helper.execute_ext_command(cmd, verbose=verbose, timeout=360)
-
+         ]
+         log.debug("Command: {}".format(cmd))
+         status, output = helper.execute_ext_command(cmd, verbose=verbose, timeout=360)
       if results_dir:
          file_prefix = "pass" if status else "fail"
          log_file = os.path.join(results_sub_dir,
@@ -572,3 +583,28 @@ def install_daml_sdk(sdk_version=None):
       return daml_path
    else:
       raise Exception("Unable to find daml installation at {}".format(daml_path))
+
+def daml_tls_setup(host, port = "6865", path=TLS_CERT_PATH, parameter='', dar_path='', daml_test_type = ''):
+   os.chmod(DAML_SETUP_SCRIPT, 0o777)
+   helper.add_host_in_etc_hosts_file(host, TLS_HOSTNAME)
+   cmd = [DAML_SETUP_SCRIPT, TLS_HOSTNAME, port, path, parameter, dar_path,daml_test_type]
+   success, stdout = util.helper.execute_ext_command(cmd, timeout=3600, working_dir=path)
+   log.info("\nSuccess and Output are {} and {}".format(success, stdout))
+   return success,stdout 
+   
+def daml_tls_test_setup(port = "6865", path=TLS_CERT_PATH, parameter='', dar_path='', daml_test_type = '', test_jar = ''):
+   os.chmod(DAML_SETUP_SCRIPT, 0o777)
+   cmd = [DAML_SETUP_SCRIPT, TLS_HOSTNAME, port, path, parameter, dar_path,daml_test_type,test_jar]
+   success, stdout = util.helper.execute_ext_command(cmd, timeout=15000, working_dir=path)
+   log.info("\nSuccess and Output are {} and {}".format(success, stdout))
+   return success,stdout 
+
+def clean_atexit(path = TLS_CERT_PATH):
+    helper.restore_etc_host(TLS_HOSTNAME)
+    invalid_certs_path = path = os.path.join(path, Invalid_CERT)
+    if os.path.exists(invalid_certs_path):
+        shutil.rmtree(invalid_certs_path)
+    filelist = glob.glob(os.path.join(path, "*.key")) + glob.glob(os.path.join(path, "*.crt"))
+    for file in filelist:
+        if os.path.exists(file):
+            os.remove(file)

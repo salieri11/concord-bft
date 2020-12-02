@@ -334,3 +334,9 @@
     runWithGenericTests: false
     baseCommand: '${MAIN_PYTEST} suites/backup_restore_tests.py --blockchainLocation onprem --blockchainType daml --numReplicas "${no_of_committers}" --numParticipants "${no_of_participants}" --numGroups "${no_of_groups}" --zoneOverrideFolder HermesTesting-1day-Retention --clientSize  "${client_size}" --replicaSize  "${replica_size}"'
     testModule: 'suites/backup_restore_tests.py'
+- TlsDamlTests:
+    enabled: true
+    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+    runWithGenericTests: false
+    baseCommand: '${MAIN_PYTEST} suites/tls_daml_tests.py --blockchainLocation onprem --blockchainType daml --numReplicas "${no_of_committers}" --numParticipants "${no_of_participants}" --numGroups "${no_of_groups}"  --tlsEnabledClient'
+    testModule: 'suites/tls_daml_tests.py'

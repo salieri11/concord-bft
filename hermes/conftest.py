@@ -618,6 +618,10 @@ def pytest_addoption(parser):
     nonLocalDeployConfig.addoption("--replicaStorage",
                                    help="Ability to override the replica storage value provided by SaaS.",
                                    default=None)
+    nonLocalDeployConfig.addoption("--tlsEnabledClient",
+                                   help="Ability to enable TLS certification in client.",
+                                   default=False,
+                                   action="store_true")
     nonLocalDeployConfig.addoption("--propertiesString",
                                    help="The string containing comma seperated key value pairs for deployment properties.",
                                    default="")
@@ -693,6 +697,7 @@ def _get_suite_short_name(module_name):
         "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests",
         "WavefrontTests": "hermes.suites.wavefront_tests",
         "HelenVMSizeTests": "vmsize_test",
+        "TlsDamlTests": "hermes.suites.tls_daml_tests",
         "BackupRestoreTests": "hermes.suites.backup_restore_tests"
     }
 
