@@ -44,7 +44,7 @@ def check_nodejs():
       node_version = output_node_version.split('.')
       if int(node_version[0].strip('v')) < 10:
          node_version_status = False
-         log.warn("Node version should be 10 or higher, current version: {}".format(output_node_version))
+         log.error("Node version should be 10 or higher, current version: {}".format(output_node_version))
       else:
          log.debug("Node is available with version: {}".format(output_node_version))
          node_version_status = True

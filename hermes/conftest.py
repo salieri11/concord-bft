@@ -17,6 +17,7 @@ from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
 from util import auth, csp, helper, hermes_logging, html, json_helper, node_creator,\
     numbers_strings, generate_grpc_bindings, pipeline
+from util.dlr import dlr_helper
 from util.stats_gatherer import StatsGatherer
 
 import event_recorder
@@ -521,13 +522,13 @@ def pytest_addoption(parser):
                      default=None)
     parser.addoption("--dlrNoOfAgreements",
                      help="No. of Agreements to run DLR simulation",
-                     default=100)
+                     default=dlr_helper.DEFAULT_NO_OF_AGREEMENT)
     parser.addoption("--dlrNoOfVuser",
                      help="No. of Users to run DLR simulation",
-                     default=10)
+                     default=dlr_helper.DEFAULT_NO_OF_VUSER)
     parser.addoption("--dlrLoadBatchSize",
                      help="Batch size of agreements for an iteration",
-                     default=100)
+                     default=dlr_helper.DEFAULT_LOAD_BATCH_SIZE)
 
     concordConfig = parser.getgroup(
         "Concord configuration", "Concord Options:")
