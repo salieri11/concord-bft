@@ -113,9 +113,15 @@ castor_repo=$ONPREM_BLOCKCHAIN_ARTIFACTORY/$CASTOR_SERVICE_NAME
 castor_tag=$ONPREM_BLOCKCHAIN_VERSION
 EOF
 
+# Remove the tests-and-artifacts.json since it is not applicable for the appliance
+rm $CASTOR_ARTIFACTS_DIR/tests_and_artifacts.json
+
 # Change permissions  to their correct values
 chmod -R 744 $CASTOR_ARTIFACTS_DIR
 chown -R $BLOCKCHAIN_USER:users /home/$BLOCKCHAIN_USER
+# Make all content read-only, except for the executable wait-for-it.sh
+chmod -R 444 $CASTOR_ARTIFACTS_DIR/*
+chmod -R 544  $CASTOR_ARTIFACTS_DIR/wait-for-it.sh
 
 # Set up the systemd service to launch the docker-compose-orchestrator-prereqs.yml file.
 # This launch requires the IP address of the appliance that it is running on (CONFIG_SERVICE_IP). So it
