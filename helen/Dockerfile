@@ -66,10 +66,6 @@ COPY ./helen/src/main/resources/database/schema.sql ./db-schema.sql
 COPY ./helen/wait-for-it.sh ./wait-for-it.sh
 COPY --from=0 /home/test/helen/target/blockchain-helen*.jar ./blockchain-helen.jar
 
-RUN chown -R vmware:vmware /helen
-RUN chmod 755 /helen
-USER vmware
-
 CMD ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}", "-jar", "blockchain-helen.jar"]
 
 EXPOSE 8080

@@ -42,8 +42,4 @@ COPY --from=builder ./agent/target/node-agent*.jar ./node-agent.jar
 
 VOLUME ["/config"]
 
-RUN chown -R vmware:vmware /agent
-RUN chmod 755 /agent
-USER vmware
-
 CMD ["java", "-jar", "node-agent.jar"]
