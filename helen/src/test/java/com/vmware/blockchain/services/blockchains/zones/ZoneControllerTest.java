@@ -1006,4 +1006,57 @@ class ZoneControllerTest {
                 .andExpect(status().isBadRequest()).andReturn();
     }
 
+    @Test
+    void testPostOnPremNullNameserver() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_NULL_NAMESERVER))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ZoneResponse zone = objectMapper.readValue(body, OnPremGetResponse.class);
+        verify(zoneService, times(1)).put(any(Zone.class));
+        Assertions.assertTrue(zone instanceof OnPremGetResponse);
+        // This was done as a consortium admin.  The org id should have been changed.
+        Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
+                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+        Assertions.assertNotNull(((OnPremGetResponse) zone).getOutboundProxy());
+        Assertions.assertEquals("localhost", ((OnPremGetResponse) zone).getOutboundProxy().getHttpHost());
+    }
+
+    @Test
+    void testPostOnPremNoNameserver() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_NO_NAMESERVER))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ZoneResponse zone = objectMapper.readValue(body, OnPremGetResponse.class);
+        verify(zoneService, times(1)).put(any(Zone.class));
+        Assertions.assertTrue(zone instanceof OnPremGetResponse);
+        // This was done as a consortium admin.  The org id should have been changed.
+        Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
+                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+        Assertions.assertNotNull(((OnPremGetResponse) zone).getOutboundProxy());
+        Assertions.assertEquals("localhost", ((OnPremGetResponse) zone).getOutboundProxy().getHttpHost());
+    }
+
+    @Test
+    void testPostOnPremEmptyNameservers() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/blockchains/zones").with(authentication(adminAuth))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(ZoneJsonObjects.POST_ONPREM_BODY_EMPTY_NAMESERVER))
+                .andExpect(status().isOk()).andReturn();
+        String body = result.getResponse().getContentAsString();
+        ZoneResponse zone = objectMapper.readValue(body, OnPremGetResponse.class);
+        verify(zoneService, times(1)).put(any(Zone.class));
+        Assertions.assertTrue(zone instanceof OnPremGetResponse);
+        // This was done as a consortium admin.  The org id should have been changed.
+        Assertions.assertEquals(UUID.fromString("9ecb07bc-482c-48f3-80d0-23c4f9514902"),
+                ((OnPremGetResponse) zone).getOrgId());
+        Assertions.assertEquals("admin", ((OnPremGetResponse) zone).getVcenter().getUsername());
+        Assertions.assertNotNull(((OnPremGetResponse) zone).getOutboundProxy());
+        Assertions.assertEquals("localhost", ((OnPremGetResponse) zone).getOutboundProxy().getHttpHost());
+    }
 }
