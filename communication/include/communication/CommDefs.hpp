@@ -78,6 +78,25 @@ struct PlainUdpConfig : BaseCommConfig {
 
 struct PlainTcpConfig : BaseCommConfig {
   int32_t maxServerId;
+  uint16_t numOfThreads;
+
+  PlainTcpConfig(std::string host,
+                 uint16_t port,
+                 uint32_t bufLength,
+                 NodeMap _nodes,
+                 int32_t _maxServerId,
+                 NodeNum _selfId,
+                 uint16_t _numOfThreads,
+                 UPDATE_CONNECTIVITY_FN _statusCallback = nullptr)
+      : BaseCommConfig(CommType::PlainTcp,
+                       std::move(host),
+                       port,
+                       bufLength,
+                       std::move(_nodes),
+                       _selfId,
+                       std::move(_statusCallback)),
+        maxServerId{_maxServerId},
+        numOfThreads{_numOfThreads} {}
 
   PlainTcpConfig(std::string host,
                  uint16_t port,
@@ -86,9 +105,9 @@ struct PlainTcpConfig : BaseCommConfig {
                  int32_t _maxServerId,
                  NodeNum _selfId,
                  UPDATE_CONNECTIVITY_FN _statusCallback = nullptr)
-      : BaseCommConfig(
-            CommType::PlainTcp, std::move(host), port, bufLength, std::move(_nodes), _selfId, _statusCallback),
-        maxServerId{_maxServerId} {}
+      : PlainTcpConfig(
+            std::move(host), port, bufLength, std::move(_nodes), _maxServerId, _selfId, 1, std::move(_statusCallback)) {
+  }
 };
 
 struct TlsTcpConfig : PlainTcpConfig {
@@ -106,12 +125,40 @@ struct TlsTcpConfig : PlainTcpConfig {
                NodeNum _selfId,
                std::string certRootPath,
                std::string ciphSuite,
+               uint16_t numOfThreads,
                UPDATE_CONNECTIVITY_FN _statusCallback = nullptr)
-      : PlainTcpConfig(move(host), port, bufLength, std::move(_nodes), _maxServerId, _selfId, _statusCallback),
+      : PlainTcpConfig(move(host),
+                       port,
+                       bufLength,
+                       std::move(_nodes),
+                       _maxServerId,
+                       _selfId,
+                       numOfThreads,
+                       std::move(_statusCallback)),
         certificatesRootPath{std::move(certRootPath)},
         cipherSuite{std::move(ciphSuite)} {
     commType = CommType::TlsTcp;
   }
+
+  TlsTcpConfig(std::string host,
+               uint16_t port,
+               uint32_t bufLength,
+               NodeMap _nodes,
+               int32_t _maxServerId,
+               NodeNum _selfId,
+               std::string certRootPath,
+               std::string ciphSuite,
+               UPDATE_CONNECTIVITY_FN _statusCallback = nullptr)
+      : TlsTcpConfig(move(host),
+                     port,
+                     bufLength,
+                     std::move(_nodes),
+                     _maxServerId,
+                     _selfId,
+                     std::move(certRootPath),
+                     std::move(ciphSuite),
+                     1,
+                     std::move(_statusCallback)) {}
 };
 
 class PlainUDPCommunication : public ICommunication {

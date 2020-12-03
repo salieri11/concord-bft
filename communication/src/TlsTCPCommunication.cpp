@@ -65,6 +65,42 @@ typedef unique_ptr<SSL_SOCKET> B_TLS_SOCKET_PTR;
 
 enum ConnType : uint8_t { NotDefined = 0, Incoming, Outgoing };
 
+class IoServices {
+ public:
+  IoServices(const uint16_t &size) : m_ioServices{size} {}
+
+  IoServices() = delete;
+
+  void start() {
+    for (auto &ioService : m_ioServices) {
+      m_idleWorks.emplace_back(ioService);
+      m_threads.emplace_back([&] { ioService.run(); });
+    }
+    running = true;
+  }
+
+  void stop() {
+    running = false;
+    for (auto &ioService : m_ioServices) ioService.stop();
+
+    for (auto &thread : m_threads)
+      if (thread.joinable()) thread.join();
+  }
+
+  bool isRunning() const { return running; }
+
+  ~IoServices() { stop(); }
+
+  asio::io_service &get() { return m_ioServices[(m_nextService++ % m_ioServices.size())]; }
+
+ private:
+  std::atomic<bool> running{false};
+  std::atomic<std::size_t> m_nextService{0};
+  std::vector<asio::io_service> m_ioServices;
+  std::vector<asio::io_service::work> m_idleWorks;
+  std::vector<std::thread> m_threads;
+};
+
 /**
  * this class will handle single connection using boost::make_shared idiom
  * will receive the IReceiver as a parameter and call it when new message
@@ -232,6 +268,14 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
     get_socket().set_option(boost::asio::ip::tcp::no_delay(true));
     get_socket().get_option(option);
     ConcordAssert(true == option.value());
+  }
+
+  void set_non_blocking() {
+    bool b = get_socket().native_non_blocking();
+    LOG_INFO(_logger, "non_blocking : " << b);
+    get_socket().native_non_blocking(false);
+    b = get_socket().native_non_blocking();
+    LOG_INFO(_logger, "non_blocking set to : " << b);
   }
 
   /**
@@ -607,6 +651,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       _connectTimer.cancel();
       LOG_DEBUG(_logger, "connected, node " << _selfId << ", dest: " << _expectedDestId << ", res: " << res);
       set_no_delay();
+      // set_non_blocking();
       _socket->async_handshake(boost::asio::ssl::stream_base::client,
                                boost::bind(&AsyncTlsConnection::on_handshake_complete_outbound,
                                            shared_from_this(),
@@ -839,13 +884,16 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       return;
     }
 
-    lock_guard<mutex> l(_writeLock);
+    auto size = 0;
+    _writeLock.lock();
     // remove the message that has been sent
     _outQueue.pop_front();
+    size = _outQueue.size();
+    _writeLock.unlock();
 
     // if there are more messages, continue to send but don' renmove, s.t.
     // the send() method will not trigger concurrent write
-    if (_outQueue.size() > 0) {
+    if (size > 0) {
       start_async_write();
     }
   }
@@ -918,10 +966,24 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
 
   void start() {
     set_no_delay();
+    // set_non_blocking();
     _socket->async_handshake(
         boost::asio::ssl::stream_base::server,
         boost::bind(
             &AsyncTlsConnection::on_handshake_complete_inbound, shared_from_this(), boost::asio::placeholders::error));
+  }
+
+  void send_sync(const char *data, uint32_t length) {
+    boost::system::error_code ec;
+    uint32_t sent = 0;
+    while (sent < length) {
+      sent += _socket->write_some(boost::asio::buffer(data + sent, length - sent), ec);
+      bool err = was_error(ec, "send_sync");
+      if (err) {
+        dispose_connection(true);
+        return;
+      }
+    }
   }
 
   /**
@@ -931,7 +993,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
    * @param data data to be sent
    * @param length data length
    */
-  void send(const char *data, uint32_t length) {
+  bool send(const char *data, uint32_t length) {
     if (!data) {
       LOG_ERROR(_logger, "Error, message has never been initialized");
       throw std::invalid_argument("data = nullptr");
@@ -942,14 +1004,18 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       throw std::invalid_argument("Invalid payload size");
     }
 
+    // here we lock to protect multiple thread access and to synch with callback
+    // queue access
+    lock_guard<mutex> l(_writeLock);
+    if (_outQueue.size() > (_isReplica ? 10000 : 1000)) {
+      // LOG_ERROR(_logger, "queue is full, size: " << _outQueue.size());
+      return false;
+    }
+
     char *buf = new char[length + MSG_HEADER_SIZE];
     memset(buf, 0, length + MSG_HEADER_SIZE);
     put_message_header(buf, length);
     memcpy(buf + MSG_HEADER_SIZE, data, length);
-
-    // here we lock to protect multiple thread access and to synch with callback
-    // queue access
-    lock_guard<mutex> l(_writeLock);
 
     // push to the output queue
     OutMessage out = OutMessage(buf, length + MSG_HEADER_SIZE);
@@ -962,8 +1028,8 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
     if (_outQueue.size() == 1) {
       _service->post(boost::bind(&AsyncTlsConnection::do_write, shared_from_this()));
     }
-
-    LOG_DEBUG(_logger, "from: " << _selfId << ", to: " << _destId << ", length: " << length);
+    static int count = 0;
+    LOG_DEBUG(_logger, "from: " << _selfId << ", to: " << _destId << ", length: " << length << ", total " << ++count);
 
     if (_statusCallback && _isReplica) {
       PeerConnectivityStatus pcs{};
@@ -974,6 +1040,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
       // in the upcoming version timestamps should be reviewed
       _statusCallback(pcs);
     }
+    return true;
   }
 
   void setReceiver(NodeNum nodeId, IReceiver *rec) { _receiver = rec; }
@@ -1005,6 +1072,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   }
 
   virtual ~AsyncTlsConnection() {
+    _outQueue.clear();
     LOG_DEBUG(_logger, "Dtor called, node: " << _selfId << "peer: " << _destId << ", type: " << _connType);
   }
 
@@ -1033,7 +1101,8 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
 
   // NodeNum mapped to tuple<host, port> //
   NodeMap _nodes;
-  asio::io_service _service;
+  // asio::io_service _service;
+  std::unique_ptr<IoServices> _ioServices = nullptr;
   uint16_t _listenPort;
   string _listenHost;
   uint32_t _bufferLength;
@@ -1115,7 +1184,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
   void start_accept() {
     LOG_DEBUG(_logger, "start_accept, node: " << _selfId);
     auto conn = AsyncTlsConnection::create(
-        &_service,
+        &_ioServices->get(),
         std::bind(&TlsTcpImpl::on_async_connection_error, shared_from_this(), std::placeholders::_1),
         std::bind(
             &TlsTcpImpl::on_connection_authenticated, shared_from_this(), std::placeholders::_1, std::placeholders::_2),
@@ -1144,6 +1213,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
              string listenHost,
              string certRootFolder,
              string cipherSuite,
+             uint16_t numOfThreads,
              UPDATE_CONNECTIVITY_FN statusCallback = nullptr)
       : _selfId(selfNodeNum),
         _listenPort(listenPort),
@@ -1154,15 +1224,20 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
         _logger(logging::getLogger("concord.tls")),
         _statusCallback{statusCallback},
         _cipherSuite{cipherSuite} {
-    //_service = new io_service();
+    LOG_INFO(_logger,
+             "Creating TlsTcpCommunication object with: "
+                 << "bufferLength: " << bufferLength << ", certRootFolder: " << certRootFolder
+                 << ", numOfThreads: " << numOfThreads);
+
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       _nodes.insert({it->first, it->second});
     }
+    _ioServices = unique_ptr<IoServices>(new IoServices(numOfThreads));
   }
 
   void create_outgoing_connection(NodeNum nodeId, string peerHost, uint16_t peerPort) {
     auto conn = AsyncTlsConnection::create(
-        &_service,
+        &_ioServices->get(),
         std::bind(&TlsTcpImpl::on_async_connection_error, shared_from_this(), std::placeholders::_1),
 
         std::bind(
@@ -1189,6 +1264,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
                                             string listenHost,
                                             string certRootFolder,
                                             string cipherSuite,
+                                            uint16_t numOfThreads,
                                             UPDATE_CONNECTIVITY_FN statusCallback) {
     return std::shared_ptr<TlsTcpImpl>(new TlsTcpImpl(selfNodeId,
                                                       nodes,
@@ -1198,6 +1274,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
                                                       listenHost,
                                                       certRootFolder,
                                                       cipherSuite,
+                                                      numOfThreads,
                                                       statusCallback));
   }
 
@@ -1221,13 +1298,13 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
       // a protocol, host, and service directly, instead of a query object. That
       // overload is not yet available in boost 1.64, which we're using today.
       tcp::resolver::query query(tcp::v4(), _listenHost, std::to_string(_listenPort));
-      tcp::resolver resolver(_service);
+      tcp::resolver resolver(_ioServices->get());
       boost::system::error_code ec;
       tcp::resolver::iterator results = resolver.resolve(query, ec);
       if (!ec && results != tcp::resolver::iterator()) {
         tcp::endpoint ep = *results;
         LOG_INFO(_logger, "Resolved " << _listenHost << ":" << _listenPort << " to " << ep);
-        _pAcceptor = boost::make_unique<asio::ip::tcp::acceptor>(_service, ep);
+        _pAcceptor = boost::make_unique<asio::ip::tcp::acceptor>(_ioServices->get(), ep);
         start_accept();
       } else {
         LOG_WARN(_logger, "Unable to resolve listen host (" << _listenHost << ") for node " << _selfId << ": " << ec);
@@ -1257,8 +1334,9 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
       }
     }
 
-    _pIoThread = new std::thread(std::bind(
-        static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+    // _pIoThread = new std::thread(std::bind(
+    //    static_cast<size_t (boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+    _ioServices->start();
 
     return 0;
   }
@@ -1274,7 +1352,8 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
       return 0;  // stopped
     }
 
-    _service.stop();
+    // _service.stop();
+    _ioServices->stop();
     if (_pIoThread->joinable()) {
       _pIoThread->join();
     }
@@ -1294,12 +1373,7 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
 
   bool isRunning() const {
     lock_guard<mutex> l(_startStopGuard);
-
-    if (!_pIoThread) {
-      return false;  // stopped
-    }
-
-    return true;
+    return _ioServices->isRunning();
   }
 
   ConnectionStatus getCurrentConnectionStatus(const NodeNum destNode) {
@@ -1334,9 +1408,9 @@ class TlsTCPCommunication::TlsTcpImpl : public std::enable_shared_from_this<TlsT
     lock_guard<mutex> lock(_connectionsGuard);
     auto temp = _connections.find(destNode);
     if (temp != _connections.end()) {
-      temp->second->send(message, messageLength);
+      return temp->second->send(message, messageLength) ? 0 : -1;
     } else {
-      LOG_DEBUG(_logger, "connection NOT found, from: " << _selfId << ", to: " << destNode);
+      LOG_INFO(_logger, "connection NOT found, from: " << _selfId << ", to: " << destNode);
     }
 
     return 0;
@@ -1359,6 +1433,7 @@ TlsTCPCommunication::TlsTCPCommunication(const TlsTcpConfig &config) {
                                 config.listenHost,
                                 config.certificatesRootPath,
                                 config.cipherSuite,
+                                config.numOfThreads,
                                 config.statusCallback);
 }
 
