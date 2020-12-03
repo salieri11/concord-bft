@@ -14,3 +14,4 @@ chmod ugo+r -R trs_trc_tls_certs
 sudo rm -rf /media/concord/cores/*
 sudo rm -rf /media/concord/log/*
 sudo rm -rf /media/concord/rocksdbdata/*
+sudo systemctl restart docker

@@ -4,7 +4,7 @@ f_val: 1
 tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384
 tls_certificates_folder_path: /concord/tls_certs
 comm_to_use: tls
-FEATURE_time_service: true
+FEATURE_time_service: false
 perf_enable: true
 eth_enable: false
 tee_enable: false
@@ -15,9 +15,14 @@ concord-bft_max_reply_message_size: 16384
 concord-bft_max_num_of_reserved_pages: 145
 genesis_block: /concord/config-public/genesis.json
 time_pusher_period_ms: 1000
+consensus_batch_flush_period: 1000
+consensus_batching_policy: 0
+max_consensus_batch_size_in_bytes: 33554432
+max_initial_batch_size: 350
+max_num_of_requests_in_consensus_batch: 100
+logger_config: /concord/config-public/log4cplus.properties
+blockchain_db_path: /concord/rocksdbdata/
 node__TEMPLATE:
-  logger_config: /concord/config-public/log4cplus.properties
-  blockchain_db_path: /concord/rocksdbdata/
   concord-bft_enable_debug_statistics: true
 node:
   - service_host: 0.0.0.0

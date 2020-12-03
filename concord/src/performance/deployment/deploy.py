@@ -87,12 +87,13 @@ class Instance:
             stdout.close()
             stderr.close()
 
-            pref = f"stdout from concord{self.concord_id}:{self.public_ip} ---> " if print_pref else ""
+            pref = f"stdout from run_command:{self.public_ip} ---> " if print_pref else ""
             return (pref.join(stdout_chunks),
                     f"stderr from concord{self.concord_id}:{self.public_ip} ---> ".join(stderr_chunks),
                     stdout.channel.recv_exit_status())
         except paramiko.ssh_exception.SSHException as e:
-            logger.error(e)
+            logger.error(f"run_command, id:{self.concord_id+1}, error: {e}")
+            traceback.print_exc(file=sys.stdout)
             raise Exception("command failed")
 
     def upload_file(self, local_path, remote_path, file_name, clean_remote_folder, config):
@@ -294,7 +295,6 @@ class Instance:
                 cmd = f"sudo tar cfz {self.remote_path}/core/coredump{self.concord_id + 1}.tar.gz" \
                       f" -C /media/concord/cores *"
                 res = self.run_command(cmd)
-                assert (res[2] == 0)
                 logger.info(
                     f"!!!!!! core dump created for {self.concord_id + 1} at {self.public_ip}:{self.remote_path}/core")
 
@@ -307,7 +307,8 @@ class Instance:
                                    os.path.join(local_folder, "rocksdb", f"rocksdb{self.concord_id + 1}.tar.gz"))
             return True, self.concord_id, self.public_ip
         except Exception as e:
-            logger.error(e)
+            logger.error(f"collecting results from concord{self.concord_id + 1} at {self.public_ip}, error:{e}")
+            traceback.print_exc(file=sys.stdout)
             return False, f"concord{self.concord_id + 1}", self.public_ip
         finally:
             if ftp_client:
@@ -321,7 +322,8 @@ class Instance:
             res = self.run_command(cmd)
             return res[2] == 0, self.concord_id + 1, self.public_ip
         except Exception as e:
-            logger.error(e)
+            logger.error(f"stopContainers, concord{self.concord_id + 1}, error: {e}")
+            traceback.print_exc(file=sys.stdout)
             return False, self.concord_id + 1, self.public_ip
 
 
@@ -852,6 +854,9 @@ def main():
     parser.add_argument("-logLevel",
                         help="Dont run the test (For debug) (default False)",
                         default="INFO")
+    parser.add_argument("-runName",
+                        help="Meaningful name for the run",
+                        default="Default run")
     args = parser.parse_args()
     logger.setLevel(args.logLevel)
 
@@ -956,6 +961,7 @@ def main():
                 r.start_ssh(config)
 
             with open(os.path.join(local_folder, "logs", "loader_output.txt"), "w") as text_file:
+                print(f"Run name: {args.runName}", file = text_file)
                 for r in instances:
                     print(
                         f"instance: {inst.instance_id}, concord_id: {r.concord_id + 1}, "
@@ -1003,7 +1009,6 @@ def main():
                 if not res[0]:
                     raise_error(f"running post deploy task at {res[1]} failed")
 
-            print(replica_instances, loader_instances)
             for r in replica_instances:
                 res = r.start_replica(config.get_custom_command_run_interval_sec(),
                                       config.get_custom_command())

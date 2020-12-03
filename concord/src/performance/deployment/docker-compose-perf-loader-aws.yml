@@ -16,3 +16,4 @@ services:
     command: LOADER_COMMAND
     labels:
       custom_name: concord_perf_loader
+    container_name: concord_perf_loader

@@ -107,12 +107,19 @@ The following set of CLI parameters control the Concord replica configuration:
 Note: Please ignore warning and error at the beginning of the run
 
 ### Performance Loader Tool
-The PLT is a stand alone binary, which is containerized and runs on the separate machine. It accepts the following CLI parameters:
+The PLT is a stand alone binary, which is containerized and runs on the separate machine.
+The PLT supports 2 tests: Simple test and TwoLegsClosed test.
+In the Simple test, there is only 1 thread which is reponsible for sending request. The concurrency is set only by the
+client pool concurrency limit (the `-c` parameter).
+The TwoLegsClosed test mimics Chess+ trades registration flow, where the trade is split to 2 legs. Only after 1st leg for request R
+is completed, the second leg is sent. The concurrency is controlled by the client pool concurrency AND by the `-x` parameter,
+which controls how many request are on fly concurrently.
+It accepts the following CLI parameters:
   - -b (INTEGER) - number of requests to launch (default: 4000000)
   - -p (1/0) - requests pre-processing on/off (default: off)
-  - -k (INTEGER) - number of keys (default: 31)
+  - -k (INTEGER) - number of keys (default: 9)
   - -s (INTEGER) - single key size (default: 118)
-  - -v (INTEGER) - key value size (default: 2841)
+  - -v (INTEGER) - key value size (default: 1200)
   - -d (INTEGER) - payload size (default: 15100)
   - -c (INTEGER) - concurrency level: capacity of the clients pool (default: 15)
   - -e (INTEGER) - execution time (default: 0)
@@ -120,9 +127,17 @@ The PLT is a stand alone binary, which is containerized and runs on the separate
   - -w (1/0) - to use a busy-wait (1) or a regular sleep simulating execution time latency (default: 1)
   - -i (1/0) - to print (1) or not (0) request durations (default: 1)
   - -l (0,1,2,3 - off, error, info, debug) - log level (default: 1"). If log4cplus is not used, we use this file.
-  - -a STRING - path to log4cplus.properties file for the loader. Default: assumes it runs within Docker container with mapped folder to /perf_loader/config
+  - -a STRING - path to log4cplus.properties file for the loader. Default: assumes it runs within Docker container with mapped folder to /perf_loader/config 
+  - -t (INTEGER) - request timeout (default: 5000)
+  - -u (STRING) - test type (Simple, TwoLegsClosed) (default: TwoLegsClosed)
+  - -U (INTEGER) - waiting policy (1 - 10ms poll, 0 - callback from the client pool) (defaultL: 0)
+###The following parameters are relevant only for the TwoLegsClosed test
+  - -x (INTEGER) - number of concurrent requests for test (default: 30)
+  - -n (INTEGER) - number of worker threads for legs completion handling (default: 4)
+  - -K (INTEGER) - number of keys for the second leg (default: 21)
+  - -V (INTEGER) - value size for the second leg (default: 3500)
 
-  These parameters can be changed via the `loader_cli` parameter in the `deployment_local.yaml` file
+These parameters can be changed via the `loader_cli` parameter in the `deployment_local.yaml` file
 
 ### Logger configuration
 The `log4cplus.properties` file in the current folder is used for each run to configure replica's logger. Just add/modify any named loggers to have desired output in the log files.

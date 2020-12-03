@@ -27,6 +27,7 @@ services:
       - ./trs_trc_tls_certs/concord1:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica1
+    container_name: concord_perf_replica
 
   concord2:
     image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
@@ -50,6 +51,7 @@ services:
       - ./trs_trc_tls_certs/concord2:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica2
+    container_name: concord_perf_replica
 
   concord3:
     image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
@@ -73,6 +75,7 @@ services:
       - ./trs_trc_tls_certs/concord3:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica3
+    container_name: concord_perf_replica
 
   concord4:
     image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
@@ -96,6 +99,7 @@ services:
       - ./trs_trc_tls_certs/concord4:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica4
+    container_name: concord_perf_replica
 
   concord5:
     image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
@@ -119,6 +123,7 @@ services:
       - ./trs_trc_tls_certs/concord5:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica5
+    container_name: concord_perf_replica
 
   concord6:
     image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
@@ -142,6 +147,7 @@ services:
       - ./trs_trc_tls_certs/concord6:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica6
+    container_name: concord_perf_replica
 
   concord7:
     image: "DOCKER_USERNAME/DOCKER_REPO:REPLICA_TAG"
@@ -165,3 +171,4 @@ services:
       - ./trs_trc_tls_certs/concord7:/concord/trs_trc_tls_certs:ro
     labels:
       custom_name: concord_perf_replica7
+    container_name: concord_perf_replica
