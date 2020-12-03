@@ -289,6 +289,32 @@ def add_remove_nodes_from_deploy_descriptor(num_replicas, num_clients):
         return
 
 
+def _get_docker_container_registry_settings():
+    # We need the docker information.  Currently, we put this in the Persephone properties
+    # file when we are testing.  Let's keep that as the source of truth for now.
+    with open(util.product.persephoneConfigFile, "r") as f:
+        for line in f.readlines():
+            if line.startswith("provisioning.container.registry.address="):
+                container_address = line.split("=")[1].strip()
+                log.info("docker container registry address: %s" % container_address)
+            elif line.startswith("provisioning.container.registry.username="):
+                container_user = line.split("=")[1].strip()
+                log.info("docker container registry user: %s" % container_user)
+            elif line.startswith("provisioning.container.registry.password="):
+                container_pwd = line.split("=")[1].strip()
+                log.info("docker container registry key exists, of length: %s" % len(container_pwd))
+
+    if container_pwd.startswith("<") and container_pwd.endswith(">"):
+        raise Exception("Ensure that usernames, passwords, etc... are valid in " \
+                        "{}".format(util.product.persephoneConfigFile))
+
+    return {
+        'container_address': container_address,
+        'container_user': container_user,
+        'container_pwd': container_pwd
+    }
+
+
 def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
     """
     Populate infrastructure descriptor from zone config
@@ -317,6 +343,9 @@ def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
     with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE)) as infra_modified_File:
         infraDescriptor = json.load(infra_modified_File)
 
+    # Retrieve docker container settings for the infra descriptor
+    dcr = _get_docker_container_registry_settings();
+
     for item in range(len_default_zone_path):
         url = default_zone_path[item]['api']['address']
         userName = default_zone_path[item]['api']['credential']['passwordCredential']['username']
@@ -343,6 +372,11 @@ def _populateInfraDescriptorFile(fxHermesRunSettings, is_multiple_zone=False):
         infraDescriptor['zones'][item]['network']['gateway'] = gateway
         infraDescriptor['zones'][item]['network']['subnet'] = subnet
         infraDescriptor['zones'][item]['network']['nameServers'] = nameServers
+
+        infraDescriptor['zones'][item]['containerRegistry'] = {}
+        infraDescriptor['zones'][item]['containerRegistry']['url'] = dcr['container_address']
+        infraDescriptor['zones'][item]['containerRegistry']['userName'] = dcr['container_user']
+        infraDescriptor['zones'][item]['containerRegistry']['password'] = dcr['container_pwd']
         time.sleep(5)
 
     with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE), "w") as infraFile:
