@@ -36,6 +36,10 @@ COPY --from=builder ./provisioning-service/target/persephone-provisioning-servic
 # env variable for parameterizing application profile
 ENV APPCONTEXT test
 
+RUN chown -R vmware:vmware /persephone-provisioning-service
+RUN chmod 755 /persephone-provisioning-service
+USER vmware
+
 ENTRYPOINT ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}",  "-jar", "provisioning-service.jar"]
 
 # Expose port 8000 for debug or profiling usage.

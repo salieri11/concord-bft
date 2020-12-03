@@ -61,6 +61,10 @@ COPY --from=0 ./persephone/config-service/target/persephone-config-service*.jar 
 # env variable for parameterizing application profile
 ENV APPCONTEXT test
 
+RUN chown -R vmware:vmware /persephone-config-service
+RUN chmod 755 /persephone-config-service
+USER vmware
+
 ENTRYPOINT ["java", "-Dspring.config.location=/config/app/profiles/,./", "-Dspring.profiles.active=${APPCONTEXT}",  "-jar", "config-service.jar"]
 
 EXPOSE 9003
