@@ -304,8 +304,10 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
         nodeConfig.getValue<bool>("store_time_data_in_non_provable_keys");
     if (store_time_data_in_non_provable_keys) {
       non_provable_keys = std::unordered_set<Key>{
-          Key{new char[1]{concord::storage::kKvbKeyTimeSamples}},
-          Key{new char[1]{concord::storage::kKvbKeySummarizedTime}}};
+          Key(new char[1]{concord::storage::kKvbKeyTimeSamples},
+              sizeof(concord::storage::kKvbKeyTimeSamples)),
+          Key(new char[1]{concord::storage::kKvbKeySummarizedTime},
+              sizeof(concord::storage::kKvbKeySummarizedTime))};
       LOG_INFO(logger, "Time service data will be stored in non-provable keys");
     }
     LOG_INFO(logger, "Using rocksdb merkle blockchain storage");

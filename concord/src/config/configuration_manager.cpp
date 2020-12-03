@@ -2650,7 +2650,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                         "false");
   node.tagParameter("store_time_data_in_non_provable_keys",
                     publicDefaultableTags);
-  node.tagParameter("store_time_data_in_non_provable_keys", applicationTag);
+  node.tagParameter("store_time_data_in_non_provable_keys", deploymentTag);
   node.addValidator("store_time_data_in_non_provable_keys",
                     make_shared<BooleanValidator>());
 
