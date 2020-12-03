@@ -583,61 +583,66 @@ def verify_docker_containers(fxHermesRunSettings, node_info_list, blockchain_typ
     status = False
     user_config = fxHermesRunSettings["hermesUserConfig"]
     error_msg = "Error verifying docker containers"
-    for idx, node in enumerate(node_info_list):
-        containers_to_verify = get_docker_containers_by_node_type(user_config, blockchain_type, node.node_type)
-        # Verify SSH connection
-        ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
-        ssh_status = ssh_connect_node(ip, node.username, node.password)
-        if not ssh_status:
-            error_msg = "Could not SSH to {}. Aborting docker container verification".format(ip)
-            break
+    try:
+        for idx, node in enumerate(node_info_list):
+            containers_to_verify = get_docker_containers_by_node_type(user_config, blockchain_type, node.node_type)
+            # Verify SSH connection
+            ip = node.public_ip if zone_type == helper.LOCATION_SDDC else node.private_ip
+            ssh_status = ssh_connect_node(ip, node.username, node.password)
+            if not ssh_status:
+                error_msg = "Could not SSH to {}. Aborting docker container verification".format(ip)
+                break
 
-        # Verify docker containers
-        count = 0
-        max_timeout = 1200  # 20 mins; containers total size 10 GB+ now
-        start_time = time.time()
-        docker_images_found = False
-        command_to_run = "docker ps --format '{{.Names}}'"
-        log.info("Waiting for all docker containers to be up on {} within {} mins".format(ip, max_timeout / 60))
-        check_agent_for_errors = True
-        while (time.time() - start_time) <= max_timeout and not docker_images_found:
-            count += 1
-            log.debug("Verifying docker containers (attempt: {})".format(count))
-            ssh_output = helper.ssh_connect(ip, node.username, node.password, command_to_run)
-            log.debug("SSH output: {}".format(ssh_output))
-            for container_name in containers_to_verify:
-                if container_name not in ssh_output:
-                    docker_images_found = False
-                    log.warning("Container '{}' not up and running on node '{}'".format(container_name, ip))
-                    time.sleep(30)
-                    break  # break out of container_name in containers_to_verify for-loop
-                else:
-                    docker_images_found = True
-                    log.debug("Container {} found in node {}".format(container_name, ip))
-                    if 'fluentd' in container_name:
-                        # Fluentd is the first container that Agent starts. If Agent has crashed and is restarting,
-                        # Fluentd is not up. However, if Fluentd was found, no need to inspect Agent.
-                        check_agent_for_errors = False
+            # Verify docker containers
+            count = 0
+            max_timeout = 1200  # 20 mins; containers total size 10 GB+ now
+            start_time = time.time()
+            docker_images_found = False
+            command_to_run = "docker ps --format '{{.Names}}'"
+            log.info("Waiting for all docker containers to be up on {} within {} mins".format(ip, max_timeout / 60))
+            check_agent_for_errors = True
+            while (time.time() - start_time) <= max_timeout and not docker_images_found:
+                count += 1
+                log.debug("Verifying docker containers (attempt: {})".format(count))
+                ssh_output = helper.ssh_connect(ip, node.username, node.password, command_to_run)
+                log.debug("SSH output: {}".format(ssh_output))
+                for container_name in containers_to_verify:
+                    if container_name not in ssh_output:
+                        docker_images_found = False
+                        log.warning("Container '{}' not up and running on node '{}'".format(container_name, ip))
+                        time.sleep(30)
+                        break  # break out of container_name in containers_to_verify for-loop
+                    else:
+                        docker_images_found = True
+                        log.debug("Container {} found in node {}".format(container_name, ip))
+                        if 'fluentd' in container_name:
+                            # Fluentd is the first container that Agent starts. If Agent has crashed and is restarting,
+                            # Fluentd is not up. However, if Fluentd was found, no need to inspect Agent.
+                            log.debug("Fluentd image found. No need to check Agent logs.")
+                            check_agent_for_errors = False
 
-        if not docker_images_found:
-            error_msg = "Not all containers are up and running on node '{}'".format(ip)
-            if check_agent_for_errors:
-                # Check if Agent has crashed by getting Agent logs
-                agent_error_lines = parse_agent_logs(ip, node)
-                error_msg = error_msg + "\n" + agent_error_lines
-            break  # break out of node in node_info_list for-loop
-        else:
-            log.info("Docker containers verified on {}".format(ip))
-            log.info("Verifying second disk on {}".format(ip))
-            # 1.0 defaults to adding disk to its own secondary mount point
-            status, error_msg = check_disk_addition(ip, node)
-
-            if not status:
+            if not docker_images_found:
+                error_msg = "Not all containers are up and running on node '{}'".format(ip)
+                if check_agent_for_errors:
+                    # Check if Agent has crashed by getting Agent logs
+                    agent_error_lines = parse_agent_logs(ip, node)
+                    error_msg = error_msg + "\n" + agent_error_lines
                 break  # break out of node in node_info_list for-loop
+            else:
+                log.info("Docker containers verified on {}".format(ip))
+                log.info("Verifying second disk on {}".format(ip))
+                # 1.0 defaults to adding disk to its own secondary mount point
+                status, error_msg = check_disk_addition(ip, node)
 
-            if idx == len(node_info_list) - 1:
-                log.info("Docker containers verified on all nodes")
-                status = True
+                if not status:
+                    break  # break out of node in node_info_list for-loop
+
+                if idx == len(node_info_list) - 1:
+                    log.info("Docker containers verified on all nodes")
+                    status = True
+
+    except Exception as e:
+        error_msg = "Exception while verifying docker containers: {}".format(e)
 
     return status, error_msg
 
@@ -656,42 +661,45 @@ def ssh_connect_node(ip, username, password, mode=None):
     status = False
     max_timeout = 180  # 3 mins
     start_time = time.time()
-    while (time.time() - start_time) <= max_timeout and ssh_result is None:
-        ssh_result = helper.ssh_connect(ip, username, password, "hostname", log_mode="WARNING")
-        if ssh_result:
-            log.debug("SSH enabled within {} mins".format((time.time() - start_time) / 60))
-            status = True
-            break
-        else:
-            sleep_time = 30
-            log.debug("Sleep for {} seconds and retry".format(sleep_time))
-            time.sleep(sleep_time)
-
-    if not status:
-        log.error("SSH connection to {} could not be established within {} mins".format(ip, max_timeout / 60))
-        raise
-    else:  # Mark node as logged in
-        status = False  # setting status to False for this portion
-        marker_file = "/tmp/{}".format(ip)
-        if mode is None:
-            command_to_run = "touch {} ; ls {}".format(marker_file, marker_file)
-            log.debug("Marking concord node as logged in: {}".format(command_to_run))
-            validation_message_success = "Marker file '{}' created".format(marker_file)
-            validation_message_fail = "Failed to create marker file '{}'".format(marker_file)
-        else:
-            command_to_run = "ls {}".format(marker_file)
-            log.debug("Verifying if concord node is marked as logged in: {}".format(command_to_run))
-            validation_message_success = "Marker file '{}' found".format(marker_file)
-            validation_message_fail = "Cannot find marker file '{}'".format(marker_file)
-
-        ssh_output = helper.ssh_connect(ip, username, password, command_to_run)
-        log.debug("SSH output: {}".format(ssh_output))
-        if ssh_output:
-            if marker_file in ssh_output.rstrip():
-                log.debug(validation_message_success)
+    try:
+        while (time.time() - start_time) <= max_timeout and ssh_result is None:
+            ssh_result = helper.ssh_connect(ip, username, password, "hostname", log_mode="WARNING")
+            if ssh_result:
+                log.debug("SSH enabled within {} mins".format((time.time() - start_time) / 60))
                 status = True
+                break
+            else:
+                sleep_time = 30
+                log.debug("Sleep for {} seconds and retry".format(sleep_time))
+                time.sleep(sleep_time)
+
         if not status:
-            log.error(validation_message_fail)
+            log.error("SSH connection to {} could not be established within {} mins".format(ip, max_timeout / 60))
+            raise
+        else:  # Mark node as logged in
+            status = False  # setting status to False for this portion
+            marker_file = "/tmp/{}".format(ip)
+            if mode is None:
+                command_to_run = "touch {} ; ls {}".format(marker_file, marker_file)
+                log.debug("Marking concord node as logged in: {}".format(command_to_run))
+                validation_message_success = "Marker file '{}' created".format(marker_file)
+                validation_message_fail = "Failed to create marker file '{}'".format(marker_file)
+            else:
+                command_to_run = "ls {}".format(marker_file)
+                log.debug("Verifying if concord node is marked as logged in: {}".format(command_to_run))
+                validation_message_success = "Marker file '{}' found".format(marker_file)
+                validation_message_fail = "Cannot find marker file '{}'".format(marker_file)
+
+            ssh_output = helper.ssh_connect(ip, username, password, command_to_run)
+            log.debug("SSH output: {}".format(ssh_output))
+            if ssh_output:
+                if marker_file in ssh_output.rstrip():
+                    log.debug(validation_message_success)
+                    status = True
+            if not status:
+                log.error(validation_message_fail)
+    except Exception as e:
+        log.error("Caught exception while SSH'ing to node {}: {}".format(ip, e))
 
     return status
 
@@ -703,16 +711,25 @@ def parse_agent_logs(ip, node):
     :param node: Node for which agent logs are to be parsed
     :return: Exception stacktrace to be published
     """
+    log.debug("Parsing Agent logs to report potential failure in agent startup")
     command = "docker logs agent"
-    agent_log_lines = helper.ssh_connect(ip, node.username, node.password, command, log_response=False).splitlines()
     error_lines = []
-    for i in range(len(agent_log_lines)):
-        if "ERROR" in agent_log_lines[i]:
-            # Get starting index - 5 lines prior or 0
-            start = (0, i-5)[i-5 >= 0]  # (falseValue, trueValue)[test]
-            # Add 5 lines prior, error line, 20 lines after = 26 total; or until end of agent_log_lines
-            error_lines = agent_log_lines[start: start + 26]
-            break
+    error_found = False
+    try:
+        agent_log_lines = helper.ssh_connect(ip, node.username, node.password, command, log_response=False).splitlines()
+        for i in range(len(agent_log_lines)):
+            if "ERROR" in agent_log_lines[i]:
+                error_found = True
+                # Get starting index - 5 lines prior or 0
+                start = (0, i-5)[i-5 >= 0]  # (falseValue, trueValue)[test]
+                # Add 5 lines prior, error line, 20 lines after = 26 total; or until end of agent_log_lines
+                error_lines = agent_log_lines[start: start + 26]
+                break
+    except Exception as e:
+        log.error("Caught exception while fetching Agent logs: {}".format(e))
+
+    if not error_found:
+        log.warning("No error lines found in Agent logs")
 
     return '\n'.join(error_lines)
 
@@ -725,40 +742,44 @@ def check_disk_addition(ip, node, is_primary_mount=False):
     :param is_primary_mount: Whether the disk is added to a primary mount. False by default in 1.0.
     :return: True/False and error message
     """
-    command_lsblk = "lsblk /dev/sdb"
-    must_not_contain = "lsblk: /dev/sdb: not a block device"
-    output_lsblk = helper.ssh_connect(ip, node.username, node.password, command_lsblk)
     status_lsblk = False
     status_docker_inspect = False
-    if must_not_contain in output_lsblk:
-        error_msg = "Second disk has not been added, since /dev/sdb does not exist"
-        return status_lsblk, error_msg
+    error_msg = "Error in checking disk addition"
+    try:
+        command_lsblk = "lsblk /dev/sdb"
+        must_not_contain = "lsblk: /dev/sdb: not a block device"
+        output_lsblk = helper.ssh_connect(ip, node.username, node.password, command_lsblk)
+        if must_not_contain in output_lsblk:
+            error_msg = "Second disk has not been added, since /dev/sdb does not exist"
+            return status_lsblk, error_msg
 
-    mount_point_primary = "vg0-data"
-    mount_point_secondary = "/mnt/data"
-    rocksdb_binding_primary = "/config/concord/rocksdbdata:/concord/rocksdbdata"
-    rocksdb_binding_secondary = "/mnt/data/rocksdbdata:/concord/rocksdbdata"
-    indexdb_binding_primary = "/config/daml-index-db/db:/var/lib/postgresql/data"
-    indexdb_binding_secondary = "/mnt/data/db:/var/lib/postgresql/data"
+        mount_point_primary = "vg0-data"
+        mount_point_secondary = "/mnt/data"
+        rocksdb_binding_primary = "/config/concord/rocksdbdata:/concord/rocksdbdata"
+        rocksdb_binding_secondary = "/mnt/data/rocksdbdata:/concord/rocksdbdata"
+        indexdb_binding_primary = "/config/daml-index-db/db:/var/lib/postgresql/data"
+        indexdb_binding_secondary = "/mnt/data/db:/var/lib/postgresql/data"
 
-    if node.node_type == helper.NodeType.CLIENT:
-        command_docker_inspect = "docker inspect daml_index_db"
-        binding = indexdb_binding_primary if is_primary_mount else indexdb_binding_secondary
-    else:
-        command_docker_inspect = "docker inspect concord"
-        binding = rocksdb_binding_primary if is_primary_mount else rocksdb_binding_secondary
+        if node.node_type == helper.NodeType.CLIENT:
+            command_docker_inspect = "docker inspect daml_index_db"
+            binding = indexdb_binding_primary if is_primary_mount else indexdb_binding_secondary
+        else:
+            command_docker_inspect = "docker inspect concord"
+            binding = rocksdb_binding_primary if is_primary_mount else rocksdb_binding_secondary
 
-    output_docker_inspect = helper.ssh_connect(ip, node.username, node.password, command_docker_inspect,
-                                               log_response=False)
-    mount_point = mount_point_primary if is_primary_mount else mount_point_secondary
-    error_msg = "Expected mount point '{}' or binding '{}' does not exist".format(mount_point, binding)
+        output_docker_inspect = helper.ssh_connect(ip, node.username, node.password, command_docker_inspect,
+                                                   log_response=False)
+        mount_point = mount_point_primary if is_primary_mount else mount_point_secondary
+        error_msg = "Expected mount point '{}' or binding '{}' does not exist".format(mount_point, binding)
 
-    if mount_point in output_lsblk:
-        log.info("Mount point '{}' found in output of '{}'".format(mount_point, command_lsblk))
-        status_lsblk = True
-    if binding in output_docker_inspect:
-        log.info("Binding '{}' found in output of '{}'".format(binding, command_docker_inspect))
-        status_docker_inspect = True
+        if mount_point in output_lsblk:
+            log.info("Mount point '{}' found in output of '{}'".format(mount_point, command_lsblk))
+            status_lsblk = True
+        if binding in output_docker_inspect:
+            log.info("Binding '{}' found in output of '{}'".format(binding, command_docker_inspect))
+            status_docker_inspect = True
+    except Exception as e:
+        log.error("Caught exception while checking disk addition: {}".format(e))
 
     return status_lsblk and status_docker_inspect, error_msg
 
