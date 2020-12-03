@@ -272,3 +272,13 @@ $client-node-label-width: 4.25rem;
   }
 }
 
+.disabled .card {
+  color: var(--clr-btn-default-outline-disabled-color,#666);
+  cursor: not-allowed;
+  opacity: .6;
+  background-color: transparent;
+  background-color: var(--clr-btn-default-outline-disabled-bg-color,transparent);
+  border-color: #8c8c8c;
+  border-color: var(--clr-btn-default-outline-disabled-border-color,#8c8c8c);
+  box-shadow: none;
+}
