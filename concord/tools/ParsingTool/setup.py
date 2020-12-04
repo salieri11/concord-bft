@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name='cli',
-    version='0.1',
+    version='0.2',
     py_modules=['cli'],
-    packages=['vm_parser', 'utils'],
+    packages=['vm_parser', 'st_parser', 'utils'],
     install_requires=[
         'Click',
         'TQDM',
