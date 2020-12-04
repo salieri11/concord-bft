@@ -41,6 +41,12 @@ option(EXTERNAL_CLIENTS_TEST "Run BFT client pool unit tests" FALSE)
 # Our CMake helper modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
+# Concord-BFT CMake helper modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/submodules/concord-bft/cmake")
+
+# Concord-BFT CMF compiler path
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_LIST_DIR}/submodules/concord-bft/messages/compiler/")
+
 # Expected GRPC and Protobuf installations
 list(APPEND CMAKE_PREFIX_PATH "/opt/grpc" "/opt/protobuf")
 
