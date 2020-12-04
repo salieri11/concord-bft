@@ -67,7 +67,6 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         printWriter.printf("Consortium Name: %s, Consortium Id: %s\n", consortiumName, consortiumId);
 
         // Request a deployment from the provisioning service
-        log.debug("Requesting a deployment with request info: {}", deploymentRequest);
         String deploymentRequestId = submitDeploymentRequest(deploymentRequest, deploymentCompletionFuture);
         printWriter.printf("Deployment Request Id: %s\n", deploymentRequestId);
 
