@@ -12,7 +12,7 @@ from time import strftime, localtime
 
 from rpc.rpc_call import RPC
 from suites import test_suite
-from util import html, json_helper
+from util import json_helper
 
 log = None
 command = os.path.splitext(os.path.basename(__file__))[0]
