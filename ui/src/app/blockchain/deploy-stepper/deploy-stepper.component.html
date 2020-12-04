@@ -24,9 +24,9 @@
                 <p>{{ 'blockchainWizard.engine.damlInfo' | translate }}</p>
               </div>
             </div>
-            <div class="clr-row" *concordFeatureFlag="'ethereum'">
+            <div class="clr-row disabled">
               <div class="clr-col-12">
-                <div id="ethEngine" class="card clickable sideways" (click)="selectEngine(engines.ETH)"
+                <div id="ethEngine" class="card sideways"
                   [ngClass]="{'active': selectedEngine === engines.ETH}">
                   <div class="card-icon">
                     <img src="static/images/contract-types/eth.svg"
@@ -227,6 +227,11 @@
                     <label class="column-label">{{ 'blockchainWizard.clients.pem' | translate }}</label>
                     <textarea clrTextarea formControlName="pem"
                       [placeholder]="'blockchainWizard.clients.pemPH' | translate"></textarea>
+                      <clr-control-error class="no-height">
+                        <div class="error-helper abspos no-height">
+                          {{ 'tls.validationError' | translate }}
+                        </div>
+                      </clr-control-error>
                   </clr-textarea-container>
                 </div>
                 <div class="clr-col-md-4">
@@ -234,6 +239,11 @@
                     <label class="column-label">{{ 'blockchainWizard.clients.crt' | translate }}</label>
                     <textarea clrTextarea formControlName="crt"
                       [placeholder]="'blockchainWizard.clients.crtPH' | translate"></textarea>
+                      <clr-control-error class="no-height">
+                        <div class="error-helper abspos no-height">
+                          {{ 'tls.validationError' | translate }}
+                        </div>
+                      </clr-control-error>
                   </clr-textarea-container>
                 </div>
                 <div class="clr-col-md-4">
@@ -241,6 +251,11 @@
                     <label class="column-label">{{ 'blockchainWizard.clients.cacrt' | translate }}</label>
                     <textarea clrTextarea formControlName="cacrt"
                       [placeholder]="'blockchainWizard.clients.crtPH' | translate"></textarea>
+                      <clr-control-error class="no-height">
+                        <div class="error-helper abspos no-height">
+                          {{ 'tls.validationError' | translate }}
+                        </div>
+                      </clr-control-error>
                   </clr-textarea-container>
                 </div>
               </div>
