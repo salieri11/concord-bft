@@ -52,7 +52,6 @@ public class ReconfigurerServiceImpl implements ReconfigurerService {
         DeploymentRequest newReconfigRequest = newReconfigRequestBuilder.build();
 
         // Request a deployment from the provisioning service
-        log.debug("Requesting a deployment with request info: {}", newReconfigRequest);
         deploymentCompletionFuture.completeAsync(() -> {
             try {
                 GenerateConfigurationResponse response =
