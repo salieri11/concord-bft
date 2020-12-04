@@ -25,7 +25,7 @@ sed -i "s@<ORCHESTRATOR_BUILD_HOST>@${ORCHESTRATOR_BUILD_HOST}@" orchestrator-ap
 rm -rf ./cap-lin*.zip ./cap ./.cap ./.input ./input.json ./.scripts ./ovftool* ./packer ./packer_cache ./template.json
 rm -rf images/* logs/*
 
-wget http://build-squid.eng.vmware.com/build/mts/release/bora-16903830/publish/cap-lin.zip
+wget $ORCHESTRATOR_CAP_BINARY
 unzip cap-lin.zip
 
 mv ovftool ovftool4.4.0
