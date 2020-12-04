@@ -174,7 +174,7 @@ def check_node_health_and_run_sanity_check(replicas, results_dir,
          status = True
       else:
          if list_of_participant_nodes_to_run_txns:
-            start_time = datetime.datetime.now()
+            start_time = datetime.now()
             log.info("** Run DAML tests...")
             daml_tests_results_dir = helper.create_results_sub_dir(results_dir,
                                                                    "daml_tests")
@@ -187,10 +187,10 @@ def check_node_health_and_run_sanity_check(replicas, results_dir,
                                         node_interruption_details=node_interruption_details)
                if not status:
                   break
-               if datetime.datetime.now() >= start_time + datetime.timedelta(minutes=duration_to_run_transaction):
+               if datetime.now() >= start_time + timedelta(minutes=duration_to_run_transaction):
                   break
                else:
-                  elapsed_time = round(((datetime.datetime.now() - start_time).seconds / 60), 1)
+                  elapsed_time = round(((datetime.now() - start_time).seconds / 60), 1)
                   log.info(
                      "Repeating Daml transactions ({} / {} mins)...".format(elapsed_time, duration_to_run_transaction))
          else:
