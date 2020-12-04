@@ -1,0 +1,82 @@
+# Minimum docker deployment for TRC-TRS performance benchmark.
+# The trs entrypoint must be specified as follows -
+# ./trs_performance <num-blocks> <num-key-value-pairs-per-block> <key-size> <value-size>.
+# The trc entrypoint must be specified as follows -
+# ./thin-replica-client/build/trc-performance/trc_performance" <client_id>  <num-servers> <max-faulty>
+#                                                              <num-times>, <ip:port> for <num-servers>
+# Total number of updates read by TRC = <num-times> * <num-blocks> * <num-key-value-pairs-per-block>
+# Total number of unique updates generated at TRS = <num-blocks> * <num-key-value-pairs-per-block>
+
+version: '3'
+services:
+  trs1:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    environment:
+      - ADDRESS=0.0.0.0:50051
+      - CLIENT_ID=client_id_1
+    ports:
+      - "50051:50051"
+    entrypoint: ["./trs_performance", "100", "30", "1", "2", "1"]
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./tmp:/concord/trc-trs-perf-results/
+
+  trs2:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    environment:
+      - ADDRESS=0.0.0.0:50052
+      - CLIENT_ID=client_id_1
+    ports:
+      - "50052:50052"
+    entrypoint: ["./trs_performance", "100", "30", "1", "2", "1"]
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./tmp:/concord/trc-trs-perf-results/
+
+  trs3:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    environment:
+      - ADDRESS=0.0.0.0:50053
+      - CLIENT_ID=client_id_1
+    ports:
+      - "50053:50053"
+    entrypoint: ["./trs_performance", "100", "30", "1", "2", "1"]
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./tmp:/concord/trc-trs-perf-results/
+
+  trs4:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    environment:
+      - ADDRESS=0.0.0.0:50054
+      - CLIENT_ID=client_id_1
+    ports:
+      - "50054:50054"
+    entrypoint: ["./trs_performance", "100", "30", "1", "2", "1"]
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./tmp:/concord/trc-trs-perf-results/
+
+  trc1:
+    image: "${trc_lib_repo}:${trc_lib_tag}"
+    network_mode: "host"
+    depends_on:
+      - trs1
+      - trs2
+      - trs3
+      - trs4
+    environment:
+      - LOG4CPLUS_CONFIGURATION=/thin-replica-client/trc-performance/log4cplus.properties
+      - CLIENT_ID=client_id_1
+    entrypoint: ["./thin-replica-client/build/trc-performance/trc_performance", "client_id_1", "4", "1", "10", "localhost:50051", "localhost:50052", "localhost:50053", "localhost:50054"]
+    volumes:
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./tmp:/concord/trc-trs-perf-results/
