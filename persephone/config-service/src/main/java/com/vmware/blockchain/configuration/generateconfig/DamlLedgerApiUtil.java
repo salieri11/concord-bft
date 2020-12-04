@@ -152,7 +152,7 @@ public class DamlLedgerApiUtil {
         if (properties.getValuesMap()
                 .getOrDefault(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name(), "False")
                 .equalsIgnoreCase("True")) {
-            builder.append(" --insecure-thin-replica-client=False --thin-replica-tls-cert-path="
+            builder.append(" --insecure-thin-replica-client=false --thin-replica-tls-cert-path="
                     + CertificatesGenerator.IDENTITY_PATH_PREFIX + CertificatesGenerator.TRC_TLS_IDENTITY_PATH);
         }
         builder.append("\"");

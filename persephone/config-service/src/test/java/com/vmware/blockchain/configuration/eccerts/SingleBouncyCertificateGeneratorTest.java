@@ -56,20 +56,21 @@ class SingleBouncyCertificateGeneratorTest {
             assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/tlsCerts.cert");
             assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
-            testCerts(ks);
+            testCerts(ks, "test-cn", null);
         });
     }
 
     @Test
-    public void testCertificateGenerationWithCertName() {
+    public void testCertificateGenerationWithCertNameAndSan() {
         assertDoesNotThrow(() -> {
+            String cn = "1.2.3.4";
             Identity ks = SingleBouncyCertificateGenerator
-                    .generateIdentity(filePath, "myCert.cert", "myKey.pem", "test-cn", "test-ou");
+                    .generateIdentity(filePath, "myCert.cert", cn, "test-ou", cn);
 
             assert ks.getCertificate().getUrl().equalsIgnoreCase(filePath + "/myCert.cert");
-            assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/myKey.pem");
+            assert ks.getKey().getUrl().equalsIgnoreCase(filePath + "/pk.pem");
 
-            testCerts(ks);
+            testCerts(ks, cn, cn);
         });
     }
 
@@ -138,7 +139,7 @@ class SingleBouncyCertificateGeneratorTest {
         });
     }
 
-    private void testCerts(Identity ks) throws Exception {
+    private void testCerts(Identity ks, String cn, String san) throws Exception {
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
         InputStream inputStream = new ByteArrayInputStream(ks.getCertificate().getBase64Value().getBytes());
         X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
@@ -147,7 +148,7 @@ class SingleBouncyCertificateGeneratorTest {
         assert cert.getPublicKey().getAlgorithm().equalsIgnoreCase("EC");
         assert cert.getSigAlgName().equalsIgnoreCase("SHA256WITHECDSA");
         assert cert.getIssuerDN().getName().equalsIgnoreCase(
-                "CN=test-cn, OU=test-ou, O=NA, L=NA, ST=NA, C=NA");
+                "CN=" + cn + ", OU=test-ou, O=NA, L=NA, ST=NA, C=NA");
 
         byte[] keyBytes = ks.getKey().getBase64Value().getBytes();
         KeyFactory factory = KeyFactory.getInstance("ECDSA", "BC");
@@ -156,5 +157,12 @@ class SingleBouncyCertificateGeneratorTest {
         PrivateKey privateKey = factory.generatePrivate(ecPrivateKeySpec);
         // TODO: Check private key wrt certificate (ECDSA is not straight forward)
         assert privateKey.getAlgorithm().equalsIgnoreCase("ECDSA");
+
+        if (san != null) {
+            assert cert.getSubjectAlternativeNames().size() == 1;
+            cert.getSubjectAlternativeNames().forEach(name -> {
+                assert name.get(1).equals(san);
+            });
+        }
     }
 }

@@ -154,8 +154,8 @@ public class IdentityManagementUtilTest {
 
     @Test
     void testBuildTrsTrcTlsIdentities() {
-        List<String> clientIdList = List.of("participant0", "participant1", "participant2");
-        List<String> addrList = List.of("addr1", "addr2", "addr3", "addr4");
+        List<String> clientIdList = List.of("1.1.1.1", "2.2.2.2", "3.3.3.3");
+        List<String> addrList = List.of("4.4.4.4", "5.5.5.5", "6.6.6.6", "7.7.7.7");
         List<String> clientGroupIdList = List.of("id1", "id2");
         BlockchainClient client1 = new BlockchainClient(clientIdList.get(0), addrList.get(0));
         BlockchainClient client2 = new BlockchainClient(clientIdList.get(1), addrList.get(1));
