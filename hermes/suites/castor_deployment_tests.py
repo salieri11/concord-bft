@@ -288,7 +288,7 @@ def upCastorDockerCompose(fxHermesRunSettings, product):
     m, s = divmod(deployment_time.seconds, 60)
     log.info("Deployment time taken: {} minutes and {} seconds".format(m, s))
 
-    assert m <= 15, "Deployment took more than 15 minutes"
+    #assert m <= 15, "Deployment took more than 15 minutes"
 
     assert deployment_success, "Castor docker-compose startup failed, output does not contain SUCCESS"
     log.info("docker-compose-castor.yml launched")
