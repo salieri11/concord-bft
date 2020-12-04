@@ -17,6 +17,7 @@ from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
 from util import auth, csp, helper, hermes_logging, html, json_helper, node_creator,\
     numbers_strings, generate_grpc_bindings, pipeline
+from util.dlr import dlr_helper
 from util.stats_gatherer import StatsGatherer
 
 import event_recorder
@@ -519,6 +520,15 @@ def pytest_addoption(parser):
     parser.addoption("--notifyJobName",
                      help="Shortened job name running this monitoring script",
                      default=None)
+    parser.addoption("--dlrNoOfAgreements",
+                     help="No. of Agreements to run DLR simulation",
+                     default=dlr_helper.DEFAULT_NO_OF_AGREEMENT)
+    parser.addoption("--dlrNoOfVuser",
+                     help="No. of Users to run DLR simulation",
+                     default=dlr_helper.DEFAULT_NO_OF_VUSER)
+    parser.addoption("--dlrLoadBatchSize",
+                     help="Batch size of agreements for an iteration",
+                     default=dlr_helper.DEFAULT_LOAD_BATCH_SIZE)
 
     concordConfig = parser.getgroup(
         "Concord configuration", "Concord Options:")
@@ -698,7 +708,8 @@ def _get_suite_short_name(module_name):
         "WavefrontTests": "hermes.suites.wavefront_tests",
         "HelenVMSizeTests": "vmsize_test",
         "TlsDamlTests": "hermes.suites.tls_daml_tests",
-        "BackupRestoreTests": "hermes.suites.backup_restore_tests"
+        "BackupRestoreTests": "hermes.suites.backup_restore_tests",
+        "DlrTest": "hermes.suites.dlr_test"
     }
 
     short_name = list(suite_list.keys())[list(
