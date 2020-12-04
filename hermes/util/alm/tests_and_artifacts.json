@@ -1,0 +1,8 @@
+{
+  "build_targets": [
+    "node-dependency"        
+  ],
+  "test_suites": [
+    "SampleSuite"
+  ]
+}
