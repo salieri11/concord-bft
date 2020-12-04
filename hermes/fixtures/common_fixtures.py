@@ -244,7 +244,27 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
    log.info("deployToSddc using tokenDescriptor {}".format(tokenDescriptor))
    log.info("Deployment service: {}".format(hermes_data["hermesCmdlineArgs"].deploymentService))
    log.info("tokenDescriptor: {}".format(tokenDescriptor))
-
+   if "local" in hermes_data["hermesCmdlineArgs"].deploymentService and hermes_data["hermesCmdlineArgs"].propertiesString:     
+      request = Request(logDir,
+                        "Patch an org",
+                        hermes_data["hermesCmdlineArgs"].deploymentService,
+                        None,
+                        tokenDescriptor={'org': 'hermes_org0', 'user': 'vmbc_test_org_admin', 'role': 'org_admin'})
+      properties = hermes_data["hermesCmdlineArgs"].propertiesString.split(",")
+      propertyMap = {}
+      for prop in properties:
+         key = prop.split(":")[0]
+         value = prop.split(":")[1]
+         propertyMap[key] = value      
+      orgId = auth.getOrgId(tokenDescriptor["org"])  
+      log.debug("Organization details -------------  {}".format((request.getOrg(orgId))))
+      response = request.patchOrg(orgId, addProperties = propertyMap, delProperties = None)
+      if tokenDescriptor["org"] in str(response):
+         log.info("Organization patched successfully")
+         log.debug("Organization detais after patch -------------  {}".format(response))
+      else:
+         log.info("Organization pactch unsuccessful")
+         raise Exception(str(response))
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
                              hermes_data["hermesCmdlineArgs"].deploymentService,
