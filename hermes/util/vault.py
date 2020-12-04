@@ -13,12 +13,20 @@ log = util.hermes_logging.getMainLogger()
 
 REQ_SESSION = requests.Session() # in case of TLS, session will avoid multiple handshakes
 
-VAULT_BASE_URL = "http://10.78.20.9:8200/v1/kv/data" # main Vault endpoint for kv store.
+VAULT_BASE_URL = "https://vmbc-vault01-us-west-2.vdp-int-stg.vmware.com/v1/vmbc/kv2/data/" # main Vault endpoint for kv store.
 VAULT_PARAM_CACHE = {} # cached Vault kv param look-up responses to avoid dupe look-ups
 VAULT_IDENTIFIER_PREFIX = "<vault." # default identifier to look up
 VAULT_IMPORT_PREFIX = "+" + VAULT_IDENTIFIER_PREFIX # "+<vault." will import the raw JSON into object key
 VAULT_FETCHING_FLAG = "__FETCHING__" # fetching flag for letting threads no it's being fetched.
 VAULT_PARAM_MAX_RECURSION_DEPTH = 32 # prevent unending recursiong where there is circular look-up of Vault params
+
+VAULT_USERNAME = os.getenv('VDP_VAULT_USER', None)
+VAULT_PASSWORD = os.getenv('VDP_VAULT_PASSWORD', None)
+if VAULT_USERNAME and VAULT_PASSWORD:
+    vault_login_url = "https://vmbc-vault01-us-west-2.vdp-int-stg.vmware.com/v1/auth/userpass/login/{}".format(VAULT_USERNAME)
+    data = {'username':VAULT_USERNAME, 'password':VAULT_PASSWORD}
+    response = requests.post(vault_login_url, data = json.dumps(data)).json()
+    os.environ['VAULT_API_TOKEN'] = response['auth']['client_token']
 
 
 def resolve(content, pretty=True):
