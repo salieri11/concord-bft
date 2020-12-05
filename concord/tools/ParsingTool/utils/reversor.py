@@ -1,4 +1,6 @@
 class reversor:
+    """This class could be used to reverse any field that is comperable.
+    """
     def __init__(self, obj):
         self.obj = obj
 
