@@ -1,4 +1,4 @@
-FROM node:12.16.2 as node
+FROM athena-docker-local.artifactory.eng.vmware.com/node:12.16.2 as node
 LABEL Description="VMware Blockchain UI"
 
 WORKDIR /app

@@ -1,5 +1,5 @@
 # Fluentd Debian image
-FROM fluent/fluentd:v1.7-debian-1
+FROM athena-docker-local.artifactory.eng.vmware.com/fluent/fluentd:v1.7-debian-1
 LABEL Description="Logging agent for Log Intelligence/Log Insight integration"
 
 # Change user to root for installations & to access docker container logs

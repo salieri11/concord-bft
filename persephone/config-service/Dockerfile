@@ -16,7 +16,7 @@ ARG concord_repo="concord-core"
 ARG concord_tag="latest"
 
 # Build time image.
-FROM maven:3.6.1-jdk-11 as builder
+FROM athena-docker-local.artifactory.eng.vmware.com/maven:3.6.1-jdk-11 as builder
 
 ## Copy build-dependent resource files.
 COPY ./persephone/resources/checkstyle.xml ./persephone/resources/checkstyle.xml
