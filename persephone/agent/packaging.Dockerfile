@@ -4,7 +4,7 @@ FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
 LABEL description="RPC Server for Concord-Agent-Deployment service"
 
 # Environment preparation.
-FROM openjdk:11.0.2-jdk-slim as environment
+FROM athena-docker-local.artifactory.eng.vmware.com/openjdk:11.0.2-jdk-slim as environment
 
 RUN apt-get update \
     && apt-get install -y wget \
@@ -18,7 +18,7 @@ RUN apt-get update \
     && keytool -importcert -alias vmwb-prod-config-cert  -cacerts -storepass changeit -file /tmp/l1k-chain256.cer
 
 
-FROM openjdk:11.0.2-jdk-slim
+FROM athena-docker-local.artifactory.eng.vmware.com/openjdk:11.0.2-jdk-slim
 
 ## Install CA certificate.
 COPY --from=environment /docker-java-home/lib/security/cacerts /docker-java-home/lib/security/cacerts

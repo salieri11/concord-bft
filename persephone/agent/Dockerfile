@@ -1,5 +1,5 @@
 # Build and dockerize the concord-agent artifact.
-FROM maven:3.6.1-jdk-11 as builder
+FROM athena-docker-local.artifactory.eng.vmware.com/maven:3.6.1-jdk-11 as builder
 
 ## Copy build-dependent resource files.
 COPY ./resources/checkstyle.xml ../resources/checkstyle.xml
@@ -19,7 +19,7 @@ COPY ./agent/src ./agent/src
 RUN mvn -f agent/pom.xml install
 
 # Environment preparation.
-FROM openjdk:11.0.2-jdk-slim as environment
+FROM athena-docker-local.artifactory.eng.vmware.com/openjdk:11.0.2-jdk-slim as environment
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y wget
