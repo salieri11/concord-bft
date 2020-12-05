@@ -119,6 +119,7 @@ class BombardierFleet:
         if "status" in resObj and resObj["status"] == "ok":
           return resObj
 
+      log.error("Error response in bombardier.py, txLoad().  Received: {}".format(vars(res)))
       return False
     except Exception as e:
       log.error("       {}".format(e))
