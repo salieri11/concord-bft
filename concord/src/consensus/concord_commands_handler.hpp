@@ -30,6 +30,49 @@ struct ConcordRequestContext {
   uint32_t max_response_size;
 };
 
+// Resets the TimeContract on construction and destruction.
+class TimeContractResetter {
+ public:
+  TimeContractResetter(time::TimeContract *time_contract) noexcept
+      : time_contract_{time_contract} {
+    Reset();
+  }
+
+  ~TimeContractResetter() noexcept { Reset(); }
+
+  TimeContractResetter(const TimeContractResetter &) = delete;
+  TimeContractResetter &operator=(const TimeContractResetter &) = delete;
+
+ private:
+  void Reset() noexcept {
+    if (time_contract_) time_contract_->Reset();
+  }
+
+  time::TimeContract *time_contract_;
+};
+
+// Resets the accumulated writes on construction and destruction
+class AccumulatedBlockResetter {
+ public:
+  AccumulatedBlockResetter(kvbc::SetOfKeyValuePairs &kv_set) noexcept
+      : kv_set_{kv_set} {
+    Reset();
+  }
+
+  ~AccumulatedBlockResetter() noexcept { Reset(); }
+
+  AccumulatedBlockResetter(const AccumulatedBlockResetter &) = delete;
+  AccumulatedBlockResetter &operator=(const AccumulatedBlockResetter &) =
+      delete;
+
+ private:
+  void Reset() noexcept {
+    if (!kv_set_.empty()) kv_set_.clear();
+  }
+
+  kvbc::SetOfKeyValuePairs kv_set_;
+};
+
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                public concord::kvbc::IBlocksAppender {
  private:
@@ -61,6 +104,7 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::shared_ptr<reconfiguration::ConcordControlHandler>
       concord_control_handlers_;
   uint16_t replica_id_;
+  kvbc::SetOfKeyValuePairs accumulatedBlock_;
 
  protected:
   const concord::kvbc::ILocalKeyValueStorageReadOnly &storage_;
@@ -133,6 +177,9 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // Checks the pre-executed result for read/write conflicts
   bool HasPreExecutionConflicts(
       const com::vmware::concord::ReadSet &read_set) const;
+  // Add the writeSet to the set of KV pairs which accumulates all the writes
+  // that will be written to the database as a single block.
+  void addWritesToBlock(kvbc::SetOfKeyValuePairs writeSet);
 
   // Functions the subclass must implement are below here.
 

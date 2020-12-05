@@ -33,27 +33,6 @@ using google::protobuf::Timestamp;
 namespace concord {
 namespace consensus {
 
-// Resets the TimeContract on construction and destruction.
-class TimeContractResetter {
- public:
-  TimeContractResetter(time::TimeContract *time_contract) noexcept
-      : time_contract_{time_contract} {
-    Reset();
-  }
-
-  ~TimeContractResetter() noexcept { Reset(); }
-
-  TimeContractResetter(const TimeContractResetter &) = delete;
-  TimeContractResetter &operator=(const TimeContractResetter &) = delete;
-
- private:
-  void Reset() noexcept {
-    if (time_contract_) time_contract_->Reset();
-  }
-
-  time::TimeContract *time_contract_;
-};
-
 ConcordCommandsHandler::ConcordCommandsHandler(
     const concord::config::ConcordConfiguration &config,
     const concord::config::ConcordConfiguration &node_config,
@@ -444,6 +423,7 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 void ConcordCommandsHandler::execute(ExecutionRequestsQueue &requests,
                                      const std::string &batchCid,
                                      concordUtils::SpanWrapper &parent_span) {
+  auto accumulated_block_resetter = AccumulatedBlockResetter{accumulatedBlock_};
   for (auto &req : requests) {
     req.outExecutionStatus = execute(
         req.clientId, req.executionSequenceNum, req.flags, req.request.size(),
@@ -458,6 +438,7 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
   // E.L the concord proto will need to change to include types as well
   for (const auto &kf : read_set.keys_with_fingerprints()) {
     const Sliver key{std::string{kf.key()}};
+    if (accumulatedBlock_.find(key) != accumulatedBlock_.end()) return true;
     const BlockId read_block_height = DeserializeFingerprint(kf.fingerprint());
     BlockId current_block_height;
     Value out;
@@ -479,6 +460,11 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
         read_set.keys_with_fingerprints_size());
   }
   return false;
+}
+
+void ConcordCommandsHandler::addWritesToBlock(
+    kvbc::SetOfKeyValuePairs writeSet) {
+  accumulatedBlock_.insert(writeSet.begin(), writeSet.end());
 }
 
 bool ConcordCommandsHandler::parseFromPreExecutionResponse(
