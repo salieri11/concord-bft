@@ -547,7 +547,7 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
 void DamlKvbCommandsHandler::RecordTransaction(
     const SetOfKeyValuePairs& updates, const BlockId current_block_id,
     const string& correlation_id, const opentracing::Span& parent_span,
-    ConcordResponse& concord_response) {
+    ConcordResponse& concord_response, const bool accumulate_writes) {
   auto record_transaction = concordUtils::startChildSpanFromContext(
       parent_span.context(), "record_transaction");
   SetOfKeyValuePairs amended_updates(updates);
@@ -559,9 +559,13 @@ void DamlKvbCommandsHandler::RecordTransaction(
   }
   amended_updates.insert({cid_key_, std::move(cid_val)});
   BlockId new_block_id = 0;
-  auto status = addBlock(amended_updates, new_block_id, record_transaction);
-  assert(status.isOK());
-  assert(new_block_id == current_block_id + 1);
+  if (!accumulate_writes) {
+    auto status = addBlock(amended_updates, new_block_id, record_transaction);
+    assert(status.isOK());
+    assert(new_block_id == current_block_id + 1);
+  } else {
+    addWritesToBlock(amended_updates);
+  }
 
   da_kvbc::CommandReply command_reply;
   da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();

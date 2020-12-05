@@ -173,7 +173,8 @@ class DamlKvbCommandsHandler
       const kvbc::SetOfKeyValuePairs& updates,
       const kvbc::BlockId current_block_id, const string& correlation_id,
       const opentracing::Span& parent_span,
-      com::vmware::concord::ConcordResponse& concord_response);
+      com::vmware::concord::ConcordResponse& concord_response,
+      const bool accumulate_writes = false);
 
   google::protobuf::Timestamp RecordTimeForTimeContract(
       concord::time::TimeContract* time_contract);
