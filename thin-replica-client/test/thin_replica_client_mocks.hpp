@@ -362,17 +362,260 @@ class MockThinReplicaServerRecorder {
                            google::protobuf::Empty* response);
 };
 
-std::vector<MockThinReplicaServerRecorder> CreateMockServerRecorders(
+// Class for managing mocked server behavior in test cases involving
+// Byzantine-faulty servers.
+//
+// A ByzantineMockThinReplicaServerPreparer object itself is effectively a
+// factory for mock thin replica servers (of the type
+// ByzantineMockThinReplicaServerPreparer::ByzantineMockServer) for a mocked
+// cluster including some servers with Byzantine-faulty behavior.
+//
+// At its construction, a ByzantineMockThinReplicaServerPreparer takes
+// specifications of the faulty and non-faulty behavior to be used in a mock
+// cluster. The non-faulty behavior is to be specified via shared_ptrs to
+// MockDataStreamPreparer and MockOrderedDataStreamHasher objects, which are the
+// same objects we use for describing server behavior in test cases involving
+// homogenous, non-Byzantine-faulty mocked servers (see definitions of these
+// classes above). For specifying behavior of Byzantine-faulty servers, a
+// shared_ptr to an object of type
+// ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior is accepted.
+//
+// ByzantineServerBehavior is a public, abstract member class of
+// ByzantineMockThinReplicaServerPreparer defining an interface for managing
+// Byzantine behavior (see ByzantineServerBehavior's declaration below). A
+// ByzantineServerBehavior object decides, possibly dynamically, what server(s)
+// will be Byzantine-faulty, when they will start showing Byzantine-faulty
+// behavior, and what that faulty behavior will be. It is expected unit test
+// cases with server(s) with Byzantine-faulty behavior will use some extension
+// of ByzantineServerBehavior to describe that faulty behavior. Examples of such
+// test cases, such as test_read_state_fabricated_data, can be found in
+// thin-replica-client/test/trc_byzantine_test.cpp, and examples of such
+// extensions of ByzantineServerBehavior, such as InitialStateFabricator, are
+// declared later in this file.
+class ByzantineMockThinReplicaServerPreparer {
+ public:
+  // Abstract class for describing Byzantine-Faulty server behavior to a
+  // ByzantineMockThinReplicaServerPreparer; note a single
+  // ByzantineServerBehavior object is intended to be shared for an entire mock
+  // cluster with faulty and non-faulty servers.
+  //
+  // ByzantineServerBehavior has a virtual function for mocking each RPC call a
+  // Thin Replica Server supports. ByzantineMockServers created by a
+  // ByzantineMockThinReplicaServerPreparer will invoke the
+  // ByzantineServerBehavior object they are using for each RPC call they mock
+  // to determine the behavior used for that call; the ByzantineServerBehavior
+  // should choose whether, and, if so, how, behavior for that call will be
+  // faulty. ByzantineServerBehavior itself comes with an implementation for
+  // each of these functions that always chooses non-faulty behavior; it is
+  // expected ByzantineServerBehavior extensions will only override the behavior
+  // for RPC calls whose behavior is desired to be Byzantine in the specific
+  // test case(s) the extension is used for.
+  //
+  // The ByzantineServerBeahvior class also keeps a record of what servers are
+  // Byzantine-faulty by server index. This alows extensions of this abstract
+  // class to dynamically configure which servers are Byzantine-faulty at
+  // runtime, which can allow test cases to make servers Byzantine faulty as
+  // they see them called, freeing them of the need to predict or even know what
+  // order the ThinReplicaClient implementation tries servers in.
+  class ByzantineServerBehavior {
+   private:
+    std::unordered_set<size_t> byzantine_faulty_servers_;
+    std::mutex faulty_server_record_mutex_;
+
+   protected:
+    ByzantineServerBehavior();
+
+    // Protected functions for managing which servers are Byzantine-faulty. Note
+    // multiple concurrent calls to one or more of IsByzantineFaulty,
+    // GetNumFaultyServers, and MakeByzantineFaulty are thread safe.
+    bool IsByzantineFaulty(size_t index);
+    size_t GetNumFaultyServers();
+
+    // Checks whether the number of servers that are already Byzantine faulty is
+    // strictly less than max_faulty, and, if so, records that the server with
+    // index index is Byzantine faulty if it was not already. This check and
+    // write is done atomically with respect to this ByzantineServerBehavior's
+    // record of which servers are Byzantine faulty. Note the max_faulty
+    // parameter for this function can be any number and need not match the F
+    // (i.e. maximum number of Byzantine-faulty nodes the cluster can tolerate)
+    // value for the cluster being mocked.
+    //
+    // Returns whether the server with index index is listed as Byzantine faulty
+    // after this call completes (this includes returning true when it was
+    // already listed as faulty before this call).
+    bool MakeByzantineFaulty(size_t index, size_t max_faulty);
+
+   public:
+    virtual ~ByzantineServerBehavior();
+
+    // Virtual functions called by ByzantineMockServers to decide behavior for
+    // RPC calls they are mocking. It is the responsibility of the
+    // ByzantineServerBehavior object to decide whether, and, if so, how,
+    // behavior will be faulty when these functions are called. Note the
+    // ByzantineServerBehavior abstract class's own default implementations of
+    // these functions always choose non-faulty behavior, so extensions need
+    // only override those that may have faulty behavior in the specific test
+    // case(s) they are used for.
+    //
+    // Note multiple calls to the same or different RPC behavior-mocking
+    // functions may be made concurrently from the same or different
+    // ByzantineMockServers, so ByzantineServerBehavior extensions are expected
+    // to handle (as necessary) synchronization of any shared state that could
+    // be written to by calls to these functions.
+    //
+    // In terms of signature and expected behavior (at least in the
+    // non-Byzantine-faulty case) these funcitions are somewhat similar to the
+    // com::vmware::concord::thin_replica::MockThinReplicaStub functions
+    // ByzantineMockServer uses them to mock behavior for, but with the
+    // following specific differences:
+    //
+    //  - The size_t parameter server_index is added to the start of the
+    //  function's parameter list; the calling ByzantineMockServer will give the
+    //  index of the server for which behavior is being mocked for this
+    //  parameter. It is anticipated this parameter can be used in tracking
+    //  which servers it has made Byzantine-faulty.
+    //
+    //  - A parameter with type matching the function's return type is appended
+    //  to the end of each function's parameter list; the calling
+    //  ByzantineMockServer will give the return value a non-faulty server would
+    //  give for this parameter. It is anticipated this parameter can be used in
+    //  both mocking non-faulty behavior and mocking faulty behavior that is
+    //  implemented by making specific modifications to non-faulty behavior.
+    //
+    //  - In cases where the function has a raw object pointer return type and a
+    //  pointer to a newly allocated object would be returned in the case the
+    //  server handling the request is not faulty, the calling
+    //  ByzantineMockServer will in fact allocate a new object matching the
+    //  object that would be returned when using such a non-faulty server and
+    //  pass it to the ByzantineServerBehavior for its last parameter; in this
+    //  case the ByzantineServerBehavior assumes ownership of the non-faulty
+    //  object the ByzantineMockServer allocated, and should either free this
+    //  pointer or ensure ownership is transfered somewhere else (note returning
+    //  the provided pointer or a pointer to an object that itself has been
+    //  given ownership of the provided pointer can satisfy this transfer of
+    //  ownership).
+    //
+    //  - If a function has a pointer in its signature that the
+    //  com::vmware::concord::thin_replica::MockThinReplicaStub would write a
+    //  response to (for example, response in ReadStateHash), and a non-faulty
+    //  server would write back to that pointer for a particular call, then the
+    //  calling ByzantineMockServer will write the non-faulty response to that
+    //  pointer before calling its ByzantineServerBehavior object, which may
+    //  then choose to either leave or overwrite the non-faulty value.
+    virtual grpc::ClientReaderInterface<
+        com::vmware::concord::thin_replica::Data>*
+    ReadStateRaw(
+        size_t server_index, grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::ReadStateRequest& request,
+        grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+            correct_data);
+    virtual grpc::Status ReadStateHash(
+        size_t server_index, grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::ReadStateHashRequest& request,
+        com::vmware::concord::thin_replica::Hash* response,
+        grpc::Status correct_status);
+    virtual grpc::ClientReaderInterface<
+        com::vmware::concord::thin_replica::Data>*
+    SubscribeToUpdatesRaw(
+        size_t server_index, grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::SubscriptionRequest& request,
+        grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+            correct_data);
+    virtual grpc::Status AckUpdate(
+        size_t server_index, grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::BlockId& block_id,
+        google::protobuf::Empty* response, grpc::Status correct_status);
+    virtual grpc::ClientReaderInterface<
+        com::vmware::concord::thin_replica::Hash>*
+    SubscribeToUpdateHashesRaw(
+        size_t server_index, grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::SubscriptionRequest& request,
+        grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Hash>*
+            correct_hashes);
+    virtual grpc::Status Unsubscribe(size_t server_index,
+                                     grpc::ClientContext* context,
+                                     const google::protobuf::Empty& request,
+                                     google::protobuf::Empty* response,
+                                     grpc::Status correct_status);
+  };
+
+  // Mock server type for servers in a mock cluster managed by a
+  // ByzantineMockThinReplicaServerPreparer; a
+  // ByzantineMockThinReplicaServerPreparer effectively serves as a factory for
+  // ByzantineMockServerObjects.
+  class ByzantineMockServer
+      : public com::vmware::concord::thin_replica::MockThinReplicaStub {
+   private:
+    std::shared_ptr<MockDataStreamPreparer> non_faulty_data_;
+    std::shared_ptr<MockOrderedDataStreamHasher> non_faulty_hasher_;
+    std::shared_ptr<ByzantineServerBehavior> byzantine_behavior_;
+    size_t index_;
+
+   public:
+    ByzantineMockServer(
+        std::shared_ptr<MockDataStreamPreparer> non_faulty_data,
+        std::shared_ptr<MockOrderedDataStreamHasher> non_faulty_hasher,
+        std::shared_ptr<ByzantineServerBehavior> byzantine_behavior,
+        size_t index);
+
+    grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+    ReadStateRaw(
+        grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::ReadStateRequest& request);
+    grpc::Status ReadStateHash(
+        grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::ReadStateHashRequest& request,
+        com::vmware::concord::thin_replica::Hash* response);
+    grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+    SubscribeToUpdatesRaw(
+        grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::SubscriptionRequest& request);
+    grpc::Status AckUpdate(
+        grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::BlockId& block_id,
+        google::protobuf::Empty* response);
+    grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Hash>*
+    SubscribeToUpdateHashesRaw(
+        grpc::ClientContext* context,
+        const com::vmware::concord::thin_replica::SubscriptionRequest& request);
+    grpc::Status Unsubscribe(grpc::ClientContext* context,
+                             const google::protobuf::Empty& request,
+                             google::protobuf::Empty* response);
+  };
+
+ private:
+  std::shared_ptr<MockDataStreamPreparer> non_faulty_data_;
+  std::shared_ptr<MockOrderedDataStreamHasher> non_faulty_hasher_;
+  std::shared_ptr<ByzantineServerBehavior> byzantine_behavior_;
+
+ public:
+  ByzantineMockThinReplicaServerPreparer(
+      std::shared_ptr<MockDataStreamPreparer> non_faulty_data,
+      std::shared_ptr<MockOrderedDataStreamHasher> non_faulty_hasher,
+      std::shared_ptr<ByzantineServerBehavior> byzantine_behavior);
+
+  // Factory method for creating mock server objects; note
+  // ByzantineMockThinReplicaServerPreparer itself does not track which servers
+  // it has already created mock servers for, so it is possible to have multiple
+  // mock servers sharing an index, either intentionally or unintentionally.
+  ByzantineMockServer* CreateByzantineMockServer(size_t index);
+};
+
+std::vector<std::unique_ptr<MockThinReplicaServerRecorder>>
+CreateMockServerRecorders(
     size_t num_servers, std::shared_ptr<MockDataStreamPreparer> data,
     std::shared_ptr<MockOrderedDataStreamHasher> hasher,
     std::shared_ptr<ThinReplicaCommunicationRecord> record);
+std::vector<std::unique_ptr<
+    ByzantineMockThinReplicaServerPreparer::ByzantineMockServer>>
+CreateByzantineMockServers(
+    size_t num_servers,
+    ByzantineMockThinReplicaServerPreparer& server_preparer);
 
 void SetMockServerBehavior(
     MockTrsConnection* server,
     const std::shared_ptr<MockDataStreamPreparer>& data_preparer,
     const MockOrderedDataStreamHasher& hasher);
-void SetMockServerBehavior(MockTrsConnection* server,
-                           MockThinReplicaServerRecorder& mock_server_recorder);
 
 void SetMockServerUnresponsive(thin_replica_client::TrsConnection* server);
 
@@ -383,9 +626,63 @@ CreateTrsConnections(size_t num_servers,
                      std::shared_ptr<MockDataStreamPreparer> stream_preparer,
                      MockOrderedDataStreamHasher& hasher,
                      size_t num_unresponsive = 0);
+
+// Templated versions of SetMockServerBehavior and CreateTrsConnections. To use
+// these specific template functions, the template parameter
+// MockThinReplicaServer needs to be a type that implements all the RPC calls a
+// normal Thin Replica Server would support.
+//
+// Note we template these functions rather than defining and having them use an
+// interface type because SetMockServerBehavior needs to refer to a specific
+// class's implementation of the RPC call functions when using gmock's
+// testing::Invoke to configure the mock connection behavior.
+template <class MockThinReplicaServer>
+void SetMockServerBehavior(MockTrsConnection* server,
+                           MockThinReplicaServer& mock_server) {
+  ON_CALL(*(server->GetStub()), ReadStateRaw)
+      .WillByDefault(
+          testing::Invoke(&mock_server, &MockThinReplicaServer::ReadStateRaw));
+  ON_CALL(*(server->GetStub()), ReadStateHash)
+      .WillByDefault(
+          testing::Invoke(&mock_server, &MockThinReplicaServer::ReadStateHash));
+  ON_CALL(*(server->GetStub()), SubscribeToUpdatesRaw)
+      .WillByDefault(testing::Invoke(
+          &mock_server, &MockThinReplicaServer::SubscribeToUpdatesRaw));
+  ON_CALL(*(server->GetStub()), AckUpdate)
+      .WillByDefault(
+          testing::Invoke(&mock_server, &MockThinReplicaServer::AckUpdate));
+  ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
+      .WillByDefault(testing::Invoke(
+          &mock_server, &MockThinReplicaServer::SubscribeToUpdateHashesRaw));
+  ON_CALL(*(server->GetStub()), Unsubscribe)
+      .WillByDefault(
+          testing::Invoke(&mock_server, &MockThinReplicaServer::Unsubscribe));
+}
+
+template <class MockThinReplicaServer>
+std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
+CreateTrsConnections(
+    std::vector<std::unique_ptr<MockThinReplicaServer>>& mock_servers) {
+  std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
+      mock_connections;
+  for (size_t i = 0; i < mock_servers.size(); ++i) {
+    auto conn = new MockTrsConnection();
+    SetMockServerBehavior(conn, *(mock_servers[i]));
+    auto server = dynamic_cast<thin_replica_client::TrsConnection*>(conn);
+    mock_connections.push_back(
+        std::unique_ptr<thin_replica_client::TrsConnection>(server));
+  }
+  return mock_connections;
+}
+
 std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
 CreateTrsConnections(
     std::vector<MockThinReplicaServerRecorder>& mock_server_recorders);
+std::vector<std::unique_ptr<thin_replica_client::TrsConnection>>
+CreateTrsConnections(
+    std::vector<std::unique_ptr<
+        ByzantineMockThinReplicaServerPreparer::ByzantineMockServer>>&
+        mock_servers);
 
 template <class DataType>
 grpc::ClientReaderInterface<DataType>* CreateUnresponsiveMockStream() {
@@ -396,5 +693,25 @@ grpc::ClientReaderInterface<DataType>* CreateUnresponsiveMockStream() {
   ON_CALL(*stream, Read).WillByDefault(testing::Return(false));
   return stream;
 }
+
+// ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior extensions
+// for providing specific behavior in Byzantine testing.
+
+class InitialStateFabricator
+    : public ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior {
+ private:
+  std::shared_ptr<MockDataStreamPreparer> fabricated_data_preparer_;
+
+ public:
+  InitialStateFabricator(
+      std::shared_ptr<MockDataStreamPreparer> fabricated_data_preparer);
+  virtual ~InitialStateFabricator() override;
+  virtual grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+  ReadStateRaw(
+      size_t server_index, grpc::ClientContext* context,
+      const com::vmware::concord::thin_replica::ReadStateRequest& request,
+      grpc::ClientReaderInterface<com::vmware::concord::thin_replica::Data>*
+          correct_data) override;
+};
 
 #endif  // THIN_REPLICA_CLIENT_MOCKS_HPP

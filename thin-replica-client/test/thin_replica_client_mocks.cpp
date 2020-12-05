@@ -551,15 +551,191 @@ Status MockThinReplicaServerRecorder::Unsubscribe(ClientContext* context,
   return Status::OK;
 }
 
-vector<MockThinReplicaServerRecorder> CreateMockServerRecorders(
+ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::
+    ByzantineServerBehavior()
+    : byzantine_faulty_servers_(), faulty_server_record_mutex_() {}
+
+bool ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::
+    IsByzantineFaulty(size_t index) {
+  lock_guard<mutex> faulty_server_record_lock_(faulty_server_record_mutex_);
+  return byzantine_faulty_servers_.count(index) > 0;
+}
+
+size_t ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::
+    GetNumFaultyServers() {
+  lock_guard<mutex> faulty_server_record_lock_(faulty_server_record_mutex_);
+  return byzantine_faulty_servers_.size();
+}
+
+bool ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::
+    MakeByzantineFaulty(size_t index, size_t max_faulty) {
+  lock_guard<mutex> faulty_server_record_lock_(faulty_server_record_mutex_);
+  if (byzantine_faulty_servers_.size() < max_faulty) {
+    byzantine_faulty_servers_.insert(index);
+  }
+  return byzantine_faulty_servers_.count(index) > 0;
+}
+
+ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::
+    ~ByzantineServerBehavior() {}
+
+ClientReaderInterface<Data>*
+ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::ReadStateRaw(
+    size_t server_index, ClientContext* context,
+    const ReadStateRequest& request,
+    ClientReaderInterface<Data>* correct_data) {
+  return correct_data;
+}
+
+Status
+ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::ReadStateHash(
+    size_t server_index, ClientContext* context,
+    const ReadStateHashRequest& request, Hash* response,
+    Status correct_status) {
+  return correct_status;
+}
+
+ClientReaderInterface<Data>* ByzantineMockThinReplicaServerPreparer::
+    ByzantineServerBehavior::SubscribeToUpdatesRaw(
+        size_t server_index, ClientContext* context,
+        const SubscriptionRequest& request,
+        ClientReaderInterface<Data>* correct_data) {
+  return correct_data;
+}
+
+Status
+ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::AckUpdate(
+    size_t server_index, ClientContext* context, const BlockId& block_id,
+    Empty* response, Status correct_status) {
+  return correct_status;
+}
+
+ClientReaderInterface<Hash>* ByzantineMockThinReplicaServerPreparer::
+    ByzantineServerBehavior::SubscribeToUpdateHashesRaw(
+        size_t server_index, ClientContext* context,
+        const SubscriptionRequest& request,
+        ClientReaderInterface<Hash>* correct_hashes) {
+  return correct_hashes;
+}
+
+Status
+ByzantineMockThinReplicaServerPreparer::ByzantineServerBehavior::Unsubscribe(
+    size_t server_index, ClientContext* context, const Empty& request,
+    Empty* response, Status correct_status) {
+  return correct_status;
+}
+
+ByzantineMockThinReplicaServerPreparer::ByzantineMockServer::
+    ByzantineMockServer(
+        shared_ptr<MockDataStreamPreparer> non_faulty_data,
+        shared_ptr<MockOrderedDataStreamHasher> non_faulty_hasher,
+        shared_ptr<ByzantineServerBehavior> byzantine_behavior, size_t index)
+    : non_faulty_data_(non_faulty_data),
+      non_faulty_hasher_(non_faulty_hasher),
+      byzantine_behavior_(byzantine_behavior),
+      index_(index) {}
+
+ClientReaderInterface<Data>*
+ByzantineMockThinReplicaServerPreparer::ByzantineMockServer::ReadStateRaw(
+    ClientContext* context, const ReadStateRequest& request) {
+  assert(non_faulty_data_);
+  assert(byzantine_behavior_);
+
+  return byzantine_behavior_->ReadStateRaw(
+      index_, context, request,
+      non_faulty_data_->ReadStateRaw(context, request));
+}
+
+Status
+ByzantineMockThinReplicaServerPreparer::ByzantineMockServer::ReadStateHash(
+    ClientContext* context, const ReadStateHashRequest& request,
+    Hash* response) {
+  assert(non_faulty_hasher_);
+  assert(byzantine_behavior_);
+
+  return byzantine_behavior_->ReadStateHash(
+      index_, context, request, response,
+      non_faulty_hasher_->ReadStateHash(context, request, response));
+}
+
+ClientReaderInterface<Data>* ByzantineMockThinReplicaServerPreparer::
+    ByzantineMockServer::SubscribeToUpdatesRaw(
+        ClientContext* context, const SubscriptionRequest& request) {
+  assert(non_faulty_data_);
+  assert(byzantine_behavior_);
+
+  return byzantine_behavior_->SubscribeToUpdatesRaw(
+      index_, context, request,
+      non_faulty_data_->SubscribeToUpdatesRaw(context, request));
+}
+
+Status ByzantineMockThinReplicaServerPreparer::ByzantineMockServer::AckUpdate(
+    ClientContext* context, const BlockId& block_id, Empty* response) {
+  assert(byzantine_behavior_);
+
+  return byzantine_behavior_->AckUpdate(index_, context, block_id, response,
+                                        Status::OK);
+}
+
+ClientReaderInterface<Hash>* ByzantineMockThinReplicaServerPreparer::
+    ByzantineMockServer::SubscribeToUpdateHashesRaw(
+        ClientContext* context, const SubscriptionRequest& request) {
+  assert(non_faulty_hasher_);
+  assert(byzantine_behavior_);
+
+  return byzantine_behavior_->SubscribeToUpdateHashesRaw(
+      index_, context, request,
+      non_faulty_hasher_->SubscribeToUpdateHashesRaw(context, request));
+}
+
+Status ByzantineMockThinReplicaServerPreparer::ByzantineMockServer::Unsubscribe(
+    ClientContext* context, const Empty& request, Empty* response) {
+  assert(byzantine_behavior_);
+
+  return byzantine_behavior_->Unsubscribe(index_, context, request, response,
+                                          Status::OK);
+}
+
+ByzantineMockThinReplicaServerPreparer::ByzantineMockThinReplicaServerPreparer(
+    shared_ptr<MockDataStreamPreparer> non_faulty_data,
+    shared_ptr<MockOrderedDataStreamHasher> non_faulty_hasher,
+    shared_ptr<ByzantineServerBehavior> byzantine_behavior)
+    : non_faulty_data_(non_faulty_data),
+      non_faulty_hasher_(non_faulty_hasher),
+      byzantine_behavior_(byzantine_behavior) {}
+
+ByzantineMockThinReplicaServerPreparer::ByzantineMockServer*
+ByzantineMockThinReplicaServerPreparer::CreateByzantineMockServer(
+    size_t index) {
+  return new ByzantineMockServer(non_faulty_data_, non_faulty_hasher_,
+                                 byzantine_behavior_, index);
+}
+
+vector<unique_ptr<MockThinReplicaServerRecorder>> CreateMockServerRecorders(
     size_t num_servers, shared_ptr<MockDataStreamPreparer> data,
     shared_ptr<MockOrderedDataStreamHasher> hasher,
     shared_ptr<ThinReplicaCommunicationRecord> record) {
-  vector<MockThinReplicaServerRecorder> recorders;
+  vector<unique_ptr<MockThinReplicaServerRecorder>> recorders;
   for (size_t i = 0; i < num_servers; ++i) {
-    recorders.emplace_back(data, hasher, record, i);
+    recorders.push_back(
+        make_unique<MockThinReplicaServerRecorder>(data, hasher, record, i));
   }
   return recorders;
+}
+
+vector<unique_ptr<ByzantineMockThinReplicaServerPreparer::ByzantineMockServer>>
+CreateByzantineMockServers(
+    size_t num_servers,
+    ByzantineMockThinReplicaServerPreparer& server_preparer) {
+  vector<
+      unique_ptr<ByzantineMockThinReplicaServerPreparer::ByzantineMockServer>>
+      mock_servers;
+  for (size_t i = 0; i < num_servers; ++i) {
+    mock_servers.push_back(
+        unique_ptr<ByzantineMockThinReplicaServerPreparer::ByzantineMockServer>(
+            server_preparer.CreateByzantineMockServer(i)));
+  }
+  return mock_servers;
 }
 
 void SetMockServerBehavior(
@@ -578,31 +754,6 @@ void SetMockServerBehavior(
   ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
       .WillByDefault(Invoke(
           &hasher, &MockOrderedDataStreamHasher::SubscribeToUpdateHashesRaw));
-}
-
-void SetMockServerBehavior(
-    MockTrsConnection* server,
-    MockThinReplicaServerRecorder& mock_server_recorder) {
-  ON_CALL(*(server->GetStub()), ReadStateRaw)
-      .WillByDefault(Invoke(&mock_server_recorder,
-                            &MockThinReplicaServerRecorder::ReadStateRaw));
-  ON_CALL(*(server->GetStub()), ReadStateHash)
-      .WillByDefault(Invoke(&mock_server_recorder,
-                            &MockThinReplicaServerRecorder::ReadStateHash));
-  ON_CALL(*(server->GetStub()), SubscribeToUpdatesRaw)
-      .WillByDefault(
-          Invoke(&mock_server_recorder,
-                 &MockThinReplicaServerRecorder::SubscribeToUpdatesRaw));
-  ON_CALL(*(server->GetStub()), AckUpdate)
-      .WillByDefault(Invoke(&mock_server_recorder,
-                            &MockThinReplicaServerRecorder::AckUpdate));
-  ON_CALL(*(server->GetStub()), SubscribeToUpdateHashesRaw)
-      .WillByDefault(
-          Invoke(&mock_server_recorder,
-                 &MockThinReplicaServerRecorder::SubscribeToUpdateHashesRaw));
-  ON_CALL(*(server->GetStub()), Unsubscribe)
-      .WillByDefault(Invoke(&mock_server_recorder,
-                            &MockThinReplicaServerRecorder::Unsubscribe));
 }
 
 void SetMockServerUnresponsive(MockTrsConnection* server) {
@@ -655,14 +806,19 @@ vector<unique_ptr<TrsConnection>> CreateTrsConnections(
   return mock_servers;
 }
 
-vector<unique_ptr<TrsConnection>> CreateTrsConnections(
-    vector<MockThinReplicaServerRecorder>& mock_server_recorders) {
-  vector<unique_ptr<TrsConnection>> mock_servers;
-  for (size_t i = 0; i < mock_server_recorders.size(); ++i) {
-    auto conn = new MockTrsConnection();
-    SetMockServerBehavior(conn, mock_server_recorders[i]);
-    auto server = dynamic_cast<TrsConnection*>(conn);
-    mock_servers.push_back(unique_ptr<TrsConnection>(server));
+InitialStateFabricator::InitialStateFabricator(
+    shared_ptr<MockDataStreamPreparer> fabricated_data_preparer)
+    : fabricated_data_preparer_(fabricated_data_preparer) {}
+
+InitialStateFabricator::~InitialStateFabricator() {}
+
+ClientReaderInterface<Data>* InitialStateFabricator::ReadStateRaw(
+    size_t server_index, ClientContext* context,
+    const ReadStateRequest& request,
+    ClientReaderInterface<Data>* correct_data) {
+  if (MakeByzantineFaulty(server_index, 1)) {
+    delete correct_data;
+    return fabricated_data_preparer_->ReadStateRaw(context, request);
   }
-  return mock_servers;
+  return correct_data;
 }
