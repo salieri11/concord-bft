@@ -518,12 +518,12 @@ void RunThinReplicaServer(
     std::string server_address, const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
     std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
-    bftEngine::ReplicaConfig *replicaConfig, CommConfig *commConfig,
     bool is_insecure_trs, std::string thin_replica_tls_cert_path) {
   Logger logger = Logger::getInstance("concord.thin_replica");
 
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
-      ro_storage, subscriber_list, prometheus_registry);
+      is_insecure_trs, thin_replica_tls_cert_path, ro_storage, subscriber_list,
+      prometheus_registry);
   auto thinReplicaService =
       std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
@@ -581,12 +581,14 @@ void RunTeeGrpcServer(
     std::string server_address, KVBClientPool &pool,
     const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
-    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
+    bool is_insecure_trs, std::string thin_replica_tls_cert_path) {
   Logger logger = Logger::getInstance("concord.tee");
 
   auto teeService = std::make_unique<TeeServiceImpl>(pool);
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
-      ro_storage, subscriber_list, prometheus_registry);
+      is_insecure_trs, thin_replica_tls_cert_path, ro_storage, subscriber_list,
+      prometheus_registry);
   auto thinReplicaService =
       std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
@@ -609,13 +611,15 @@ void RunPerfGrpcServer(
     std::string server_address, KVBClientPool &pool,
     const ILocalKeyValueStorageReadOnly *ro_storage,
     SubBufferList &subscriber_list, int max_num_threads,
-    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry) {
+    std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry,
+    bool is_insecure_trs, std::string thin_replica_tls_cert_path) {
   Logger logger = Logger::getInstance("concord.perf.grpc");
 
   auto perfService =
       std::make_unique<concord::performance::PerformanceServiceImp>(pool);
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
-      ro_storage, subscriber_list, prometheus_registry);
+      is_insecure_trs, thin_replica_tls_cert_path, ro_storage, subscriber_list,
+      prometheus_registry);
   auto thinReplicaService =
       std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 
@@ -977,6 +981,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     }
 
     // API server
+    bool is_insecure_trs =
+        config.getValue<bool>("insecure_thin_replica_server");
+    std::string thin_replica_tls_cert_path =
+        config.getValue<std::string>("thin_replica_tls_cert_path");
 
     if (daml_enabled) {
       std::string daml_addr{
@@ -984,20 +992,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       // Limit the amount of gRPC threads
       int max_num_threads = nodeConfig.getValue<int>("daml_service_threads");
-      bool is_insecure_trs =
-          config.hasValue<bool>("insecure_thin_replica_server")
-              ? config.getValue<bool>("insecure_thin_replica_server")
-              : true;
-      std::string thin_replica_tls_cert_path;
-      if (config.hasValue<std::string>("thin_replica_tls_cert_path")) {
-        thin_replica_tls_cert_path =
-            config.getValue<std::string>("thin_replica_tls_cert_path");
-      }
 
       std::thread(RunThinReplicaServer, daml_addr, &replica,
                   std::ref(subscriber_list), max_num_threads,
-                  prometheus_registry, &replicaConfig, &commConfig,
-                  is_insecure_trs, thin_replica_tls_cert_path)
+                  prometheus_registry, is_insecure_trs,
+                  thin_replica_tls_cert_path)
           .detach();
     } else if (tee_enabled) {
       std::string tee_addr{
@@ -1007,7 +1006,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       std::thread(RunTeeGrpcServer, tee_addr, std::ref(pool), &replica,
                   std::ref(subscriber_list), max_num_threads,
-                  prometheus_registry)
+                  prometheus_registry, is_insecure_trs,
+                  thin_replica_tls_cert_path)
           .detach();
     } else if (perf_enabled) {
       std::string perf_addr = {
@@ -1017,7 +1017,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
       std::thread(RunPerfGrpcServer, perf_addr, std::ref(pool), &replica,
                   std::ref(subscriber_list), max_num_threads,
-                  prometheus_registry)
+                  prometheus_registry, is_insecure_trs,
+                  thin_replica_tls_cert_path)
           .detach();
     }
 

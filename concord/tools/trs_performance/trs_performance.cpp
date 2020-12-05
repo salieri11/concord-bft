@@ -83,7 +83,8 @@ void RunThinReplicaServer(
   Logger logger = Logger::getInstance("concord.perf.trs");
 
   auto thinReplicaServiceImpl = std::make_unique<ThinReplicaImpl>(
-      ro_storage, subscriber_list, prometheus_registry);
+      is_insecure_trs, thin_replica_tls_cert_path, ro_storage, subscriber_list,
+      prometheus_registry);
   auto thinReplicaService =
       std::make_unique<ThinReplicaService>(std::move(thinReplicaServiceImpl));
 

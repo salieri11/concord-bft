@@ -42,10 +42,13 @@ class ThinReplicaImpl {
 
  public:
   ThinReplicaImpl(
+      const bool is_insecure_trs, const std::string& tls_trs_cert_path,
       const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage,
       SubBufferList& subscriber_list,
       std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry)
       : logger_(logging::getLogger("concord.thin_replica")),
+        is_insecure_trs_(is_insecure_trs),
+        tls_trs_cert_path_(tls_trs_cert_path),
         rostorage_(rostorage),
         subscriber_list_(subscriber_list),
         prometheus_registry_(prometheus_registry),
@@ -256,6 +259,50 @@ class ThinReplicaImpl {
     return grpc::Status(grpc::StatusCode::UNIMPLEMENTED, "Unsubscribe");
   }
 
+  // Parses the value of the OU field i.e., the client id from the subject
+  // string
+  std::string ParseClientIdFromSubject(const std::string& subject_str) {
+    std::string delim = "OU = ";
+    size_t start = subject_str.find(delim) + delim.length();
+    size_t end = subject_str.find(",", start);
+    std::string raw_str = subject_str.substr(start, end - start);
+    size_t fstart = 0;
+    size_t fend = raw_str.length();
+    // remove surrounding whitespaces and newlines
+    if (raw_str.find_first_not_of(" ") != std::string::npos)
+      fstart = raw_str.find_first_not_of(" ");
+    if (raw_str.find_last_not_of(" ") != std::string::npos)
+      fend = raw_str.find_last_not_of(" ");
+    raw_str.erase(std::remove(raw_str.begin(), raw_str.end(), '\n'),
+                  raw_str.end());
+    return raw_str.substr(fstart, fend - fstart + 1);
+  }
+
+  void GetClientIdFromRootCert(const std::string& root_cert_path,
+                               std::unordered_set<std::string>& common_names) {
+    std::array<char, 128> buffer;
+    std::string result;
+    // Openssl doesn't provide a method to fetch all the x509 certificates
+    // directly from a bundled cert, due to the assumption of one certificate
+    // per file. But for some reason openssl supports displaying multiple certs
+    // from a pkcs7 file. So we generate an intermediate pkcs7 file using
+    // crl2pkcs7 openssl command to get the subject fields of all the certs from
+    // the bundled root cert.
+    std::string cmd = "openssl crl2pkcs7 -nocrl -certfile " + root_cert_path +
+                      " | openssl pkcs7 -print_certs -noout | grep .";
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"),
+                                                  pclose);
+    if (!pipe) {
+      throw std::runtime_error(
+          "Failed to read subject fields from root cert - popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+      result = buffer.data();
+      // parse the common name i.e., the client id from the subject field
+      common_names.insert(ParseClientIdFromSubject(result));
+    }
+  }
+
  private:
   template <typename ServerContextT, typename ServerWriterT>
   void ReadFromKvbAndSendData(
@@ -423,14 +470,51 @@ class ThinReplicaImpl {
     }
   }
 
+  // Get client_id from metadata if using insecure TRS
+  // Get client_id from the client certs if using secure TRS
+  // and compare the client_id with the client_id in known root cert
   template <typename ServerContextT>
   std::string GetClientId(ServerContextT* context) {
-    auto metadata = context->client_metadata();
-    auto client_id = metadata.find("client_id");
-    if (client_id != metadata.end()) {
-      return std::string(client_id->second.data(), client_id->second.length());
+    if (is_insecure_trs_) {
+      auto metadata = context->client_metadata();
+      auto client_id = metadata.find("client_id");
+      if (client_id != metadata.end()) {
+        return std::string(client_id->second.data(),
+                           client_id->second.length());
+      }
+      throw std::invalid_argument("client_id metadata is missing");
+    } else {
+      return getAuthorizedClientId(context);
     }
-    throw std::invalid_argument("client_id metadata is missing");
+  }
+
+  // Get client_id from the client certs if using secure TRS
+  // and compare the client_id with the client_id in known root cert
+  template <typename ServerContextT>
+  std::string getAuthorizedClientId(ServerContextT* context) {
+    if (context->auth_context() &&
+        context->auth_context()->IsPeerAuthenticated()) {
+      // get common names from the root cert
+      std::unordered_set<std::string> client_id_set;
+      std::string root_cert_path = tls_trs_cert_path_ + "/client.cert";
+      GetClientIdFromRootCert(root_cert_path, client_id_set);
+      std::string client_id =
+          context->auth_context()->GetPeerIdentity()[0].data();
+      if (!client_id.empty()) {
+        if (client_id_set.find(client_id) != client_id_set.end()) {
+          LOG_INFO(logger_, "Client " << client_id << " is authorized");
+          return client_id;
+        } else {
+          LOG_FATAL(logger_, "Client is not authorized, given client_id "
+                                 << client_id
+                                 << " doesn't match any known client IDs");
+          throw std::runtime_error("Client is not authorized!");
+        }
+      }
+      throw std::invalid_argument(
+          "client_id is missing in the client certificates");
+    }
+    throw std::runtime_error("Client is not authenticated!");
   }
 
   template <typename ServerContextT, typename RequestT>
@@ -471,6 +555,8 @@ class ThinReplicaImpl {
 
  private:
   logging::Logger logger_;
+  const bool is_insecure_trs_ = true;
+  const std::string tls_trs_cert_path_;
   const concord::kvbc::ILocalKeyValueStorageReadOnly* rostorage_;
   SubBufferList& subscriber_list_;
   std::shared_ptr<concord::utils::PrometheusRegistry> prometheus_registry_;
