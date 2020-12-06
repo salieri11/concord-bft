@@ -49,7 +49,7 @@ def fxLocalSetup(request, fxBlockchain, fxHermesRunSettings, fxProduct, fxConnec
     repoPath = os.getcwd().split('/')[:-1]
     repoPath.append("ui")
     uiPath = '/'.join(repoPath)
-    vdisplay = Xvfb(width=1600, height=2500)
+    vdisplay = Xvfb(width=2000, height=6500)
     return LocalSetupFixture(testLogDir=testLogDir, uiPath=uiPath, vdisplay=vdisplay)
 
 @describe("run all UI unit tests")
@@ -64,7 +64,7 @@ def test_ui_unit(fxLocalSetup):
                                         cwd=fxLocalSetup.uiPath, )
     stopVDisplay(fxLocalSetup.vdisplay)
     assert procOutput.returncode == 0, "UI Unit tests failed, please see {}".format(logFilePath)
-    
+
 @describe("run UI e2e tests")
 def test_ui_e2e(fxLocalSetup):
     startVdisplay(fxLocalSetup.vdisplay)

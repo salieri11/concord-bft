@@ -26,6 +26,7 @@ import { ZoneFormComponent } from '../../zones/zone-form/zone-form.component';
 import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
 import { TranslateService } from '@ngx-translate/core';
+import { validateCert, validatePEM } from '../../shared/custom-validators';
 
 const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
 
@@ -187,9 +188,9 @@ export class DeployStepperComponent implements AfterViewInit {
         zone_id: new FormControl(defaultZoneId, Validators.required),
         auth_url_jwt: new FormControl('', Validators.pattern(urlValidateRegex)),
         zone_name: new FormControl(''),
-        pem: new FormControl(''),
-        crt: new FormControl(''),
-        cacrt: new FormControl(''),
+        pem: new FormControl('', { updateOn: 'blur', validators: [validatePEM()] }),
+        crt: new FormControl('', { updateOn: 'blur', validators: [validateCert()] }),
+        cacrt: new FormControl('', { updateOn: 'blur', validators: [validateCert()] }),
       })
     );
   }
@@ -325,9 +326,9 @@ export class DeployStepperComponent implements AfterViewInit {
           group_name: groupName,
           zone_id: clientNode.zone_id,
           auth_url_jwt: clientNode.authUrl,
-          pem: clientNode.pem,
-          crt: clientNode.crt,
-          cacrt: clientNode.cacrt,
+          pem: clientNode.pem.replace('/(?:\r|\n|\r)/g', '\n'),
+          crt: clientNode.crt.replace('/(?:\r|\n|\r)/g', '\n'),
+          cacrt: clientNode.cacrt.replace('/(?:\r|\n|\r)/g', '\n'),
           // Node sizing for client nodes
           sizing_info: {
             no_of_cpus: clientSizing.no_of_cpus,

@@ -12,9 +12,9 @@
           <concord-combobox
             #locationInput
             class="dropdown-input"
-            formControlName="location" 
+            formControlName="location"
             [items]="locations"
-            [onFocusMinInputLength]="4"
+            [onFocusMinInputLength]="3"
             [filterItemsWhenTyping]="true"
             [placeholder]="'onPrem.locationPH' | translate">
           </concord-combobox>
@@ -22,7 +22,7 @@
       </div>
       <clr-input-container>
         <label>{{ 'onPrem.name' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate" 
+        <input clrInput type="text" [placeholder]="'onPrem.namePH' | translate"
               formControlName="name" id="locationDesignation" (keyup)="onchange($event,'onPremLocation.name')"/>
         <clr-control-error>{{ 'common.requiredValidationMessage' | translate }}</clr-control-error>
       </clr-input-container>
@@ -155,14 +155,14 @@
         <div [formGroupName]="i">
           <clr-input-container>
             <label>{{ 'common.url' | translate }}</label>
-            <input clrInput type="text" [placeholder]="'onPrem.logInsight.ipPH' | translate" 
+            <input clrInput type="text" [placeholder]="'onPrem.logInsight.ipPH' | translate"
                   formControlName="address" id="liUrl" (keyup)="onchange($event,'log_managements.'+i+'.address')"/>
             <clr-control-helper>{{ 'onPrem.logInsight.ipHelper' | translate }}</clr-control-helper>
             <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
           </clr-input-container>
           <clr-input-container>
             <label>{{ 'common.port' | translate }}</label>
-            <input clrInput type="number" [placeholder]="'common.portPh' | translate" 
+            <input clrInput type="number" [placeholder]="'common.portPh' | translate"
                   formControlName="port" id="liPort" (keyup)="onchange($event,'log_managements.'+i+'.port')"/>
           </clr-input-container>
           <clr-input-container>
@@ -204,7 +204,7 @@
       <div formGroupName="elasticsearch" [ngClass]="{'section-hidden':metricSelected!=='elasticsearch'}">
         <clr-input-container>
           <label>{{ 'onPrem.containerReg.url' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" 
+          <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate"
                   formControlName="url" id="elkUrl" (keyup)="onchange($event,'metrics.elasticsearch.url')"/>
           <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
         </clr-input-container>
@@ -215,20 +215,20 @@
         </clr-input-container>
         <clr-input-container>
           <label>{{ 'common.password' | translate }}</label>
-          <input clrInput type="password" 
+          <input clrInput type="password"
                   formControlName="password" id="elkPassword" (keyup)="onchange($event,'metrics.elasticsearch.password')"/>
         </clr-input-container>
       </div>
       <div formGroupName="wavefront" [ngClass]="{'section-hidden':metricSelected!=='wavefront'}">
         <clr-input-container>
           <label>{{ 'onPrem.containerReg.url' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" 
+          <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate"
                 formControlName="url" id="wfUrl" (keyup)="onchange($event,'metrics.wavefront.url')"/>
           <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
           <label>{{ 'common.token' | translate }}</label>
-          <input clrInput type="text" [placeholder]="'common.token' | translate" 
+          <input clrInput type="text" [placeholder]="'common.token' | translate"
                 formControlName="token" id="wfToken" (keyup)="onchange($event,'metrics.wavefront.token')"/>
         </clr-input-container>
       </div>
@@ -250,22 +250,57 @@
     <clr-step-content *clrIfExpanded>
       <clr-input-container>
         <label>{{ 'onPrem.containerReg.url' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate" 
+        <input clrInput type="text" [placeholder]="'onPrem.containerReg.urlPH' | translate"
                 formControlName="url" id="conUrl" (keyup)="onchange($event,'container_repo.url')"/>
         <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
       </clr-input-container>
       <clr-input-container>
         <label>{{ 'onPrem.containerReg.username' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.containerReg.usernamePH' | translate" 
+        <input clrInput type="text" [placeholder]="'onPrem.containerReg.usernamePH' | translate"
                 formControlName="username" id="conUsername" (keyup)="onchange($event,'container_repo.username')"/>
       </clr-input-container>
       <clr-input-container>
         <label>{{ 'onPrem.containerReg.password' | translate }}</label>
-        <input clrInput type="password" 
+        <input clrInput type="password"
                 formControlName="password" id="conPassword" (keyup)="onchange($event,'container_repo.password')"/>
       </clr-input-container>
+      <clr-textarea-container>
+        <label>{{ 'common.tlsCert' | translate }}</label>
+        <textarea clrTextarea id="conCert"
+                formControlName="tls_certificate_data" [placeholder]="'blockchainWizard.clients.crtPH' | translate" (keyup)="onchange($event,'container_repo.tls_certificate_data')"></textarea>
+        <clr-control-error>{{ 'tls.validationError' | translate }}</clr-control-error>
+      </clr-textarea-container>
       <div class="form-next">
         <button id="nextButtonContainerRegistry" [ngClass]="{'grayscale':insufficientSection.containerReg}" clrStepButton="next">
+          <span *ngIf="insufficientSection.containerReg">{{ 'common.skip' | translate }}</span>
+          <span *ngIf="!insufficientSection.containerReg">{{ 'common.next' | translate }}</span>
+        </button>
+        <div *ngIf="insufficientSection.containerReg && someValueMap.containerReg" class="skip-msg">{{ 'onPrem.optionalRequirement' | translate }}</div>
+      </div>
+    </clr-step-content>
+  </clr-stepper-panel>
+  <clr-stepper-panel formGroupName="notary_server">
+    <clr-step-title>
+      {{ 'onPrem.sections.notary.title' | translate }}
+      <div class="label-more">{{ 'onPrem.optional' | translate }}</div>
+    </clr-step-title>
+    <clr-step-description>{{ 'onPrem.sections.notary.description' | translate }}</clr-step-description>
+    <clr-step-content *clrIfExpanded>
+      <clr-input-container>
+        <label>{{ 'onPrem.containerReg.notaryUrl' | translate }}</label>
+        <input clrInput type="text" id="notaryUrl" [placeholder]="'onPrem.containerReg.urlPH' | translate"
+                formControlName="url" (keyup)="onchange($event,'notary_server.url')"/>
+        <clr-control-error>{{ 'onPrem.urlError' | translate }}</clr-control-error>
+      </clr-input-container>
+      <clr-textarea-container>
+        <label>{{ 'common.tlsCert' | translate }}</label>
+        <textarea clrTextarea id="notaryCert"
+                formControlName="tls_certificate_data" [placeholder]="'blockchainWizard.clients.crtPH' | translate"
+                (keyup)="onchange($event,'notary_server.tls_certificate_data')"></textarea>
+        <clr-control-error>{{ 'tls.validationError' | translate }}</clr-control-error>
+      </clr-textarea-container>
+      <div class="form-next">
+        <button [ngClass]="{'grayscale':insufficientSection.notary}" clrStepButton="next" id="notaryServer">
           <span *ngIf="insufficientSection.containerReg">{{ 'common.skip' | translate }}</span>
           <span *ngIf="!insufficientSection.containerReg">{{ 'common.next' | translate }}</span>
         </button>
@@ -282,7 +317,7 @@
     <clr-step-content *clrIfExpanded>
       <clr-input-container>
         <label>{{ 'onPrem.outboundProxy.httpHost' | translate }}</label>
-        <input clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate" 
+        <input clrInput type="text" [placeholder]="'onPrem.outboundProxy.httpPH' | translate"
                 formControlName="http_host" id="opHttpHost" (keyup)="onchange($event,'outbound_proxy.http_host')"/>
         <clr-control-error>{{ 'onPrem.ipDnsError' | translate }}</clr-control-error>
       </clr-input-container>

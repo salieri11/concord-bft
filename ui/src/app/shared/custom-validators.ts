@@ -45,3 +45,50 @@ export function protocolNotAllowed(options?: {optional?: boolean}): ValidatorFn 
   };
 }
 
+const validCert = (control, header, footer): boolean => {
+  if (!control.value) {
+    return true;
+  }
+
+  const cert = control.value.trim();
+  const certArr = cert.split('\n');
+  const validHeader: boolean = certArr[0] === header;
+  const validFooter: boolean = certArr[certArr.length - 1] === footer;
+  const validBody = (): boolean => {
+    let valid = true;
+    certArr.pop();
+    certArr.shift();
+    const body = certArr.join('\n');
+
+    try {
+      window.atob(body);
+    } catch (_) {
+      valid = false;
+    }
+    return valid;
+  };
+
+  return validHeader && validFooter && validBody();
+};
+
+export function validateCert(): ValidatorFn {
+  return (control: AbstractControl): {[key: string]: any} | null => {
+    return validCert(
+      control,
+      '-----BEGIN CERTIFICATE-----',
+      '-----END CERTIFICATE-----'
+    ) ? null : {'validCert': {value: control.value}};
+
+  };
+}
+
+export function validatePEM(): ValidatorFn {
+  return (control: AbstractControl): {[key: string]: any} | null => {
+
+    return validCert(
+      control,
+      '-----BEGIN PRIVATE KEY-----',
+      '-----END PRIVATE KEY-----'
+    ) ? null : {'validCert': {value: control.value}};
+  };
+}
