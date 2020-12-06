@@ -99,8 +99,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
         std::make_unique<bftEngine::impl::NullStateTransfer>();
     mock_time_contract_ = std::make_unique<MockTimeContract>(
         *mock_ro_storage_, configuration_, kCurrentTime);
-    reply_size_ = 0;
-    memset(reply_buffer_, 0, OUT_BUFFER_SIZE);
+    reply_buffer_ = std::string(OUT_BUFFER_SIZE, 0);
     time_update_key_ = CreateDamlKvbKey(DamlKvbCommandsHandler::kTimeUpdateKey);
 
     auto tracer = opentracing::MakeNoopTracer();
@@ -350,9 +349,7 @@ class DamlKvbCommandsHandlerTest : public ::testing::Test {
 
   std::vector<std::string> expected_read_keys_;
   Sliver time_update_key_;
-
-  uint32_t reply_size_;
-  char reply_buffer_[OUT_BUFFER_SIZE];
+  std::string reply_buffer_;
 
   uint32_t replica_specific_info_size_ = 0;
   concordUtils::SpanWrapper span_wrapper_;
@@ -376,13 +373,18 @@ TEST_F(DamlKvbCommandsHandlerTest, ExecuteCommitHappyPathCreatesBlock) {
   auto instance = CreateInstance(daml_validator_client);
   std::string request_string = BuildCommitRequest();
 
-  ASSERT_EQ(0, instance->execute(1, 1, bftEngine::MsgFlag::EMPTY_FLAGS,
-                                 request_string.size(), request_string.c_str(),
-                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                                 replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::EMPTY_FLAGS,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  instance->execute(accumulatedRequests, "1", span_wrapper_);
+  auto request = accumulatedRequests.back();
+  ASSERT_EQ(0, request.outExecutionStatus);
 
   ConcordResponse concord_response;
-  concord_response.ParseFromArray(reply_buffer_, reply_size_);
+  concord_response.ParseFromArray(request.outReply.c_str(),
+                                  request.outActualReplySize);
   ASSERT_TRUE(concord_response.has_daml_response());
 }
 
@@ -406,15 +408,19 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionFailsWhenNoReadSet) {
   std::string request_string;
   concord_response.SerializeToString(&request_string);
 
-  ASSERT_EQ(1,
-            instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
-                              request_string.size(), request_string.c_str(),
-                              OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                              replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  instance->execute(accumulatedRequests, "1", span_wrapper_);
+  auto request = accumulatedRequests.back();
+  ASSERT_EQ(1, request.outExecutionStatus);
 
-  ASSERT_TRUE(reply_size_ > 0);
+  ASSERT_TRUE(request.outActualReplySize > 0);
   ConcordResponse actual_response;
-  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  actual_response.ParseFromArray(request.outReply.c_str(),
+                                 request.outActualReplySize);
   EXPECT_EQ(1, actual_response.error_response_size());
 }
 
@@ -439,15 +445,19 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionNoConflictSameBlockHeightRead) {
       .WillOnce(
           DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));
 
-  ASSERT_EQ(0,
-            instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
-                              request_string.size(), request_string.c_str(),
-                              OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                              replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  instance->execute(accumulatedRequests, "1", span_wrapper_);
+  auto request = accumulatedRequests.back();
+  ASSERT_EQ(0, request.outExecutionStatus);
 
-  ASSERT_TRUE(reply_size_ > 0);
+  ASSERT_TRUE(request.outActualReplySize > 0);
   ConcordResponse actual_response;
-  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  actual_response.ParseFromArray(request.outReply.c_str(),
+                                 request.outActualReplySize);
   EXPECT_TRUE(actual_response.has_daml_response());
 }
 
@@ -471,15 +481,19 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutionConflictNoBlock) {
 
   EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _)).Times(NEVER);
 
-  ASSERT_EQ(1,
-            instance->execute(1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
-                              request_string.size(), request_string.c_str(),
-                              OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                              replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  instance->execute(accumulatedRequests, "1", span_wrapper_);
+  auto request = accumulatedRequests.back();
+  ASSERT_EQ(1, request.outExecutionStatus);
 
-  ASSERT_TRUE(reply_size_ > 0);
+  ASSERT_TRUE(request.outActualReplySize > 0);
   ConcordResponse actual_response;
-  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  actual_response.ParseFromArray(request.outReply.c_str(),
+                                 request.outActualReplySize);
   EXPECT_FALSE(actual_response.has_daml_response());
   EXPECT_FALSE(actual_response.has_pre_execution_result());
 }
@@ -501,10 +515,12 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecutionReadSetKeyNotFound) {
   std::string request_string;
   concord_response.SerializeToString(&request_string);
 
-  EXPECT_ANY_THROW(instance->execute(
-      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG, request_string.size(),
-      request_string.c_str(), OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-      replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  EXPECT_ANY_THROW(instance->execute(accumulatedRequests, "1", span_wrapper_));
 }
 
 TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
@@ -646,13 +662,18 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecuteHappyPath) {
   std::string request_string = BuildCommitRequest();
   auto instance = CreateInstance(true);
 
-  ASSERT_EQ(0, instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
-                                 request_string.size(), request_string.c_str(),
-                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                                 replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  instance->execute(accumulatedRequests, "1", span_wrapper_);
+  auto request = accumulatedRequests.back();
+  ASSERT_EQ(0, request.outExecutionStatus);
 
   ConcordResponse actual_response;
-  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  actual_response.ParseFromArray(request.outReply.c_str(),
+                                 request.outActualReplySize);
   ASSERT_TRUE(actual_response.has_pre_execution_result());
   EXPECT_TRUE(MessageDifferencer::Equals(
       expected_read_set, actual_response.pre_execution_result().read_set()));
@@ -666,11 +687,12 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecuteWithTimeRequestFails) {
   std::string request_string = BuildTimeRequest();
   auto instance = CreateInstance();
 
-  EXPECT_DEATH(instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
-                                 request_string.size(), request_string.c_str(),
-                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                                 replica_specific_info_size_, span_wrapper_),
-               "");
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  EXPECT_DEATH(instance->execute(accumulatedRequests, "1", span_wrapper_), "");
 }
 
 TEST_F(DamlKvbCommandsHandlerTest, PreExecuteExecutionEngineReturnsFailure) {
@@ -682,13 +704,18 @@ TEST_F(DamlKvbCommandsHandlerTest, PreExecuteExecutionEngineReturnsFailure) {
           Return(grpc::Status(grpc::StatusCode::INTERNAL, "Internal error")));
   auto instance = CreateInstance(daml_validator_client);
 
-  ASSERT_EQ(1, instance->execute(1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
-                                 request_string.size(), request_string.c_str(),
-                                 OUT_BUFFER_SIZE, reply_buffer_, reply_size_,
-                                 replica_specific_info_size_, span_wrapper_));
+  bftEngine::IRequestsHandler::ExecutionRequestsQueue accumulatedRequests;
+  accumulatedRequests.push_back(bftEngine::IRequestsHandler::ExecutionRequest{
+      1, 1, bftEngine::MsgFlag::PRE_PROCESS_FLAG,
+      std::string(request_string.c_str(), request_string.size()),
+      reply_buffer_});
+  instance->execute(accumulatedRequests, "1", span_wrapper_);
+  auto request = accumulatedRequests.back();
+  ASSERT_EQ(1, request.outExecutionStatus);
 
   ConcordResponse actual_response;
-  actual_response.ParseFromArray(reply_buffer_, reply_size_);
+  actual_response.ParseFromArray(request.outReply.c_str(),
+                                 request.outActualReplySize);
   ASSERT_TRUE(actual_response.has_pre_execution_result());
   EXPECT_FALSE(actual_response.pre_execution_result().has_read_set());
   EXPECT_EQ(kCorrelationId,
