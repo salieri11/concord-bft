@@ -37,6 +37,7 @@ using com::vmware::concord::performance::PerfWriteRequest;
 using com::vmware::concord::performance::PerfWriteResponse;
 
 using namespace std;
+using namespace std::chrono;
 using namespace bftEngine;
 using namespace concord::concord_client_pool;
 using namespace concordUtils;
@@ -52,28 +53,27 @@ uint32_t payloadSize = 15100;
 uint32_t concurrencyLevel = 15;
 uint32_t executionTime = 0;
 bool busyWait = true;
-
-const float kWarmUpPerc = 0.02;
-const string kPerfServiceHost = "127.0.0.1:50051";
 string poolConfigPath = "external_client_tls.config";
-
 string log_properties_file = "log4cplus.properties";
 uint log_level = 0;  // info
 
+const float kWarmUpPerc = 0.02;
+const string kPerfServiceHost = "127.0.0.1:50051";
+const uint32_t replyLength = 16384;
+
 bool done = false;
-chrono::steady_clock::time_point globalStart;
-chrono::steady_clock::time_point globalEnd;
+steady_clock::time_point globalStart;
+steady_clock::time_point globalEnd;
 uint32_t actualRequests = 0;
 
 struct ReqData {
-  chrono::steady_clock::time_point startTime;
+  steady_clock::time_point startTime;
   ConcordRequest* req = nullptr;
   char* replyData = nullptr;
   uint32_t replyDataSize = 0;
   string request;
 
-  ReqData(chrono::steady_clock::time_point start, ConcordRequest* cr,
-          char* reply, uint32_t replyLength)
+  ReqData(steady_clock::time_point start, ConcordRequest* cr, char* reply)
       : startTime{start},
         req{cr},
         replyData{reply},
@@ -82,7 +82,6 @@ struct ReqData {
   ReqData() = default;
 
   ~ReqData() {
-    ;
     delete[] replyData;
     delete req;
   }
@@ -97,9 +96,7 @@ vector<pair<string, long>> durations;
 
 void print_results() {
   auto hstring = hist.ToString();
-  auto dur =
-      chrono::duration_cast<chrono::milliseconds>(globalEnd - globalStart)
-          .count();
+  auto dur = duration_cast<milliseconds>(globalEnd - globalStart).count();
 
   auto tp = (double)actualRequests / dur * 1000;
   cout << "Done. Total requests: " << numOfBlocks << "." << endl
@@ -117,7 +114,7 @@ void print_results() {
 }
 
 static void signalHandler(int signum) {
-  globalEnd = chrono::steady_clock::now();
+  globalEnd = steady_clock::now();
   if (!done) {
     done = true;
     print_results();
@@ -143,8 +140,8 @@ void req_callback(const uint64_t& sn, const string& cid, uint32_t replySize) {
   LOG_DEBUG(logger, "finished cid: " << cid);
 
   auto start = reqData->startTime;
-  auto end = chrono::steady_clock::now();
-  auto dur = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+  auto end = steady_clock::now();
+  auto dur = duration_cast<milliseconds>(end - start).count();
 
   ++count;
   if ((float)count >= (float)(numOfBlocks / 100.0 * kWarmUpPerc)) {
@@ -223,10 +220,8 @@ void do_preloaded_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     pr->set_request_content(s);
     pr->set_type(com::vmware::concord::PerfRequest_PerfRequestType_Write);
 
-    uint32_t replyLength = 16000000;
-    char* reply = new char[16000000];
-    auto reqData =
-        new ReqData(chrono::steady_clock::now(), cr, reply, replyLength);
+    char* reply = new char[replyLength];
+    auto reqData = new ReqData(steady_clock::now(), cr, reply);
     cr->SerializeToString(&reqData->request);
     assert(cr->has_perf_request());
 
@@ -240,7 +235,7 @@ void do_preloaded_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     auto res = pool->SendRequest(
         vector<uint8_t>{reqData->request.c_str(),
                         reqData->request.c_str() + reqData->request.size()},
-        flags, chrono::milliseconds::max(), reply, replyLength, 0, cid);
+        flags, milliseconds::max(), reply, replyLength, 0, cid);
     assert(res == SubmitResult::Acknowledged);
   }
 }
@@ -288,10 +283,8 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     pr->set_request_content(s);
     pr->set_type(com::vmware::concord::PerfRequest_PerfRequestType_Write);
 
-    uint32_t replyLength = 16000000;
-    char* reply = new char[16000000];
-    auto reqData =
-        new ReqData(chrono::steady_clock::now(), cr, reply, replyLength);
+    char* reply = new char[replyLength];
+    auto reqData = new ReqData(steady_clock::now(), cr, reply);
     cr->SerializeToString(&reqData->request);
     assert(cr->has_perf_request());
 
@@ -305,7 +298,7 @@ void do_on_fly_test(log4cplus::Logger& logger, ConcordClientPool* pool) {
     auto res = pool->SendRequest(
         vector<uint8_t>{reqData->request.c_str(),
                         reqData->request.c_str() + reqData->request.size()},
-        flags, chrono::milliseconds::max(), reply, replyLength, 0, cid);
+        flags, milliseconds::max(), reply, replyLength, 0, cid);
     assert(res == SubmitResult::Acknowledged);
   }
 }
@@ -466,13 +459,11 @@ int main(int argc, char** argv) {
   durations.reserve(numOfBlocks);
 
   // wait for the pool to connect
-  this_thread::sleep_for(chrono::seconds(60));
-  auto start = chrono::steady_clock::now();
+  this_thread::sleep_for(seconds(60));
+  auto start = steady_clock::now();
   while (PoolStatus::NotServing == pool->HealthStatus()) {
-    this_thread::sleep_for(chrono::seconds(5));
-    if (chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() -
-                                               start)
-            .count() > 120) {
+    this_thread::sleep_for(seconds(5));
+    if (duration_cast<seconds>(steady_clock::now() - start).count() > 120) {
       LOG_FATAL(logger,
                 "pool can't connect to at least 1 replica in 60 seconds. "
                 "Aborting.");
@@ -481,7 +472,7 @@ int main(int argc, char** argv) {
   }
   LOG_FATAL(logger, "starting test");
 
-  globalStart = chrono::steady_clock::now();
+  globalStart = steady_clock::now();
   // do_preloaded_test(logger, pool);
   do_on_fly_test(logger, pool);
 
@@ -490,7 +481,7 @@ int main(int argc, char** argv) {
     while (activeRequests > 0) reqSignal.wait(l);
   }
   assert(active_requests_data.empty());
-  globalEnd = chrono::steady_clock::now();
+  globalEnd = steady_clock::now();
 
   delete pool;
   print_results();
