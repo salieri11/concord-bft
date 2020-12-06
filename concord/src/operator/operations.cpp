@@ -26,9 +26,10 @@ concord::op::Operations::Operations(const concord::op::Config& config,
       config_(config),
       snGen_(config.client_config.id) {
   if (priv_key_ == nullptr) {
-    LOG_WARN(logger_,
-             "The private key file does not exist, operator won't be able to "
-             "sign its messages");
+    LOG_ERROR(logger_,
+              "The private key file does not exist, operator won't be able to "
+              "sign its messages");
+    std::terminate();
   }
 }
 
@@ -114,12 +115,7 @@ concord::op::Response concord::op::Operations::initiateWriteRequest(
       RequestConfig{false, sn, 64 * 1024, timeout, rcid, span_context}, quorum};
   Msg msg(request.ByteSizeLong());
   request.SerializeToArray(msg.data(), msg.size());
-  bft::client::Reply res;
-  try {
-    res = client_.send(wc, std::move(msg));
-  } catch (bft::client::TimeoutException& e) {
-    LOG_WARN(logger_, e.what());
-  }
+  bft::client::Reply res = client_.send(wc, std::move(msg));
   return Response(res);
 }
 
@@ -133,11 +129,7 @@ concord::op::Response concord::op::Operations::initiateReadRequest(
   Msg msg(request.ByteSizeLong());
   request.SerializeToArray(msg.data(), msg.size());
   bft::client::Reply res;
-  try {
-    res = client_.send(rc, std::move(msg));
-  } catch (bft::client::TimeoutException& e) {
-    LOG_WARN(logger_, e.what());
-  }
+  res = client_.send(rc, std::move(msg));
   return Response(res);
 }
 

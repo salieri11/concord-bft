@@ -65,6 +65,12 @@ ConcordCommandsHandler::ConcordCommandsHandler(
       written_blocks_{prometheus_registry->createCounter(
           command_handler_counters_, {{"layer", "ConcordCommandsHandler"},
                                       {"operation", "written_blocks"}})},
+      time_service_blocks_{prometheus_registry->createCounter(
+          command_handler_counters_, {{"layer", "ConcordCommandsHandler"},
+                                      {"operation", "time_service_blocks"}})},
+      data_blocks_{prometheus_registry->createCounter(
+          command_handler_counters_,
+          {{"layer", "ConcordCommandsHandler"}, {"operation", "data_blocks"}})},
       internal_kv_size_summary_{prometheus_registry->createSummary(
           command_handler_summaries_,
           {{"item", "internal_kv_size"}, {"layer", "ConcordCommandsHandler"}},
@@ -278,6 +284,7 @@ void ConcordCommandsHandler::AddTimeUpdateBlock(
   // the rest of the command did not write its state. What should we do?
   if (execute_result) {
     if (!read_only) {
+      time_service_blocks_.Increment();
       // The state machine might have had no commands in the request. Go
       // ahead and store just the time update.
       WriteEmptyBlock(time_.get(), parent_span);
@@ -506,6 +513,11 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
     const concordUtils::SpanWrapper &parent_span) {
   auto span = concordUtils::startChildSpan("add_block", parent_span);
 
+  if (!updates.empty()) {
+    // This means that we have date other than time service to write in the
+    // block
+    data_blocks_.Increment();
+  }
   // The IBlocksAppender interface specifies that updates must be const, but we
   // need to add items here, so we have to make a copy and work with that. In
   // the future, maybe we can figure out how to either make updates non-const,

@@ -113,6 +113,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   prometheus::Family<prometheus::Histogram> &command_handler_histograms_;
   prometheus::Family<prometheus::Summary> &command_handler_summaries_;
   prometheus::Counter &written_blocks_;
+  prometheus::Counter &time_service_blocks_;
+  prometheus::Counter &data_blocks_;
   prometheus::Summary &internal_kv_size_summary_;
   prometheus::Summary &pre_execution_duration_ms_summary_;
   prometheus::Summary &pre_execution_read_keys_size_summary_;
