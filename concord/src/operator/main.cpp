@@ -39,9 +39,10 @@ void startServer(concord::op::Operations& ops) {
   Server svr;
 
   // Return the status of all releases
-  try {
-    svr.Get("/concord/releases", [&ops](const Request& req, Response& res) {
-      // TODO: Get actual values via BFT Client
+  svr.Get("/concord/releases", [&ops, &logger](const Request& req,
+                                               Response& res) {
+    // TODO: Get actual values via BFT Client
+    try {
       auto result = ops.initiateHasSwVersion(1s);
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
@@ -49,30 +50,27 @@ void startServer(concord::op::Operations& ops) {
             result.res.reconfiguration_sm_response().additionaldata();
       }
       res.set_content(j.dump(), "application/json");
-    });
-  } catch (std::exception& e) {
-    std::cerr << "An exception occurred while trying to svr.Get: "
-                 "\"/concord/releases\" "
-                 "exception message: "
-              << e.what() << std::endl;
-  }
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Get: "
+                "\"/concord/releases\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
 
   // Return the status of the given release
-  try {
-    svr.Get(R"(/concord/releases/(\d+))",
-            [&logger](const Request& req, Response& res) {
-              LOG_INFO(logger, "not implemented");
-            });
-  } catch (std::exception& e) {
-    std::cerr << "An exception occurred while trying to svr.Get: "
-                 "\"/concord/releases/(\\d+)\" "
-                 "exception message: "
-              << e.what() << std::endl;
-  }
+  svr.Get(R"(/concord/releases/(\d+))",
+          [&logger](const Request& req, Response& res) {
+            LOG_INFO(logger, "not implemented");
+          });
 
   // Download all images for a given release
-  try {
-    svr.Put("/concord/releases", [&ops](const Request& req, Response& res) {
+  svr.Put("/concord/releases", [&ops, &logger](const Request& req,
+                                               Response& res) {
+    try {
       std::string version = req.params.find("version")->second;
       // TODO: The version string should conform to a pattern (TBD)
       auto result = ops.initiateSwDownload(1s, version);
@@ -82,18 +80,21 @@ void startServer(concord::op::Operations& ops) {
             result.res.reconfiguration_sm_response().additionaldata();
       }
       res.set_content(j.dump(), "application/json");
-    });
-  } catch (std::exception& e) {
-    std::cerr << "An exception occurred while trying to svr.Put: "
-                 "\"/concord/releases\" "
-                 "exception message: "
-              << e.what() << std::endl;
-  }
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Put: "
+                "\"/concord/releases\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
 
   // Trigger installation of a given release
-  try {
-    svr.Put("/concord/releases/install", [&ops](const Request& req,
-                                                Response& res) {
+  svr.Put("/concord/releases/install", [&ops, &logger](const Request& req,
+                                                       Response& res) {
+    try {
       std::string version = req.params.find("version")->second;
       // TODO: The version string should conform to a pattern (TBD)
       auto result = ops.initiateInstallSwVersion(1s, version);
@@ -103,21 +104,29 @@ void startServer(concord::op::Operations& ops) {
             result.res.reconfiguration_sm_response().additionaldata();
       }
       res.set_content(j.dump(), "application/json");
-    });
-  } catch (std::exception& e) {
-    std::cerr << "An exception occurred while trying to svr.Put: "
-                 "\"/concord/releases/intall\" "
-                 "exception message: "
-              << e.what() << std::endl;
-  }
-  try {
-    svr.Get("/concord/wedge/status", [&ops, &logger](const Request& req,
-                                                     Response& res) {
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Put: "
+                "\"/concord/releases/install\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
+
+  svr.Get("/concord/wedge/status", [&ops, &logger](const Request& req,
+                                                   Response& res) {
+    try {
       auto timeout = std::stoi(req.params.find("timeout")->second);
       if (timeout <= 0) {
-        LOG_WARN(logger,
-                 "received invalid timeout, the request won't be executed"
-                     << KVLOG(timeout));
+        LOG_ERROR(logger,
+                  "received invalid timeout, the request won't be executed"
+                      << KVLOG(timeout));
+        json j = {{"succ", false},
+                  {"additional_data",
+                   "received invalid timeout, the request won't be executed"}};
+        res.set_content(j.dump(), "application/json");
         return;
       }
       concord::op::Response result =
@@ -133,22 +142,29 @@ void startServer(concord::op::Operations& ops) {
       }
       res.set_content(j.dump(), "application/json");
       LOG_INFO(logger, "done running wedge status command");
-    });
-  } catch (std::exception& e) {
-    LOG_ERROR(logger,
-              "An exception occurred while trying to svr.Get: "
-              "\"/concord/wedge/status\" "
-              "exception message: "
-                  << e.what());
-  }
-  try {
-    svr.Put("/concord/wedge/stop", [&ops, &logger](const Request& req,
-                                                   Response& res) {
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Get: "
+                "\"/concord/wedge/status\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
+
+  svr.Put("/concord/wedge/stop", [&ops, &logger](const Request& req,
+                                                 Response& res) {
+    try {
       auto timeout = std::stoi(req.params.find("timeout")->second);
       if (timeout <= 0) {
-        LOG_WARN(logger,
-                 "received invalid timeout, the request won't be executed"
-                     << KVLOG(timeout));
+        LOG_ERROR(logger,
+                  "received invalid timeout, the request won't be executed"
+                      << KVLOG(timeout));
+        json j = {{"succ", false},
+                  {"additional_data",
+                   "received invalid timeout, the request won't be executed"}};
+        res.set_content(j.dump(), "application/json");
         return;
       }
       auto result = ops.initiateWedge(std::chrono::seconds(timeout));
@@ -159,59 +175,71 @@ void startServer(concord::op::Operations& ops) {
       }
       res.set_content(j.dump(), "application/json");
       LOG_INFO(logger, "done running wedge stop command");
-    });
-  } catch (std::exception& e) {
-    LOG_ERROR(logger,
-              "An exception occurred while trying to svr.Put: "
-              "\"/concord/wedge/stop\" "
-              "exception message: "
-                  << e.what());
-  }
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Put: "
+                "\"/concord/wedge/stop\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
 
-  try {
-    svr.Get(
-        "/concord/prune/latestPruneableBlock",
-        [&ops, &logger](const Request& req, Response& res) {
-          auto timeout = std::stoi(req.params.find("timeout")->second);
-          if (timeout <= 0) {
-            LOG_WARN(logger,
-                     "received invalid timeout, the request won't be executed"
-                         << KVLOG(timeout));
-            return;
-          }
-          concord::op::Response result =
-              ops.latestPruneableBlock(std::chrono::seconds(timeout));
-          json j;
-          for (auto& rsi : result.rsis) {
-            concord::messages::LatestPrunableBlock response_;
-            auto data = std::get<1>(rsi).data();
-            concord::messages::deserialize(
-                std::vector<uint8_t>(data.begin(), data.end()), response_);
-            auto sig_str =
-                concord::op::Utils::stringToByteString(response_.signature);
-            j[std::to_string(std::get<0>(rsi).val)] = {
-                {"block_id", std::to_string(response_.block_id)},
-                {"signautre", sig_str}};
-          }
-          res.set_content(j.dump(), "application/json");
-          LOG_INFO(logger, "done running prunelatestPruneableBlock command");
-        });
-  } catch (std::exception& e) {
-    LOG_ERROR(logger,
-              "An exception occurred while trying to svr.Get: "
-              "\"/concord/prune/latestPruneableBlock\" "
-              "exception message: "
-                  << e.what());
-  }
-
-  try {
-    svr.Put("/concord/prune/execute", [&ops, &logger](const Request& req,
-                                                      Response& res) {
+  svr.Get("/concord/prune/latestPruneableBlock", [&ops, &logger](
+                                                     const Request& req,
+                                                     Response& res) {
+    try {
       auto timeout = std::stoi(req.params.find("timeout")->second);
       if (timeout <= 0) {
-        LOG_WARN(logger,
-                 "received invalid timeout, the request won't be executed"
-                     << KVLOG(timeout));
+        LOG_ERROR(logger,
+                  "received invalid timeout, the request won't be executed"
+                      << KVLOG(timeout));
+        json j = {{"succ", false},
+                  {"additional_data",
+                   "received invalid timeout, the request won't be executed"}};
+        res.set_content(j.dump(), "application/json");
+        return;
+      }
+      concord::op::Response result =
+          ops.latestPruneableBlock(std::chrono::milliseconds(timeout * 1000));
+      json j;
+      for (auto& rsi : result.rsis) {
+        concord::messages::LatestPrunableBlock response_;
+        auto data = std::get<1>(rsi).data();
+        concord::messages::deserialize(
+            std::vector<uint8_t>(data.begin(), data.end()), response_);
+        auto sig_str =
+            concord::op::Utils::stringToByteString(response_.signature);
+        j[std::to_string(std::get<0>(rsi).val)] = {
+            {"block_id", std::to_string(response_.block_id)},
+            {"signautre", sig_str}};
+      }
+      res.set_content(j.dump(), "application/json");
+      LOG_INFO(logger, "done running prunelatestPruneableBlock command");
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Get: "
+                "\"/concord/prune/latestPruneableBlock\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
+
+  svr.Put("/concord/prune/execute", [&ops, &logger](const Request& req,
+                                                    Response& res) {
+    try {
+      auto timeout = std::stoi(req.params.find("timeout")->second);
+      if (timeout <= 0) {
+        LOG_ERROR(logger,
+                  "received invalid timeout, the request won't be executed"
+                      << KVLOG(timeout));
+        json j = {{"succ", false},
+                  {"additional_data",
+                   "received invalid timeout, the request won't be executed"}};
+        res.set_content(j.dump(), "application/json");
         return;
       }
       concord::op::Response result =
@@ -236,14 +264,16 @@ void startServer(concord::op::Operations& ops) {
       }
       res.set_content(j.dump(), "application/json");
       LOG_INFO(logger, "done running prune/exeute command");
-    });
-  } catch (std::exception& e) {
-    LOG_ERROR(logger,
-              "An exception occurred while trying to svr.Put: "
-              "\"/concord/prune/exeute\" "
-              "exception message: "
-                  << e.what());
-  }
+    } catch (std::exception& e) {
+      LOG_ERROR(logger,
+                "An exception occurred while trying to svr.Put: "
+                "\"/concord/prune/execute\" "
+                "exception message: "
+                    << e.what());
+      json j = {{"succ", false}, {"additional_data", std::string(e.what())}};
+      res.set_content(j.dump(), "application/json");
+    }
+  });
 
   // TODO: Make this part of operator config file?
   uint16_t port = 41444;
