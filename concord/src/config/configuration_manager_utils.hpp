@@ -1122,21 +1122,23 @@ class PrincipalHostValidator : public ConcordConfiguration::ParameterValidator {
     // ConcordConfiguration cannot be iterated.
     ConcordConfiguration nonConstConfig = config;
 
+    // Note that, depending on the order in which parameters are loaded,
+    // we may not yet be able to tell which node is local in this
+    // configuration at the time this validator is called when first loading
+    // hosts into the config. To handle this case, we return
+    // INSUFFICIENT_INFORMATION if detectLocalNode throws an exception.
+    size_t local_node_index;
+    bool is_ro_replica;
+    try {
+      std::tie(local_node_index, is_ro_replica) =
+          detectLocalNode(nonConstConfig);
+    } catch (const ConfigurationResourceNotFoundException& e) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+
     if (config.hasValue<bool>("use_loopback_for_local_hosts") &&
         config.getValue<bool>("use_loopback_for_local_hosts") &&
-        (value != "127.0.0.1")) {
-      // Note that, depending on the order order in which parameters are loaded,
-      // we may not yet be able to tell which node is local in this
-      // configuration at the time this validator is called when first loading
-      // hosts into the config. To handle this case, we return
-      // INSUFFICIENT_INFORMATION if detectLocalNode throws an exception.
-      size_t local_node_index;
-      try {
-        std::tie(local_node_index, std::ignore) =
-            detectLocalNode(nonConstConfig);
-      } catch (const ConfigurationResourceNotFoundException& e) {
-        return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-      }
+        (value != "127.0.0.1") && !is_ro_replica) {
       if (path.index == local_node_index) {
         failureMessage =
             "Invalid host address for " + path.toString() + ": " + value +
