@@ -18,7 +18,7 @@ error() {
 }
 
 check_usage() {
-    if [ -z "$LEDGER_HOST" -o -z "$NO_OF_AGREEMENTS" -o -z "$LOAD_BATCH_SIZE" -o -z "$NO_OF_VUSER" -o -z "$WORK_DIR" ]
+    if [ -z "$LEDGER_HOST" -o -z "$NO_OF_AGREEMENTS" -o -z "$NO_OF_VUSER" -o -z "$WORK_DIR" ]
     then
         error "Required parameters"
         cat << EOF
@@ -26,7 +26,6 @@ Usage: $0 <OPTIONS>
           --ledgerHost <DAML ledger host>
           --noOfAgreements <No. of Agreements to run DLR simulation>
           --noOfVuser <No. of Users to run DLR simulation>
-          --loadBatchSize <Batch size of agreements for an iteration>
           --resultsDir <Results/log directory path>
 EOF
 
@@ -35,6 +34,7 @@ EOF
 }
 
 load_dlr_application() {
+    kill -9 $(ps -ef | grep json-api | awk '{print $2}' | head -3)
     execute_command --commandToRun "daml json-api --ledger-host ${LEDGER_HOST} --ledger-port ${LEDGER_PORT} --address ${JSON_API_HOST} --http-port ${JSON_API_PORT} --max-inbound-message-size ${JSON_API_MSG_SIZE} --allow-insecure-tokens &"
     sleep 20
 }
@@ -115,22 +115,19 @@ run_dlr_test() {
     load_dlr_application
     execute_command --commandToRun "node ${REG_LOCATION}/src/Bootstrap.js" --initializeOnce
     sleep 15
-    execute_command --commandToRun "k6 run --vus $NO_OF_VUSER --iterations $NO_OF_AGREEMENTS ${REG_LOCATION}/src/Interactions/RegisterAgreements.js" --validateString "✓ is status 200"
-    sleep 15
-    # Fetch Contract and agreement Ids
-    execute_command --commandToRun "node ${REG_LOCATION}/src/Interactions/FetchAgreements.js"
+    # Register agreements
+    execute_command --commandToRun "k6 run --vus ${NO_OF_VUSER} --iterations ${NO_OF_AGREEMENTS} ${REG_LOCATION}/src/Interactions/RegisterAgreements.js" --validateString "✓ is status 200"
+    execute_command --commandToRun "k6 run --vus 1 --iterations 3 ${REG_LOCATION}/src/Interactions/FetchAgreements.js"
     # Settle all agreements
-    execute_command --commandToRun "k6 run --vus 1 --iterations ${ITERATIONS} ${REG_LOCATION}/src/Interactions/SettleAgreementsByKey.js" --validateString "✓ is status 200"
-    sleep 15
-    # Fetch all agreements, which are in settled status
-    execute_command --commandToRun "node ${REG_LOCATION}/src/Interactions/FetchSettledAgreements.js"
+    export K6_VUS=1
+    export K6_ITERATIONS=${NO_OF_AGREEMENTS}
+    execute_command --commandToRun "k6 run ${REG_LOCATION}/src/Interactions/SettleAgreementsByKey.js" --validateString "✓ is status 200"
+    execute_command --commandToRun "k6 run --vus 1 --iterations 3 ${REG_LOCATION}/src/Interactions/FetchAgreements.js"
     # Calculate interest on all eligible agreements
-    execute_command --commandToRun "k6 run --vus 1 --iterations ${ITERATIONS} ${REG_LOCATION}/src/Interactions/CalcInterestByKeys.js" --validateString "✓ is status 200"
-    sleep 15
-    # Fetch settled status agreements. This is needed as contract ids would have changed
-    execute_command --commandToRun "node ${REG_LOCATION}/src/Interactions/FetchSettledAgreements.js"
+    execute_command --commandToRun "k6 run --vus ${NO_OF_VUSER} --iterations ${NO_OF_AGREEMENTS} ${REG_LOCATION}/src/Interactions/CalcInterestByKeys.js" --validateString "✓ is status 200"
     # Mature all agreements which are in settled status
-    execute_command --commandToRun "k6 run --vus 1 --iterations ${ITERATIONS} ${REG_LOCATION}/src/Interactions/MatureAgreementsByKey.js" --validateString "✓ is status 200"
+    execute_command --commandToRun "k6 run --vus 1 --iterations ${NO_OF_AGREEMENTS} ${REG_LOCATION}/src/Interactions/MatureAgreementsByKey.js" --validateString "✓ is status 200"
+    execute_command --commandToRun "k6 run --vus 1 --iterations 3 ${REG_LOCATION}/src/Interactions/FetchAgreements.js"
 
     info "Successfully completed RunCycleByKeys"
     kill -9 $(ps -ef | grep json-api | awk '{print $2}' | head -3) > /dev/null 2>&1
@@ -154,10 +151,6 @@ while [ "$1" != "" ] ; do
         "--noOfAgreements")
             shift
             NO_OF_AGREEMENTS="$1"
-            ;;
-        "--loadBatchSize")
-            shift
-            LOAD_BATCH_SIZE="$1"
             ;;
         "--noOfVuser")
             shift
@@ -197,7 +190,6 @@ then
 fi
 cd "${WORK_SUBDIR}"
 
-ITERATIONS=$(( NO_OF_AGREEMENTS / LOAD_BATCH_SIZE ))
 DLR_RUN_LOG_FILE="${WORK_SUBDIR}/run.log"
 DAR_LOCATION="${DLR_LOCATION}/bk_Broadridge/vmbc-br/rep_app"
 REG_LOCATION="${DAR_LOCATION}/orchestration"
@@ -208,9 +200,7 @@ export JSON_API_HOST="$JSON_API_HOST"
 export JSON_API_PORT="$JSON_API_PORT"
 export JSON_API_MSG_SIZE="$JSON_API_MSG_SIZE"
 export REPO_VERSION="$REPO_VERSION"
-export LOAD_BATCH_SIZE="$LOAD_BATCH_SIZE"
 
 run_dlr_test 2>&1 > "${DLR_RUN_LOG_FILE}"
 info "Exit status for this run: $EXIT_STATUS"
 exit "$EXIT_STATUS"
-

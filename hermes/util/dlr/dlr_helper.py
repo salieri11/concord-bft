@@ -15,7 +15,6 @@ log = hermes_logging.getMainLogger()
 
 DEFAULT_NO_OF_AGREEMENT = 100
 DEFAULT_NO_OF_VUSER = 10
-DEFAULT_LOAD_BATCH_SIZE = 100
 DEFAULT_TEST_TIMEOUT = 1800 # 30 mins in seconds
 DLR_PATH = str(Path.home())
 
@@ -55,25 +54,18 @@ def check_nodejs():
 
 def check_broadridge_repo():
    '''
-      Workload for DLR tool currently available at
-      vmware@10.40.205.205:~/bk_Broadridge
+      Workload for DLR tool pulled from https://github.com/tonybailey-vmware/vmbc-br
       :return broadridge repository availability status
    '''
    node_path = path.join(DLR_PATH, "bk_Broadridge", "vmbc-br", "rep_app", "orchestration")
-   cmd_npm = [ "npm", "install", f"{node_path}" ]
    if path.exists(node_path):
       log.debug("Broadridge repository exists")
       if path.exists(node_path + "/node_modules"):
-         log.debug("Node modules are already installed")
+         log.debug("Node modules are available")
          repository_status = True
       else:
-         log.debug("Installing node modules at: {}".format(node_path))
-         success_npm, output_npm = helper.execute_ext_command(cmd_npm)
-         if success_npm:
-            repository_status = True
-         else:
-            repository_status = False
-            log.error("Unable to install node modules. Details: {}".format(output_npm))
+         log.error("Node modules are not available at {}".format(node_path))
+         repository_status = False
    else:
       repository_status = False
       log.error("Broadridge repository is not available at: {}".format(DLR_PATH))
@@ -92,7 +84,6 @@ def run_dlr(args, ledger_api_host):
       "--ledgerHost", ledger_api_host,
       "--noOfAgreements", args.dlrNoOfAgreements,
       "--noOfVuser", args.dlrNoOfVuser,
-      "--loadBatchSize", args.dlrLoadBatchSize,
       "--resultsDir", args.resultsDir,
       "--dlrLocation", DLR_PATH,
       "--logLevel", str(args.logLevel)

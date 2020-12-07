@@ -277,6 +277,16 @@ BuildPersephoneGRPCpyBindings() {
     popd
 }
 
+DlrRepository() {
+    mkdir -p /home/builder/bk_Broadridge
+    cd /home/builder/bk_Broadridge
+    rm -rf vmbc-br
+    git clone git@github.com:tonybailey-vmware/vmbc-br.git
+    info "Installing node modules"
+    cd /home/builder/bk_Broadridge/vmbc-br/rep_app/orchestration
+    npm install
+}
+
 # TODO: Associative arrays don't work in OSX's default shell.
 declare -A BUILD_PROCS
 
