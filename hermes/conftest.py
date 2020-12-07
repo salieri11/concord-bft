@@ -6,22 +6,16 @@
 import json
 import os
 import sys
-import types
-import pprint
 import pytest
 import tempfile
-import collections
-import util
-from suites.case import describe, getStackInfo
+from suites.case import describe
 from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
-from util import auth, csp, helper, hermes_logging, json_helper, node_creator,\
-    numbers_strings, generate_grpc_bindings, pipeline
+from util import auth, helper, hermes_logging, json_helper, node_creator,\
+    generate_grpc_bindings, pipeline
 from util.dlr import dlr_helper
 from util.stats_gatherer import StatsGatherer
-
 import event_recorder
-import util.hermes_logging
 
 local_modules = [os.path.join(".", "lib", "persephone")]
 for path in local_modules:
@@ -704,7 +698,6 @@ def _get_suite_short_name(module_name):
         "HelenNodeSizeTemplateTests": "nodesize_test",
         "ReconfigurationTests": "hermes.suites.reconfiguration_tests",
         "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests",
-        "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests",
         "WavefrontTests": "hermes.suites.wavefront_tests",
         "HelenVMSizeTests": "vmsize_test",
         "TlsDamlTests": "hermes.suites.tls_daml_tests",

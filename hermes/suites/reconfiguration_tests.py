@@ -20,7 +20,6 @@ import util.helper as helper
 import time
 import util.daml.daml_helper as daml_helper
 
-from . import test_suite
 from suites.case import describe
 from fixtures.common_fixtures import fxProduct
 
