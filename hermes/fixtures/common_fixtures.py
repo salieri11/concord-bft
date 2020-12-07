@@ -546,7 +546,7 @@ def fxProduct(request, hermes_info):
    An fxProduct provides a launched instance of the product
    to the tests being run.
    '''
-   log.info("Hermes parameters \n%s" % hermes_info)
+   # log.info("Hermes parameters \n%s" % hermes_info)
    hermes_data = hermes_info
    if not hermes_data["hermesCmdlineArgs"].noLaunch:
       logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
@@ -657,7 +657,6 @@ def fxBlockchain(request, hermes_info, fxProduct):
    WARNING: The blockchain "replicas" field is an array of IPs if passing in replicasConfig,
             but an array of objects if a blockchain is deployed.
    '''
-   log.info("Hermes parameters \n%s" % hermes_info)
    blockchainId = None
    conId = None
    replicas = None
