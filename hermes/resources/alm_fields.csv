@@ -1,0 +1,227 @@
+Type,Name,Label,Filterable
+test,user-template-12,1.Product,True
+test,user-template-01,2.Func Area,True
+test,user-template-02,3.Component,True
+test,user-template-26,Applicable Test Configs,True
+test,has-dependencies,Asset relation dependencies status,False
+test,attachment,Attachment,True
+test,vc-start-audit-action-id,Audit ID for start point for this version,False
+test,vc-end-audit-action-id,Audit ID that is a end point for this version of the test,False
+test,user-template-05,Auto Script Path,True
+test,user-template-33,Automation ID,True
+test,user-template-03,Automation Level,True
+test,user-template-23,Automation Timeout (sec),True
+test,user-template-30,Automation developer,True
+test,user-template-13,Available Configs,False
+test,base-test-id,Base Test ID,True
+test,bpta-change-detected,Change Status,True
+test,ut-class-name,Class,True
+test,dev-comments,Comments,False
+test,user-template-16,Configs Test Bed,False
+test,user-template-27,Copied from Test,True
+test,configurations-count,Count of configurations links in a test,False
+test,creation-time,Creation Date,True
+test,user-template-29,Duplicate of,True
+test,estimate-devtime,Estimated DevTime,True
+test,user-template-06,Exec Duration (min),True
+test,exec-status,Execution Status,True
+test,user-template-22,Framework,True
+test,user-template-14,Framework Executable,True
+test,user-template-15,Framework Parameters,True
+test,testing-framework,Framework_System,True
+test,user-template-04,Fully Automatable?,True
+test,has-linkage,Has linkage,False
+test,has-components,Indicates if the business process test has components instances,False
+test,has-criteria,Indicates if the test has criteria,False
+test,is-change-detectable,Is Test Change Detectable,False
+test,user-template-10,Keyword,True
+test,user-template-17,Legacy Test Case ID,True
+test,ut-method-name,Method,True
+test,user-template-25,Modified by,True
+test,last-modified,Modified on,True
+test,user-template-24,Not Automatable Reason,True
+test,description,Objective,False
+test,ut-package-name,Package,True
+test,user-template-11,Partner Facing?,True
+test,storage-path,Path,True
+test,user-template-19,Pre-Condition,True
+test,protocol-type,Protocol Type,True
+test,subtype-id,QC Internal,True
+test,user-template-18,Rally ID,True
+test,status,Status,True
+test,step-param,Step Param,False
+test,steps,Steps,True
+test,user-template-31,Sub Release,True
+test,parent-id,Subject,True
+test,parent-name,Subject Name,False
+test,user-template-32,Subscribers (Email),True
+test,template,Template,True
+test,owner,Test Case Developer,True
+test,user-template-07,Test Case Level,True
+test,user-template-09,Test Case Priority,True
+test,user-template-20,Test Case Tags,True
+test,user-template-08,Test Case Type,True
+test,id,Test ID,True
+test,user-template-28,Test ID (Hidden),True
+test,name,Test Name,True
+test,order-id,Test Order,False
+test,user-template-21,Test Package,True
+test,runtime-data,Test Runtime Data,True
+test,service-test-mode,Testing Mode,True
+test,testing-tool,Testing Tool,True
+test,tree-path,Tree Path,False
+test,vc-checkin-comments,Version Check In Comments,False
+test,vc-checkin-date,Version Check In Date,False
+test,vc-checkin-time,Version Check In Time,False
+test,vc-checkin-user-name,Version Checked In By,False
+test,vc-comments,Version Comments,False
+test,vc-date,Version Date,False
+test,vc-version-number,Version Number,False
+test,check-out-user-name,Version Owner,True
+test,vc-status,Version Status,True
+test,vc-time,Version Time,False
+test,working-mode,Working Mode,False
+test,text-sync,None,False
+test,timeout,None,False
+test,ver-stamp,None,False
+test-set-folder,attachment,Attachment,True
+test-set-folder,description,Description,False
+test-set-folder,last-modified,Modified,True
+test-set-folder,name,Name,True
+test-set-folder,no-of-sons,Number of sons,True
+test-set-folder,parent-id,Parent Folder,True
+test-set-folder,assign-rcyc,Target Cycle,True
+test-set-folder,parent-name,Test Set Folder Father Name,False
+test-set-folder,id,Test Set Folder ID,True
+test-set-folder,order-id,Test Set Folder Order ID,False
+test-set-folder,hierarchical-path,Test Set Folder Path,True
+test-set-folder,workflow,WorkFlow,False
+test-set-folder,ver-stamp,None,False
+test-instance,exec-event-handle,'On Failure' Settings,False
+test-instance,attachment,Attachment,True
+test-instance,pinned-baseline,Baseline,True
+test-instance,user-template-04,CRS Job URL,True
+test-instance,bpta-change-awareness,Change Detection Mode,False
+test-instance,user-template-03,Comments,True
+test-instance,os-config,Configuration,False
+test-instance,test-config-id,Configuration,True
+test-instance,environment,Environment,True
+test-instance,exec-date,Exec Date,True
+test-instance,user-template-07,Framework Type,True
+test-instance,has-linkage,Has linkage,False
+test-instance,is-dynamic,Is Dynamic,True
+test-instance,iterations,Iterations,True
+test-instance,user-template-05,Latest Run Log Location,True
+test-instance,last-modified,Modified,True
+test-instance,name,Name,False
+test-instance,order-id,Order Tests In Test Set,True
+test-instance,plan-scheduling-date,Planned Exec Date,True
+test-instance,plan-scheduling-time,Planned Exec Time,True
+test-instance,host-name,Planned Host Name,True
+test-instance,owner,Responsible Tester,True
+test-instance,eparams,Run Configuration,False
+test-instance,status,Status,True
+test-instance,assign-rcyc,Target Cycle,True
+test-instance,test-id,Test,True
+test-instance,user-template-02,Test Exec Config,True
+test-instance,test-instance,Test Instance,True
+test-instance,user-template-01,Test Instance ID,True
+test-instance,id,Test Instance Unique ID,True
+test-instance,cycle,Test Set,True
+test-instance,cycle-id,TestSet,True
+test-instance,actual-tester,Tester,True
+test-instance,exec-time,Time,True
+test-instance,subtype-id,Type,True
+test-instance,user-template-06,VMs and Hosts Details,False
+test-instance,ver-stamp,None,False
+test-instance,data-obj,None,False
+run,attachment,Attachment,True
+run,bpt-structure,BPT Structure,True
+run,pinned-baseline,Baseline,True
+run,user-template-02,Bug ID(s),True
+run,user-template-09,Bug Reporting,True
+run,user-template-01,Build #,True
+run,user-template-11,Build Type,True
+run,bpta-change-awareness,Change Detection Mode,True
+run,bpta-change-detected,Change Status,True
+run,comments,Comments,False
+run,os-config,Configuration,False
+run,test-config-id,Configuration ID,True
+run,cycle-id,Cycle ID,True
+run,draft,Draft Run,True
+run,duration,Duration,True
+run,environment,Environment,True
+run,user-template-03,Exec Config,True
+run,execution-date,Exec Date,True
+run,execution-time,Exec Time,True
+run,build-revision,External Build/Revision Number,True
+run,results-files-network-path,External Results Network Path,True
+run,user-template-04,Failure Cause,True
+run,user-template-07,Framework Type,True
+run,has-linkage,Has linkage,False
+run,host,Host,True
+run,iters-sum-status,Iterations Status,False
+run,jenkins-job-name,Jenkins Job Name,True
+run,jenkins-url,Jenkins Run Results URL,True
+run,user-template-05,Logs Location,True
+run,os-build,OS Build Number,True
+run,os-sp,OS Service Pack,True
+run,os-name,Operating System,True
+run,user-template-10,Opportunity,True
+run,path,Path,True
+run,detail,Run Detail,True
+run,id,Run ID,True
+run,name,Run Name,True
+run,vc-status,Run VC Status,True
+run,vc-locked-by,Run VC User,True
+run,user-template-08,Setup Duration,True
+run,state,State,True
+run,status,Status,True
+run,assign-rcyc,Target Cycle,True
+run,test-id,Test,True
+run,test-description,Test Description,False
+run,testcycl-id,Test Instance,True
+run,test-instance,Test Instance ID,True
+run,testcycl-name,Test Instance Name,False
+run,test-name,Test Name,False
+run,cycle,Test Set,True
+run,cycle-name,Test Set Name,False
+run,vc-version-number,Test Version Number,False
+run,owner,Tester,True
+run,subtype-id,Type,True
+run,user-template-06,VMs and Hosts Details,False
+run,ver-stamp,None,False
+run,last-modified,None,True
+run,text-sync,None,False
+run,iters-params-values,None,False
+test-set,exec-event-handle,'On Failure' Settings,False
+test-set,attachment,Attachment,True
+test-set,pinned-baseline,Baseline,True
+test-set,close-date,Close Date,True
+test-set,user-template-04,Cloud vs OnPrem,True
+test-set,os-config,Configuration,False
+test-set,environment,Default Environment,True
+test-set,comment,Description,False
+test-set,dynamic-data,Dynamic Data,False
+test-set,description,Execution Flow,False
+test-set,has-linkage,Has linkage,False
+test-set,last-modified,Modified,True
+test-set,name,Name,True
+test-set,open-date,Open Date,True
+test-set,request-id,PPM Request Id,True
+test-set,user-template-01,Perforce Branch,True
+test-set,report-settings,Report Settings,False
+test-set,user-template-03,Review Status,True
+test-set,status,Status,True
+test-set,assign-rcyc,Target Cycle,True
+test-set,parent-id,Test Set Folder,True
+test-set,parent-name,Test Set Folder Father Name,False
+test-set,id,Test Set ID,True
+test-set,mail-settings,Test Set Notifications Settings,False
+test-set,order-id,Test Set Order,False
+test-set,user-template-05,Test Set Owner,True
+test-set,user-template-02,Test Set Status,True
+test-set,tree-path,Tree Path,False
+test-set,subtype-id,Type,True
+test-set,ver-stamp,None,False
+test-set,cycle-config,None,False
