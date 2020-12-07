@@ -813,6 +813,12 @@ public class BlockchainController {
                                                   .get(Constants.ORG_DECENTRALIZED_KEYS));
             }
 
+            if (organization.getOrganizationProperties().containsKey(Constants.USE_SECURE_TRC)) {
+                basePropBuilder.putValues(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name(),
+                        organization.getOrganizationProperties()
+                                .get(Constants.USE_SECURE_TRC));
+            }
+
             if (organization.getOrganizationProperties().containsKey(Constants.ORG_SPLIT_CONFIG)) {
                 basePropBuilder.putValues(DeploymentAttributes.SPLIT_CONFIG.name(),
                                           organization.getOrganizationProperties()
