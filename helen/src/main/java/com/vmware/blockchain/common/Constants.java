@@ -24,6 +24,7 @@ public class Constants {
     public static final String ORG_SPLIT_CONFIG = "split_config";
     public static final String ORG_OPERATOR_KEY_ENABLED = "enable_Operator_Key";
     public static final String USE_WAVEFRONT = "use_wavefront";
+    public static final String USE_SECURE_TRC = "org_trc_trs_tls_enabled";
 
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
