@@ -119,6 +119,29 @@ class TestServerContext {
       std::vector<std::string> temp_vector;
       return temp_vector;
     }
+
+    std::vector<std::string> FindPropertyValues(const std::string& temp) const {
+      std::vector<std::string> temp_vector;
+      const char* cert =
+          "-----BEGIN CERTIFICATE-----\n"
+          "MIICZjCCAeygAwIBAgIUUDYNatCx+fxZ5JSnlPYr4VByumgwCgYIKoZIzj0EAwIw\n"
+          "ajELMAkGA1UEBhMCTkExCzAJBgNVBAgMAk5BMQswCQYDVQQHDAJOQTELMAkGA1UE\n"
+          "CgwCTkExGTAXBgNVBAsMEGRhbWxfbGVkZ2VyX2FwaTExGTAXBgNVBAMMEGRhbWxf\n"
+          "bGVkZ2VyX2FwaTEwHhcNMjAxMjA0MDA1NzM1WhcNMjExMjA0MDA1NzM1WjBqMQsw\n"
+          "CQYDVQQGEwJOQTELMAkGA1UECAwCTkExCzAJBgNVBAcMAk5BMQswCQYDVQQKDAJO\n"
+          "QTEZMBcGA1UECwwQZGFtbF9sZWRnZXJfYXBpMTEZMBcGA1UEAwwQZGFtbF9sZWRn\n"
+          "ZXJfYXBpMTB2MBAGByqGSM49AgEGBSuBBAAiA2IABIwKwDQ+BrBG+8Bjx1TSkjmj\n"
+          "XhMfEU/0z6GHPvlcdqYM/23AsZqu/l19egPxGciN2JuTvazxaLi/QC7PlN8C6pxE\n"
+          "FQkwOBxG8wkOODic7sObq9kkQ9ho7axUzdsXgur1u6NTMFEwHQYDVR0OBBYEFFJH\n"
+          "7VYeFWg9UXPgUUcR3wdv4P4AMB8GA1UdIwQYMBaAFFJH7VYeFWg9UXPgUUcR3wdv\n"
+          "4P4AMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDaAAwZQIxALJ1wKliQWCZ\n"
+          "qW1sDuktNuyiv1Mf5GN/tyQWbBUaWKf3SigHsTFJsHat8lAvzBEIKQIwMrs90u4Q\n"
+          "bCcOw5GqAHtmOSt1ZQRKJsid/TFphtDCZOw0BI3PFII+yCKcgqZQpD6c\n"
+          "-----END CERTIFICATE-----\n";
+      std::string cert_str(cert);
+      temp_vector.push_back(cert_str);
+      return temp_vector;
+    }
   };
 
  public:
@@ -541,6 +564,26 @@ TEST(thin_replica_test, GetClientIdSetFromRootCert) {
     EXPECT_NE(parsed_client_id_it, parsed_client_id_set.end());
     EXPECT_EQ(*parsed_client_id_it, client_id);
   }
+}
+
+TEST(thin_replica_test, GetClientIdFromClientCert) {
+  FakeStorage storage{generate_kvp(0, 0)};
+  auto live_update_blocks = generate_kvp(0, 0);
+  TestStateMachine<Data> state_machine{storage, live_update_blocks, 1};
+  TestSubBufferList<Data> buffer{state_machine};
+
+  TestServerContext context;
+
+  bool is_insecure_trs = true;
+  std::string tls_trs_cert_path;
+
+  concord::thin_replica::ThinReplicaImpl replica(
+      is_insecure_trs, tls_trs_cert_path, &storage, buffer, registry);
+
+  std::string expected_client_id = "daml_ledger_api1";
+  std::string client_id =
+      replica.GetClientIdFromClientCert<TestServerContext>(&context);
+  EXPECT_EQ(expected_client_id, client_id);
 }
 }  // namespace
 
