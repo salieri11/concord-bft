@@ -1498,11 +1498,18 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validateAll(
         containingScope->getParameter(path.getLeaf().name, "");
 
     if (parameter.initialized) {
+      std::string failureMsg;
       ParameterStatus validateRes =
-          containingScope->validate(path.getLeaf().name);
+          containingScope->validate(path.getLeaf().name, &failureMsg);
       if ((validateRes == ParameterStatus::INVALID) ||
           (status == ParameterStatus::VALID)) {
         status = validateRes;
+        if (validateRes == ParameterStatus::INVALID) {
+          Logger logger = Logger::getInstance("concord.configuration");
+          LOG_ERROR(logger, "Error validating " << path.getLeaf().name
+                                                << " in section " << path.name
+                                                << ": " << failureMsg);
+        }
       }
     } else if (!ignoreUninitializedParameters) {
       if (status != ParameterStatus::INVALID) {
