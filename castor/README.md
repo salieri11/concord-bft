@@ -50,7 +50,7 @@ The output file is named
 
 The Castor deployment is made up of 2 docker-compose files:
 
-- docker-compose-castor-prereqs.yml
+- docker-compose-orchestrator-prereqs.yml
 > This file launches the config service and the provisioning service. It needs to be passed in
 > the value of the host IP (the host on which the docker-compose command is run) so that the agents
 > can reach into the host for configuration information.
@@ -58,34 +58,34 @@ The Castor deployment is made up of 2 docker-compose files:
 It should be launched so:
 
 ```
-CONFIG_SERVICE_IP=<host-ip> docker-compose -f docker-compose-castor-prereqs.yml up
+CONFIG_SERVICE_IP=<host-ip> docker-compose -f docker-compose-orchestrator-prereqs.yml up
 ```
 
 e.g.
 ```
-CONFIG_SERVICE_IP=10.72.218.2 docker-compose -f docker-compose-castor-prereqs.yml up
+CONFIG_SERVICE_IP=10.72.218.2 docker-compose -f docker-compose-orchestrator-prereqs.yml up
 ```
 
 
 This will launch the 2 services. They can, and should, stay up for ever.
  
-- docker-compose-castor.yml
+- docker-compose-orchestrator.yml
 > This file launches the Castor service. It can be launched for every deployment, and multiple
 > instances can be launched concurrently. This will be the case if you wished to deploy multiple blockchains with the
 > different configurations. Or concurrently launch the provisioning of multiple instances of the same configuration.
 
 It should be launched so:
 
-**NOTE**: Run this in the same directory as the above command for docker-compose-castor-prereqs.yml
+**NOTE**: Run this in the same directory as the above command for docker-compose-orchestrator-prereqs.yml
 
 ```
-CASTOR_DESCRIPTORS_LOC=<descriptor-directory> CASTOR_OUTPUT_DIR=<output-directory> docker-compose -f docker-compose-castor.yml run castor --name <unique-name>
+CASTOR_DESCRIPTORS_LOC=<descriptor-directory> CASTOR_OUTPUT_DIR=<output-directory> docker-compose -f docker-compose-orchestrator.yml run castor --name <unique-name>
 ```
 
 e.g.
 
 ```
-CASTOR_DESCRIPTORS_LOC=/tmp/castor/descriptors CASTOR_OUTPUT_DIR=/tmp/castor/output docker-compose -f docker-compose-castor.yml run castor --name castor222
+CASTOR_DESCRIPTORS_LOC=/tmp/castor/descriptors CASTOR_OUTPUT_DIR=/tmp/castor/output docker-compose -f docker-compose-orchestrator.yml run castor --name castor222
 ```
 
 **NOTE** carefully the _run_ command to docker-compose, and the _--name_ option. Every concurrent run needs to 

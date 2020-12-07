@@ -6,10 +6,10 @@ logger "Starting VMware Blockchain Orchestrator configuration service with IP: $
 cd /home/blockchain/orchestrator-runtime
 
 # List out the configuration first
-CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-castor-prereqs.yml config
+CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-orchestrator-prereqs.yml config
 
 # Shut down any dangling containers
-CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-castor-prereqs.yml down --remove-orphans
+CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-orchestrator-prereqs.yml down --remove-orphans
 
 # Start em up.
-CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-castor-prereqs.yml up -d
+CONFIG_SERVICE_IP=$IP_ADDRESS docker-compose -f docker-compose-orchestrator-prereqs.yml up -d

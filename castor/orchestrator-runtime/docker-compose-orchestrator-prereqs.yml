@@ -1,0 +1,18 @@
+version: '3'
+services:
+  config-service:
+    image: "${persephone_configuration_repo}:${persephone_configuration_tag}"
+    ports:
+      - 9003:9003
+      - 0.0.0.0:8000:9023
+    restart: on-failure
+  persephone-provisioning:
+    image: "${persephone_provisioning_repo}:${persephone_provisioning_tag}"
+    ports:
+      - 9002:9002
+    restart: unless-stopped
+    environment:
+      - provisioning.config.service.address=config-service:9003
+      - provisioning.config.service.transportSecurity.type=NONE
+      - provisioning.config.service.rest.address=http://${CONFIG_SERVICE_IP:?CONFIG_SERVICE_IP is required}:8000
+      - provisioning.allocation.service.transportSecurity.type=NONE
