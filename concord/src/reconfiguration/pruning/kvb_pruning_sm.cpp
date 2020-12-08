@@ -141,23 +141,23 @@ bool KVBPruningSM::Handle(
   return true;
 }
 
-bool KVBPruningSM::Handle(const concord::messages::PruneRequest& request,
-                          bool read_only,
-                          opentracing::Span& parent_span) const {
+std::optional<kvbc::BlockId> KVBPruningSM::Handle(
+    const concord::messages::PruneRequest& request, bool read_only,
+    opentracing::Span& parent_span) const {
   auto prune_span = opentracing::Tracer::Global()->StartSpan(
       "prune_request", {opentracing::ChildOf(&parent_span.context())});
 
   if (read_only) {
     LOG_WARN(logger_,
              "KVBPruningSM ignoring PruneRequest in a read-only command");
-    return false;
+    return {};
   }
 
   if (!pruning_enabled_) {
     const auto msg =
         "KVBPruningSM pruning is disabled, returning an error on PruneRequest";
     LOG_WARN(logger_, msg);
-    return false;
+    return {};
   }
 
   const auto sender = request.sender;
@@ -172,7 +172,7 @@ bool KVBPruningSM::Handle(const concord::messages::PruneRequest& request,
                "on the grounds that some non-empty subset of those "
                "LatestPrunableBlock messages did not bear correct signatures "
                "from the claimed replicas.");
-    return false;
+    return {};
   }
 
   const auto latest_prunable_block_id = AgreedPrunableBlockId(request);
@@ -182,7 +182,7 @@ bool KVBPruningSM::Handle(const concord::messages::PruneRequest& request,
   // Execute actual pruning.
 
   PruneThroughBlockId(latest_prunable_block_id);
-  return true;
+  return latest_prunable_block_id;
 }
 
 BlockId KVBPruningSM::LatestBasedOnNumBlocksConfig() const {

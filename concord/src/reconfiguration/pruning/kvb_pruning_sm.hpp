@@ -55,11 +55,6 @@ namespace pruning {
 //  (the one that prunes less blocks). This option requires the time service to
 //  be enabled.
 //
-//  * pruning_operator_public_key - the public key for a priviliged operator
-//  authorized to issue pruning commands. This parameter is required if pruning
-//  is enabled. Pruning commands that do not have a correct signature produced
-//  with the private key corresponding to this public key will be rejected.
-//
 // The LatestPrunableBlockRequest command returns the latest block ID from the
 // replica's storage that is safe to prune. If no blocks can be pruned, 0 is
 // returned.
@@ -90,8 +85,9 @@ class KVBPruningSM {
   bool Handle(const concord::messages::LatestPrunableBlockRequest &,
               concord::messages::LatestPrunableBlock &,
               opentracing::Span &parent_span) const;
-  bool Handle(const concord::messages::PruneRequest &, bool read_only,
-              opentracing::Span &parent_span) const;
+  std::optional<kvbc::BlockId> Handle(const concord::messages::PruneRequest &,
+                                      bool read_only,
+                                      opentracing::Span &parent_span) const;
 
   static concordUtils::Sliver LastAgreedPrunableBlockIdKey();
 

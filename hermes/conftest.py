@@ -697,6 +697,7 @@ def _get_suite_short_name(module_name):
         "MetadataPersistencyTests": "hermes.suites.persistency_tests",
         "HelenNodeSizeTemplateTests": "nodesize_test",
         "ReconfigurationTests": "hermes.suites.reconfiguration_tests",
+        "PruningTests": "hermes.suites.pruning_tests",
         "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests",
         "WavefrontTests": "hermes.suites.wavefront_tests",
         "HelenVMSizeTests": "vmsize_test",

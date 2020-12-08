@@ -72,7 +72,9 @@ bool ReconfigurationSMOpen::handle(const concord::messages::PruneRequest& cmd,
   bool ret = false;
   ret_data = std::string();
   try {
-    ret = pruningSM_->Handle(cmd, read_only, parent_span);
+    auto result = pruningSM_->Handle(cmd, read_only, parent_span);
+    ret = result.has_value();
+    ret_data = ret ? std::to_string(result.value()) : std::string();
   } catch (const std::exception& e) {
     LOG_ERROR(logger_, e.what());
     ret_data = e.what();

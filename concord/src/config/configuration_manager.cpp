@@ -2358,15 +2358,6 @@ void specifyConfiguration(ConcordConfiguration& config) {
                       make_shared<UIntValidator>(0, UINT32_MAX));
 
   config.declareParameter(
-      "pruning_operator_public_key",
-      "Public key for the privileged operator authorized to issue pruning "
-      "commands (pruning commands not including a valid signature made with "
-      "the private key corresponding to this public key will be refused). This "
-      "parameter is required if pruning is enabled, and is ignored otherwise.");
-  config.tagParameter("pruning_operator_public_key", publicOptionalTags);
-  config.tagParameter("pruning_operator_public_key", secretsTag);
-
-  config.declareParameter(
       "slow_commit_cryptosys",
       "Type of cryptosystem to use to commit transactions in the SBFT slow "
       "path (threshold 2F + C + 1). This parameter should consist of two "
