@@ -880,7 +880,8 @@ TEST(pruning_sm_test, sm_handle_prune_request_on_pruning_disabled) {
                                &tc};
 
   const auto req = ConstructPruneRequest(config, client_idx);
-  auto res = sm.Handle(req, false, *test_span);
+  uint64_t agreed_pruned_block;
+  auto res = sm.Handle(req, false, *test_span).has_value();
   ASSERT_FALSE(res);
 }
 
@@ -914,8 +915,8 @@ TEST(pruning_sm_test, sm_handle_correct_prune_request) {
   // Add 1 as deleteBlocksUntil() deletes in the [genesis, to) range.
   EXPECT_CALL(blocks_deleter, deleteBlocksUntil(latest_prunable_block_id + 1))
       .Times(1);
-
-  auto res = sm.Handle(req, false, *test_span);
+  uint64_t agreed_pruned_block;
+  auto res = sm.Handle(req, false, *test_span).has_value();
 
   ASSERT_TRUE(res);
 
@@ -1081,8 +1082,8 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
     added_block.block_id = block.block_id;
     added_block.replica = block.replica;
     added_block.signature = block.signature;
-
-    auto res = sm.Handle(req, false, *test_span);
+    uint64_t agreed_pruned_block;
+    auto res = sm.Handle(req, false, *test_span).has_value();
 
     // Expect that the state machine has ignored the message.
     ASSERT_FALSE(res);
@@ -1092,8 +1093,8 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
   {
     auto req = ConstructPruneRequest(config, client_idx);
     req.latest_prunable_block.pop_back();
-
-    auto res = sm.Handle(req, false, *test_span);
+    uint64_t agreed_pruned_block;
+    auto res = sm.Handle(req, false, *test_span).has_value();
 
     // Expect that the state machine has ignored the message.
     ASSERT_FALSE(res);
@@ -1105,8 +1106,8 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
     auto& block =
         req.latest_prunable_block[req.latest_prunable_block.size() - 1];
     block.signature[0] += 1;
-
-    auto res = sm.Handle(req, false, *test_span);
+    uint64_t agreed_pruned_block;
+    auto res = sm.Handle(req, false, *test_span).has_value();
 
     // Expect that the state machine has ignored the message.
     ASSERT_FALSE(res);
@@ -1115,7 +1116,8 @@ TEST(pruning_sm_test, sm_handle_incorrect_prune_request) {
   // Send a valid prune request in a read-only message.
   {
     const auto req = ConstructPruneRequest(config, client_idx);
-    auto res = sm.Handle(req, true, *test_span);
+    uint64_t agreed_pruned_block;
+    auto res = sm.Handle(req, true, *test_span).has_value();
 
     // Expect that the state machine has ignored the message.
     ASSERT_FALSE(res);

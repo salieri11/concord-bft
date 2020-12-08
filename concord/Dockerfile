@@ -44,6 +44,7 @@ RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-security m
 
 RUN apt-get update \
     && apt-get -y install bind9-host \
+    iptables \
     gosu \
     dnsutils \
     libboost-atomic1.65.1 \

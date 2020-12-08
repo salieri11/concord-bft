@@ -24,6 +24,7 @@ RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-updates ma
 RUN echo 'deb http://artifactory.eng.vmware.com/ubuntu-remote/ bionic-security main restricted multiverse universe\n' >> /etc/apt/sources.list
 
 RUN apt-get update && apt-get --no-install-recommends -y install \
+    iptables \
     libboost-atomic1.65.1 \
     libboost-chrono1.65.1 \
     libboost-date-time1.65.1 \

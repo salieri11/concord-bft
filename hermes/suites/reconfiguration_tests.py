@@ -19,7 +19,8 @@ import json
 import util.helper as helper
 import time
 import util.daml.daml_helper as daml_helper
-
+import util.docker_utils as hermes_docker_utils
+from . import test_suite
 from suites.case import describe
 from fixtures.common_fixtures import fxProduct
 
@@ -31,8 +32,14 @@ log = util.hermes_logging.getMainLogger()
 productType = helper.TYPE_DAML
 MAX_TRIES_TO_PERFORM_AN_ACTION = 10
 
-client = docker.from_env()
-operator_docker_name = "docker_operator_1"
+operator_docker_utils = None
+concord_docker_utils = None
+@describe()
+def test_init(fxProduct, fxHermesRunSettings):
+    global operator_docker_utils
+    global concord_docker_utils
+    operator_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.operator_containers)
+    concord_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.concord_containers)
 
 def _process_response(response):
     return response.decode('utf-8').rstrip().replace("'", '"').replace('True', '"true"').replace('False', '"false"')
@@ -50,10 +57,9 @@ def _try_to_perform_an_action(action, stop_condition):
 
 
 def _system_has_stopped():
-    operator_container = client.containers.get(operator_docker_name)
     cmd = "./concop wedge status"
-    output = operator_container.exec_run(cmd)
-    msg = _process_response(output[1])
+    output = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
+    msg = _process_response(output)
     if msg.lower() == "none":
         return None
     else:
@@ -65,10 +71,9 @@ def _system_has_stopped():
 
 
 def _try_to_wedge():
-    operator_container = client.containers.get(operator_docker_name)
     cmd = "./concop wedge stop"
-    output = operator_container.exec_run(cmd)
-    msg = _process_response(output[1])
+    output = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
+    msg = _process_response(output)
     if msg.lower() == "none":
         return None
     else:
