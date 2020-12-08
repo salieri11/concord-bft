@@ -25,6 +25,7 @@ import com.vmware.blockchain.configuration.util.BlockchainNodeList;
 import com.vmware.blockchain.configuration.util.BlockchainReadReplica;
 import com.vmware.blockchain.configuration.util.BlockchainReplica;
 import com.vmware.blockchain.deployment.v1.IdentityComponent;
+import com.vmware.blockchain.server.ConfigurationService;
 
 /**
  * Unit test for identity management util methods.
@@ -77,8 +78,13 @@ public class IdentityManagementUtilTest {
 
         IdentityManagementUtil identityManagementUtil = new IdentityManagementUtil(nodeList, bcFeatures,
                 "myBlockchain");
-        var res = identityManagementUtil.getAllTlsNodeIdentities(concordPrincipals,
-                new HashMap<>(), certGen, 2);
+
+        Map<Integer, List<Integer>> nodePrincipals = new HashMap<>();
+        var max = ConfigurationService.convergeAndGetMaxPrincipal(bcFeatures, true,
+                                                                  concordPrincipals, new HashMap<>(), nodePrincipals);
+        var res = identityManagementUtil.getAllTlsNodeIdentities(certGen, true,
+                                                                 max, nodePrincipals);
+
         Assertions.assertFalse(res.getConcordIdentityComponents().isEmpty());
         Assertions.assertTrue(res.getBftIdentityComponents().isEmpty());
         testConcordIdentities(res.getConcordIdentityComponents());
@@ -104,8 +110,19 @@ public class IdentityManagementUtilTest {
 
         IdentityManagementUtil identityManagementUtil = new IdentityManagementUtil(nodeList, bcFeatures,
                 "myBlockchain");
-        var res = identityManagementUtil.getAllTlsNodeIdentities(concordPrincipalsRo,
-                new HashMap<>(), certGen, 2);
+
+        concordPrincipals.put(4, Arrays.asList());
+        concordPrincipals.put(5, Arrays.asList());
+
+        Map<Integer, List<Integer>> nodePrincipals = new HashMap<>();
+        var max = ConfigurationService.convergeAndGetMaxPrincipal(bcFeatures, true,
+                                                                  concordPrincipals, new HashMap<>(), nodePrincipals);
+        var res = identityManagementUtil.getAllTlsNodeIdentities(certGen, true,
+                                                                 max, nodePrincipals);
+
+        concordPrincipals.remove(4);
+        concordPrincipals.remove(5);
+
         Assertions.assertFalse(res.getConcordIdentityComponents().isEmpty());
         Assertions.assertTrue(res.getBftIdentityComponents().isEmpty());
         testRoReplicaIdentities(res.getConcordIdentityComponents());
@@ -121,9 +138,13 @@ public class IdentityManagementUtilTest {
         BlockchainFeatures bcFeatures = BlockchainFeatures.builder().build();
         IdentityManagementUtil identityManagementUtil = new IdentityManagementUtil(nodeList, bcFeatures,
                 "myBlockchain");
-        var res = identityManagementUtil.getAllTlsNodeIdentities(
-                concordPrincipals, bftPrincipals, certGen, 5);
 
+        Map<Integer, List<Integer>> nodePrincipals = new HashMap<>();
+        var max = ConfigurationService.convergeAndGetMaxPrincipal(bcFeatures, true,
+                                                                  concordPrincipals, bftPrincipals, nodePrincipals);
+        var res = identityManagementUtil.getAllTlsNodeIdentities(certGen, true,
+                                                                 max, nodePrincipals);
+        // bftPrincipals
         Assertions.assertFalse(res.getBftIdentityComponents().isEmpty());
         Assertions.assertFalse(res.getConcordIdentityComponents().isEmpty());
         testConcordIdentities(res.getConcordIdentityComponents());
@@ -143,8 +164,16 @@ public class IdentityManagementUtilTest {
                 BlockchainFeatures.builder().isObjectStoreEnabled(true).build();
         IdentityManagementUtil identityManagementUtil = new IdentityManagementUtil(nodeList, bcFeatures,
                 "myBlockchain");
-        var res = identityManagementUtil.getAllTlsNodeIdentities(
-                concordPrincipalsRo, bftPrincipalsRo, certGen, 2);
+
+        concordPrincipals.put(4, Arrays.asList());
+
+        Map<Integer, List<Integer>> nodePrincipals = new HashMap<>();
+        var max = ConfigurationService.convergeAndGetMaxPrincipal(bcFeatures, true,
+                                                                  concordPrincipals, bftPrincipals, nodePrincipals);
+        var res = identityManagementUtil.getAllTlsNodeIdentities(certGen, true,
+                                                                 max, nodePrincipals);
+
+        concordPrincipals.remove(4);
 
         Assertions.assertFalse(res.getBftIdentityComponents().isEmpty());
         Assertions.assertFalse(res.getConcordIdentityComponents().isEmpty());
@@ -274,33 +303,33 @@ public class IdentityManagementUtilTest {
                     case "node1":
                         if (identity.getType().equals(IdentityComponent.Type.KEY)) {
                             Assertions.assertTrue(identity.getUrl().contains("/0/")
-                                    || identity.getUrl().contains("/6/") || identity.getUrl()
-                                    .contains("/10/") || identity.getUrl().contains("/14/")
-                                    || identity.getUrl().contains("/18/"));
+                                    || identity.getUrl().contains("/4/") || identity.getUrl()
+                                    .contains("/8/") || identity.getUrl().contains("/12/")
+                                    || identity.getUrl().contains("/16/"));
                         }
                         break;
                     case "node2":
                         if (identity.getType().equals(IdentityComponent.Type.KEY)) {
                             Assertions.assertTrue(identity.getUrl().contains("/1/")
-                                    || identity.getUrl().contains("/7/") || identity.getUrl()
-                                    .contains("/11/") || identity.getUrl().contains("/15/")
-                                    || identity.getUrl().contains("/19/"));
+                                    || identity.getUrl().contains("/5/") || identity.getUrl()
+                                    .contains("/9/") || identity.getUrl().contains("/13/")
+                                    || identity.getUrl().contains("/17/"));
                         }
                         break;
                     case "node3":
                         if (identity.getType().equals(IdentityComponent.Type.KEY)) {
                             Assertions.assertTrue(identity.getUrl().contains("/2/")
-                                    || identity.getUrl().contains("/8/") || identity.getUrl()
-                                    .contains("/12/") || identity.getUrl().contains("/16/")
-                                    || identity.getUrl().contains("/20/"));
+                                    || identity.getUrl().contains("/6/") || identity.getUrl()
+                                    .contains("/10/") || identity.getUrl().contains("/14/")
+                                    || identity.getUrl().contains("/18/"));
                         }
                         break;
                     case "node4":
                         if (identity.getType().equals(IdentityComponent.Type.KEY)) {
                             Assertions.assertTrue(identity.getUrl().contains("/3/")
-                                    || identity.getUrl().contains("/9/") || identity.getUrl()
-                                    .contains("/13/") || identity.getUrl().contains("/17/")
-                                    || identity.getUrl().contains("/21/"));
+                                    || identity.getUrl().contains("/7/") || identity.getUrl()
+                                    .contains("/11/") || identity.getUrl().contains("/15/")
+                                    || identity.getUrl().contains("/19/"));
                         }
                         break;
                     case "ronode1":

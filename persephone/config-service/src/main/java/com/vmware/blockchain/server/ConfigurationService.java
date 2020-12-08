@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import javax.validation.constraints.NotNull;
@@ -182,21 +183,6 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
 
         boolean isSplitConfig = !isSplitConfigString.equalsIgnoreCase("False");
 
-        // So if the Blockchain type is DAML, then we populate bftClientConfig.
-        // For all Blockchain types, bftClientConfig would be empty.
-        if (request.getBlockchainType().equals(BlockchainType.DAML)) {
-            try {
-                bftClientConfig.putAll(bftClientConfigUtil.getBftClientConfig(nodeList, clientProxyPerParticipant));
-            } catch (IOException e) {
-                var msg = "Failed to generate BFT client configuration for session Id : " + sessionId;
-                log.error(msg, e);
-                throw new ConfigServiceException(ErrorCode.BFT_CONFIGURATION_FAILURE, msg, e);
-            }
-            log.info("Generated bft client configurations for session Id : {}", sessionId);
-
-            numClients = clientProxyPerParticipant * nodeList.getClientSize();
-        }
-
         boolean isPreexecutionDeployment = request.getGenericProperties().getValuesMap()
                 .getOrDefault(DeploymentAttributes.PREEXECUTION_ENABLED.name(), "True")
                 .equalsIgnoreCase("True");
@@ -221,15 +207,51 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                             .getOrDefault(DeploymentAttributes.DEPLOY_OPERATOR.name(), null))
                 .build();
 
+        // So if the Blockchain type is DAML, then we populate bftClientConfig.
+        // For all Blockchain types, bftClientConfig would be empty.
+        if (request.getBlockchainType().equals(BlockchainType.DAML)) {
+            try {
+                bftClientConfig.putAll(bftClientConfigUtil.getBftClientConfig(nodeList, clientProxyPerParticipant));
+            } catch (IOException e) {
+                var msg = "Failed to generate BFT client configuration for session Id : " + sessionId;
+                log.error(msg, e);
+                throw new ConfigServiceException(ErrorCode.BFT_CONFIGURATION_FAILURE, msg, e);
+            }
+            log.info("Generated bft client configurations for session Id : {}", sessionId);
+
+            numClients = clientProxyPerParticipant * nodeList.getClientSize();
+
+            if (bcFeatures.isOperatorEnabled()) {
+                numClients = numClients + 1;
+            }
+        }
+
         Map<String, Map<String, String>> concordConfig = configUtil.getConcordConfig(nodeList,
                                                         convertToLegacy(request.getBlockchainType()), numClients,
                                                         bcFeatures);
         log.info("Generated concord configurations for session Id : {}", sessionId);
 
+        boolean considerClients = true;
+        if (nodeList.getClientSize() == 0) {
+            considerClients = false;
+            if (!bftClientConfigUtil.nodePrincipal.isEmpty()) {
+                throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
+                                                 "Blockchain has no clients. It can not have bft principals.");
+            }
+        }
+
+        Map<Integer, List<Integer>> nodePrincipals = new HashMap<>();
+        var maxPrincipalValue = convergeAndGetMaxPrincipal(bcFeatures, considerClients,
+                                                           configUtil.nodePrincipal, bftClientConfigUtil.nodePrincipal,
+                                                           nodePrincipals);
+
         var operatorConfigUtil =
                 new ConcordOperatorConfigUtil(operatorConfigTemplatePath, sessionId);
         final String operatorConfig = operatorConfigUtil.getConcordOperatorConfig(nodeList, clientProxyPerParticipant,
-                                                                                  bcFeatures);
+                                                                                  bcFeatures,
+                                                                                  maxPrincipalValue);
+
+
 
         log.info("Generated operator configurations for session Id : {}", sessionId);
 
@@ -264,8 +286,9 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
         log.info("Creating secrets for session Id {}", sessionId);
         IdentityComponentsLists identityComponentsLists;
         try {
-            identityComponentsLists = identityManagementUtil.getAllTlsNodeIdentities(configUtil.nodePrincipal,
-                    bftClientConfigUtil.nodePrincipal, certGen, clientProxyPerParticipant);
+            identityComponentsLists = identityManagementUtil.getAllTlsNodeIdentities(certGen, considerClients,
+                                                                                     maxPrincipalValue,
+                                                                                     nodePrincipals);
         } catch (Exception e) {
             var msg = "Trouble generating concord bft TLS node identities for session Id : " + sessionId;
             log.error(msg, e);
@@ -297,6 +320,38 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
                                 .setId(sessionId.toString())
                                 .build());
         observer.onCompleted();
+    }
+
+    /**
+     * Utility to generate max principal.
+     */
+    public static int convergeAndGetMaxPrincipal(BlockchainFeatures blockchainFeatures,
+                                                 boolean considerClients,
+                                                 Map<Integer, List<Integer>> concordNodePrincipals,
+                                                 Map<Integer, List<Integer>> bftClientNodePrincipals,
+                                                 Map<Integer, List<Integer>> nodePrincipals) {
+        if (!ValidationUtil.isValid(concordNodePrincipals)) {
+            log.error("Invalid input parameters.");
+            throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
+                                             "Invalid input parameters.");
+        }
+
+        nodePrincipals.putAll(concordNodePrincipals);
+        if (considerClients) {
+            bftClientNodePrincipals.forEach((key, value) ->
+                                                    nodePrincipals.put(concordNodePrincipals.size() + key, value));
+        }
+
+        AtomicReference<Integer> maxPrincipal = new AtomicReference<>(0);
+        nodePrincipals.forEach((key, val) -> {
+            val.forEach(value -> {
+                if (value > maxPrincipal.get()) {
+                    maxPrincipal.set(value);
+                }
+            });
+        });
+
+        return blockchainFeatures.isOperatorEnabled() ? maxPrincipal.get() + 2 : maxPrincipal.get() + 1;
     }
 
     // TODO: remove while cleanup

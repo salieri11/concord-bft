@@ -16,13 +16,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import org.assertj.core.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
@@ -56,8 +56,8 @@ public class ConcordOperatorConfigUtil {
      * Utility to generate concord config.
      */
     public String getConcordOperatorConfig(BlockchainNodeList nodeList, int clientProxyPerParticipant,
-                                           BlockchainFeatures blockchainFeatures) {
-        if (Strings.isNullOrEmpty(blockchainFeatures.getOperatorSigningKey())) {
+                                           BlockchainFeatures blockchainFeatures, int maxPrincipalValue) {
+        if (!blockchainFeatures.isOperatorEnabled()) {
             return null;
         }
 
@@ -68,7 +68,7 @@ public class ConcordOperatorConfigUtil {
             var principalsMapFile = Paths.get(outputPath.toString(), "principals.json").toString();
             var inputYamlPath = Paths.get(outputPath.toString(), "dockerOperatorConfigInput.yaml").toString();
 
-            generateConfigYaml(nodeList, clientProxyPerParticipant, inputYamlPath);
+            generateConfigYaml(nodeList, clientProxyPerParticipant, inputYamlPath, maxPrincipalValue);
 
             List<CompletableFuture<Process>> cmd = new ArrayList<>();
             var configGenOutputPath = Paths.get(outputPath.toString(), "configGenOutput.txt").toString();
@@ -116,7 +116,8 @@ public class ConcordOperatorConfigUtil {
      * @param configYamlPath            Yaml file path
      * @return True if config generation was a success, false otherwise.
      */
-    boolean generateConfigYaml(BlockchainNodeList nodeList, int clientProxyPerParticipant, String configYamlPath)
+    boolean generateConfigYaml(BlockchainNodeList nodeList, int clientProxyPerParticipant, String configYamlPath,
+                               int maxPrincipalValue)
             throws ConfigServiceException {
         if (!ValidationUtil.isValid(nodeList) || !ValidationUtil.isValid(nodeList.getReplicas())) {
             log.error("Replicas are missing.");
@@ -130,7 +131,7 @@ public class ConcordOperatorConfigUtil {
         int clusterSize = nodeList.getReplicaSize();
         int fVal = ConfigUtilHelpers.getFVal(clusterSize);
         int cVal = ConfigUtilHelpers.getCVal(clusterSize, fVal);
-        return generateConfigYaml(nodeList, fVal, cVal, clientProxyPerParticipant, configYamlPath);
+        return generateConfigYaml(nodeList, fVal, cVal, clientProxyPerParticipant, configYamlPath, maxPrincipalValue);
     }
 
     /**
@@ -144,7 +145,7 @@ public class ConcordOperatorConfigUtil {
      */
     boolean generateConfigYaml(BlockchainNodeList nodeList, int fVal, int cVal,
                                int clientProxyPerParticipant,
-                               String configYamlPath) throws ConfigServiceException {
+                               String configYamlPath, int maxPrincipalValue) throws ConfigServiceException {
         if (!ValidationUtil.isValid(nodeList) || !ValidationUtil.isValid(nodeList.getReplicas()) || !ValidationUtil
                 .isValid(configYamlPath)) {
             log.error("Essential parameters are missing.");
@@ -211,6 +212,14 @@ public class ConcordOperatorConfigUtil {
         }
 
         configInput.put(ConfigUtilHelpers.ConfigProperty.NODE.name, resultNodes);
+
+        // Operator entry hardcoded
+        Map<String, Object> operatorValues = new HashMap<>();
+        operatorValues.put("operator_node_host", "0.0.0.0");
+        operatorValues.put("operator_port", "3600");
+        operatorValues.put("operator_id", maxPrincipalValue);
+        configInput.put("operator_node",
+                           new ArrayList(Collections.singletonList(ConfigUtilHelpers.clone(operatorValues))));
 
         BufferedWriter writer = null;
         try {

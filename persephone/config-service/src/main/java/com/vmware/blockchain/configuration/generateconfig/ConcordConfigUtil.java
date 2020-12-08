@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
-import com.google.common.base.Strings;
 import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
@@ -185,7 +184,7 @@ public class ConcordConfigUtil {
      * @param bcFeatures     Features for this blockchain
      * @return True if config generation is a success, false otherwise.
      */
-    boolean generateInputConfigYaml(BlockchainNodeList nodeList, int fVal, int cVal, String configYamlPath,
+    private boolean generateInputConfigYaml(BlockchainNodeList nodeList, int fVal, int cVal, String configYamlPath,
                                     BlockchainType blockchainType, int bftClients, BlockchainFeatures bcFeatures)
             throws ConfigServiceException {
         // Are all required parameters available?
@@ -226,7 +225,7 @@ public class ConcordConfigUtil {
                                              "Configuration input file is missing.");
         }
 
-        if (!Strings.isNullOrEmpty(bcFeatures.getOperatorSigningKey())) {
+        if (bcFeatures.isOperatorEnabled()) {
             configInput.put(ConfigUtilHelpers.ConfigProperty.OPERATOR_SIGNING_KEYS.name,
                             CONCORD_OPERATOR_KEY_FOLDER_PATH);
         }
