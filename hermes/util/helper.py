@@ -31,18 +31,21 @@ import datetime
 from . import numbers_strings
 from enum import Enum
 from urllib.parse import urlparse, urlunparse
+from datetime import datetime, timedelta
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.auth as auth
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.json_helper as json_helper_util
    import hermes_util.hermes_logging as hermes_logging_util
    import hermes_util.blockchain_ops as blockchain_ops
+   import hermes_util.wavefront as wavefront
 else:
    import util.auth as auth
    import util.daml.daml_helper as daml_helper
    import util.json_helper as json_helper_util
    import util.hermes_logging as hermes_logging_util
    import util.blockchain_ops as blockchain_ops
+   import util.wavefront as wavefront
    import rest
 
 from time import strftime, localtime, sleep
@@ -875,6 +878,25 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
 
    return False
 
+def get_wavefront_metrics(blockchainId, replica_ip):
+   log.info("blockchain_id:::::".format(blockchainId))
+   blockchain_id = blockchainId
+   metric_name = "vmware.blockchain.concord.command.handler.operation.counters.total.counter"
+   metric_query = "ts({}".format(metric_name)
+   if replica_ip is not None:
+      metric_query = metric_query + ",vm_ip={}".format(replica_ip)
+   metric_query = metric_query + ",{}={})".format("host", blockchain_id)
+   # Get start and end datetime in epoch
+   # Time range is a crucial parameter, do not increase/decrease
+   # without analyzing the API calls properly.
+   start_epoch = (datetime.now() - timedelta(seconds=3600)).strftime('%s')
+   end_epoch = (datetime.now() + timedelta(seconds=60)).strftime('%s')
+   log.info("Start time is {} and end time is {}".format(
+      start_epoch, end_epoch))
+   wavefrontMetrics = wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="h")
+   log.info("wavefrontMetrics: {}".format(wavefrontMetrics))
+   return wavefrontMetrics
+
 
 def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
                      test_list_json_file, testset, notify_target=None, notify_job=None):
@@ -893,6 +915,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
+   blockchainId = getBlockchainId(replica_config)
    BlockchainFixture = collections.namedtuple("BlockchainFixture",
                                               "blockchainId, consortiumId, replicas, clientNodes")
 
@@ -1008,6 +1031,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
         stats = get_replicas_stats(all_replicas_and_type, concise=True)
+        log.info("blockchainId in monitor replicas::::::".format(blockchainId))
+        stats = get_replicas_stats(all_replicas_and_type, blockchainId, concise=True)
         remaining_time = str(int((end_time - time.time()) / 3600))
         duration = str(int((time.time() - start_time) / 3600))
         midRunMessage = "<RUN> has {} hour remaining ({}h passed). Status:\n{}".format(
@@ -1212,7 +1237,7 @@ def run_long_running_tests(tests, replica_config, log_dir):
    return testset_result_dict
 
 
-def get_replicas_stats(all_replicas_and_type, concise=False):
+def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
   '''
     Given replicas with health daemon installed, get the latest
     stats report from each replica with sftp_client function
@@ -1225,6 +1250,7 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
 
+  log.info("blockchainId from get_replicas_stats::::::".format(blockchainId))
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
     if blockchain_type == TYPE_DAML_PARTICIPANT:
@@ -1232,6 +1258,14 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
 
     log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
+      written_blocks = 0
+      metrics = get_wavefront_metrics(blockchainId, replica_ip)
+      log.info("metrics::::::".format(metrics))
+      metrics_json = json.loads(metrics)
+      log.info("metrics_json::::::".format(metrics_json))
+      for i in metrics_json['timeseries']:
+         if i["tags"]["operation"] == "written_blocks":
+            written_blocks = i["data"][0][1]
       try:
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
@@ -1244,12 +1278,12 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
               all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
             if not concise:
-              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
-                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%, written Blocks: {}".format(
+                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks
               ))
             else:
-              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}%".format(
-                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {}".format(
+                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks
               ))
         else:
            raise Exception("Failed retrieving stats for replica '{}', file '{}', to "
@@ -1987,6 +2021,49 @@ def hermesPreexitWrapUp():
     hermesNonCriticalTraceFinalize()
   except Exception as e:
     traceback.print_exc()
+
+def getBlockchainId(replicas):
+   '''
+        replicas argument can be path to replicas.json or
+        fxBlockchain dict object directly. This function
+        is used to standardize replicas parsing across codebase
+      '''
+   if not replicas: replicas = REPLICAS_JSON_PATH
+
+   if isinstance(replicas, str):  # path supplied
+      with open(replicas, 'r') as f:
+         replicasObject = json.loads(f.read())
+   else:  # fxBlockchain dict or replicas dict directly.
+      if hasattr(replicas, "replicas"):
+         replicasObject = replicas
+         return getattr(replicasObject, "replicas")
+      else:
+         replicasObject = replicas
+
+   nodeTypes = [
+      TYPE_ETHEREUM, TYPE_DAML, TYPE_DAML_COMMITTER,
+      TYPE_DAML_PARTICIPANT, TYPE_HLF, TYPE_TEE,
+   ]
+
+   result = {}  # clean up and enforce replicas structure
+   #   if isinstance(replicasObject, dict):
+   #     replicasObject = json.loads(json.dumps(replicasObject))
+
+   for nodeType in replicasObject:
+      nodeWithThisType = replicasObject[nodeType]
+      if nodeType == "others":
+         result[nodeType] = replicasObject[nodeType]
+         continue
+      if nodeType not in nodeTypes: continue
+      if nodeType not in result: result[nodeType] = []
+
+      for i, nodeInfo in enumerate(nodeWithThisType):
+         if "blockchain_id" in nodeInfo and nodeInfo["blockchain_id"] is not None:
+            blockchainId = nodeInfo["private_ip"]
+         else:
+            blockchainId = None
+
+   return blockchainId
 
 
 def parseReplicasConfig(replicas):
