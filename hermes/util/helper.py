@@ -934,7 +934,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    slack.reportMonitoringIfTarget(
      target=notify_target, msgType="kickOff",
      replicasPath=replica_config, jobNameShort=notify_job)
-   initialStats = get_replicas_stats(all_replicas_and_type)
+   initialStats = get_replicas_stats(all_replicas_and_type, blockchainId)
    # first message that will be the main thread
    if notify_job:
      firstMessageText = "<RUN> has {} hour remaining.\n\nConsole: {}\n\nStatus:\n{}".format(
