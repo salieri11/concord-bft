@@ -1,12 +1,12 @@
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 
-# Castor tests are run after the docker-compose-castor.yml file is launched. That
+# Castor tests are run after the docker-compose-orchestrator.yml file is launched. That
 # docker-compose file launches the deployment. This test further validates that
 # the deployment went through successfully.
 #
 # main.py
-#         --dockerComposeFiles=../docker/docker-compose-castor.yml,
-#                              ../docker/docker-compose-castor-prereqs.yml
+#         --dockerComposeFiles=../docker/docker-compose-orchestrator.yml,
+#                              ../docker/docker-compose-orchestrator-prereqs.yml
 #         CastorDeploymentTests
 
 
@@ -42,7 +42,7 @@ log = util.hermes_logging.getMainLogger()
 # start up. It will be started by this test itself.
 _productType = helper.TYPE_NO_VERIFY
 
-# NOTE: These need to match the docker-compose-castor.yml file
+# NOTE: These need to match the docker-compose-orchestrator.yml file
 _ORCHESTRATOR_DESCRIPTORS_DIR_KEY = "ORCHESTRATOR_DESCRIPTORS_DIR"
 _ORCHESTRATOR_DESCRIPTORS_DIR_VALUE = "../docker/config-castor/descriptors"
 _INFRA_DESC_FILENAME_KEY = "INFRA_DESC_FILENAME"
@@ -78,7 +78,7 @@ def product(fxHermesRunSettings):
 @pytest.fixture
 def upPrereqsDocker(fxHermesRunSettings, product):
     """
-    Launch docker-compose-castor-prereqs.yml to start the product
+    Launch docker-compose-orchestrator-prereqs.yml to start the product
     """
     dockerComposeFiles = fxHermesRunSettings['hermesCmdlineArgs'].dockerComposeFile
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
@@ -127,7 +127,7 @@ def upPrereqsDocker(fxHermesRunSettings, product):
 
     assert grpc_server_status, "Config and Provisioning service couldn't started"
     log.info("Config service and provisioning service is started")
-    log.info("docker-compose-castor-prereqs.yml launched")
+    log.info("docker-compose-orchestrator-prereqs.yml launched")
 
     # Take the backup of existing deployment and infrastructure descriptor
     with open(os.path.join(_ORCHESTRATOR_DESCRIPTORS_DIR_VALUE, _INFRA_DESC_FILENAME_VALUE)) as from_file, \
@@ -138,7 +138,7 @@ def upPrereqsDocker(fxHermesRunSettings, product):
 @pytest.fixture
 def upCastorDockerCompose(request, fxHermesRunSettings, product):
     """
-    Launch docker-compose-castor.yml, and wait for it to finish.
+    Launch docker-compose-orchestrator.yml, and wait for it to finish.
     The whole test is predicated on the successful launch and completion of the castor docker process:
     It is a self-contained product that reads the descriptors, calls the provisioning service to deploy
     the blockchain, and exits.
@@ -168,7 +168,7 @@ def upCastorDockerCompose(request, fxHermesRunSettings, product):
     os.makedirs(castorOutputDir, exist_ok=True)
     castorComposeFile = None
     for dcf in dockerComposeFiles:
-        if "docker-compose-castor.yml" in dcf:
+        if "docker-compose-orchestrator.yml" in dcf:
             castorComposeFile = dcf
 
     if not product.validatePaths(dockerComposeFiles):
@@ -180,7 +180,7 @@ def upCastorDockerCompose(request, fxHermesRunSettings, product):
     log.info("Launching docker compose: {}".format(cmd))
 
     # Set up the descriptor and output directories as env variables picked up by docker-compose
-    # NOTE: These need to match the docker-compose-castor.yml file
+    # NOTE: These need to match the docker-compose-orchestrator.yml file
     newEnv = os.environ.copy()
     newEnv[_ORCHESTRATOR_DESCRIPTORS_DIR_KEY] = _ORCHESTRATOR_DESCRIPTORS_DIR_VALUE
     newEnv[_ORCHESTRATOR_OUTPUT_DIR_KEY] = castorOutputDir
@@ -220,7 +220,7 @@ def upCastorDockerCompose(request, fxHermesRunSettings, product):
     log.info("Deployment time taken: {} minutes and {} seconds".format(m, s))
 
     assert m <= 15, "Deployment took more than 15 minutes"
-    log.info("docker-compose-castor.yml launched")
+    log.info("docker-compose-orchestrator.yml launched")
     return deployment_success
 
 

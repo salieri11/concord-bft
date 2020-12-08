@@ -11,7 +11,7 @@
 #   ORCHESTRATOR_OUTPUT_DIR=/tmp/output \
 #   INFRA_DESC_FILENAME=infra-input001.json \
 #   DEPLOY_DESC_FILENAME=depl-input001.json \
-#   docker-compose -f docker-compose-castor.yml up
+#   docker-compose -f docker-compose-orchestrator.yml up
 #
 # After the container terminates, the output is stored under $ORCHESTRATOR_OUTPUT_DIR/<consortium-name>-<timestamp>.
 
