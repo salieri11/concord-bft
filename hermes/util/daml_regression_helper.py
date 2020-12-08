@@ -10,7 +10,6 @@ from . import node_interruption_helper as intr_helper
 import multiprocessing
 from asyncio import set_event_loop, new_event_loop, get_event_loop
 from itertools import zip_longest
-from fixtures.common_fixtures import fxBlockchain, fxNodeInterruption, fxProduct
 import time
 import util.daml.daml_helper as daml_helper
 
@@ -63,7 +62,7 @@ def format_hosts_structure(all_replicas):
     return client_hosts, concord_hosts
 
 
-def get_block_id(ip):
+def get_block_id(blockchain_id, ip):
     '''
     Function to get last block_id of a replica
     Args:
@@ -71,7 +70,7 @@ def get_block_id(ip):
     Returns:
         int: Last Block ID of replica 
     '''
-    username, password = helper.getNodeCredentials()
+    username, password = helper.getNodeCredentials(blockchain_id, ip)
 
     # Find concord-core container image
     cmd_for_container_image = 'docker images | grep -m1 concord-core'
@@ -137,7 +136,7 @@ def install_sdk_deploy_daml(client_host):
                 "Error in DAML SDK installation or deployment for {}: {}".format(client_host, e))
 
 
-def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
+def interrupt_node(fxHermesRunSettings, fxBlockchain, node, node_type, interruption_type,
                    mode, custom_params=None):
     '''
     Function to create node_interruption_details object based on input.
@@ -166,16 +165,16 @@ def interrupt_node(fxHermesRunSettings, node, node_type, interruption_type,
     if custom_params:
         scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0][intr_helper.CUSTOM_INTERRUPTION_PARAMS] = custom_params
     return intr_helper.perform_interrupt_recovery_operation(
-        fxHermesRunSettings, None, None, node, scenario_details, scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0], mode)
+        fxHermesRunSettings, fxBlockchain, None, node, scenario_details, scenario_details[intr_helper.NODE_INTERRUPTION_DETAILS][0], mode)
 
 
-def make_daml_request(reraise, client_host, no_of_txns=1, wait_time=0.3):
+def make_daml_request(reraise, blockchain_id, client_host, no_of_txns=1, wait_time=0.3):
     # Default port can be 6865 or 80 (helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT)
     # But after powering off and on the host, it listens on 6865 only
     # So using 6865 here
     log.info("\n*** Submit daml transaction(s) ***")
     url = get_daml_url(client_host)
-    username, password = helper.getNodeCredentials()
+    username, password = helper.getNodeCredentials(blockchain_id, client_host)
 
     if not helper.check_docker_health(client_host, username, password,\
          helper.TYPE_DAML_PARTICIPANT, max_timeout=5, verbose=False):
@@ -203,7 +202,7 @@ def make_daml_request(reraise, client_host, no_of_txns=1, wait_time=0.3):
         return True
 
 
-def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
+def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings, fxBlockchain):
     '''
     Function to perform sanity check after executing every test.
     It powers on the node and start containers, if brought down or stopped during any test
@@ -219,7 +218,7 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
         log.debug("\nCheck if all the participant nodes are up, if not bring them up")
         for client_host in fixture_tuple.client_hosts:
             # Check if client host is up
-            assert interrupt_node(fxHermesRunSettings, client_host,
+            assert interrupt_node(fxHermesRunSettings, fxBlockchain, client_host,
                                   helper.TYPE_DAML_PARTICIPANT,
                                   intr_helper.NODE_INTERRUPT_VM_STOP_START,
                                   intr_helper.NODE_RECOVER), \
@@ -228,32 +227,32 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings):
         log.debug("\nCheck if all the committer nodes are up, if not bring them up")
         for concord_host in fixture_tuple.concord_hosts:
             # Check if concord host is up
-            assert interrupt_node(fxHermesRunSettings, concord_host,
+            assert interrupt_node(fxHermesRunSettings, fxBlockchain, concord_host,
                                   helper.TYPE_DAML_COMMITTER,
                                   intr_helper.NODE_INTERRUPT_VM_STOP_START,
                                   intr_helper.NODE_RECOVER), \
                 "Failed to power on committer {}".format(concord_host)
 
         cmd = "docker start daml_ledger_api; docker inspect --format {{.State.Status}} daml_ledger_api"
-        helper.ssh_parallel(fixture_tuple.client_hosts, cmd, verbose=False)
+        helper.ssh_parallel(fxBlockchain.blockchainId, fixture_tuple.client_hosts, cmd, verbose=False)
 
         cmd = "docker start daml_index_db; docker inspect --format {{.State.Status}} daml_index_db"
-        helper.ssh_parallel(fixture_tuple.client_hosts, cmd, verbose=False)
+        helper.ssh_parallel(fxBlockchain.blockchainId, fixture_tuple.client_hosts, cmd, verbose=False)
 
         cmd = "docker start concord; docker inspect --format {{.State.Status}} concord"
-        helper.ssh_parallel(fixture_tuple.concord_hosts, cmd, verbose=False)
+        helper.ssh_parallel(fxBlockchain.blockchainId, fixture_tuple.concord_hosts, cmd, verbose=False)
 
         log.debug("\nPerform daml transaction as final check")
         for client_host in fixture_tuple.client_hosts:
             assert make_daml_request(
-                reraise, client_host), PARTICIPANT_GENERIC_ERROR_MSG + "as part of sanity check"
+                reraise, fxBlockchain.blockchainId, client_host), PARTICIPANT_GENERIC_ERROR_MSG + "as part of sanity check"
 
         log.info("\n*** Sanity check successfully done for given test ***\n")
     except Exception as excp:
         assert False, excp
 
 
-def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
+def power_off_committers(fxHermesRunSettings, fxBlockchain, concord_hosts, f_count=None):
     '''
     Function to power off all or f committer nodes
     If f_count is passed to this method, then it powers off only f nodes.
@@ -268,7 +267,7 @@ def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
     for count, concord_host in enumerate(concord_hosts):
         if f_count and f_count == count + 1:
             break
-        assert interrupt_node(fxHermesRunSettings, concord_host,
+        assert interrupt_node(fxHermesRunSettings, fxBlockchain, concord_host,
                               helper.TYPE_DAML_COMMITTER,
                               intr_helper.NODE_INTERRUPT_VM_STOP_START,
                               intr_helper.NODE_INTERRUPT), \
@@ -277,7 +276,7 @@ def power_off_committers(fxHermesRunSettings, concord_hosts, f_count=None):
     log.info("\n*** Powered off all the committers ***")
 
 
-def power_on_all_participants(fxHermesRunSettings, client_hosts):
+def power_on_all_participants(fxHermesRunSettings, fxBlockchain, client_hosts):
     '''
     Function to switch on all participant nodes
     Args:
@@ -287,7 +286,7 @@ def power_on_all_participants(fxHermesRunSettings, client_hosts):
         None
     '''
     for count, client_host in enumerate(client_hosts):
-        assert interrupt_node(fxHermesRunSettings, client_host,
+        assert interrupt_node(fxHermesRunSettings, fxBlockchain, client_host,
                               helper.TYPE_DAML_PARTICIPANT,
                               intr_helper.NODE_INTERRUPT_VM_STOP_START,
                               intr_helper.NODE_RECOVER), \
@@ -296,7 +295,7 @@ def power_on_all_participants(fxHermesRunSettings, client_hosts):
     log.info("\n*** Powered on all the participants ***")
 
 
-def staggered_start_committers(fxHermesRunSettings, concord_hosts):
+def staggered_start_committers(fxHermesRunSettings, fxBlockchain, concord_hosts):
     '''
     Function for staggered startup of committer nodes
     Args:
@@ -309,7 +308,7 @@ def staggered_start_committers(fxHermesRunSettings, concord_hosts):
     while list_of_committer_indexes:
         concord_host_index = random.choice(list_of_committer_indexes)
         concord_host = concord_hosts[concord_host_index]
-        assert interrupt_node(fxHermesRunSettings, concord_host,
+        assert interrupt_node(fxHermesRunSettings, fxBlockchain, concord_host,
                               helper.TYPE_DAML_COMMITTER,
                               intr_helper.NODE_INTERRUPT_VM_STOP_START,
                               intr_helper.NODE_RECOVER), \
@@ -324,29 +323,12 @@ def staggered_start_committers(fxHermesRunSettings, concord_hosts):
     log.info("\n*** Started all the committers in staggered manner ***")
 
 
-def stop_for_replica_list(replica_list, container_name, count):
-    '''
-    Function to stop committer nodes from list of replicas
-    for maximum count provided
-    Args:
-        replica_list: List of committer IPs
-        container_name: Name of the container
-        count: Number of committer nodes to be stopped
-    Returns:
-        None
-    '''
-    for i in range(count):
-        concord_host = replica_list[i]
-        assert intr_helper.stop_container(
-            concord_host, container_name), "Failed to stop committer node [{}]".format(concord_host)
-    log.info("\n*** Stopped {} replicas ***".format(count))
-
-
-def start_for_replica_list(replica_list, container_name, count):
+def start_for_replica_list(blockchain_id, replica_list, container_name, count):
     '''
     Function to start committer nodes from list of replicas
     for maximum count provided
     Args:
+        blockchain_id: Blockchain Id
         replica_list: List of committer IPs
         container_name: Name of the container
         count: Number of committer nodes to be started
@@ -356,15 +338,34 @@ def start_for_replica_list(replica_list, container_name, count):
     for i in range(count):
         concord_host = replica_list[i]
         assert intr_helper.start_container(
-            concord_host, container_name), "Failed to start committer node [{}]".format(concord_host)
+            blockchain_id, concord_host, container_name), "Failed to start committer node [{}]".format(concord_host)
     log.info("\n*** Started {} replicas ***".format(count))
 
 
-def verify_view_change(replicas, init_primary_rip, init_primary_index, interrupted_nodes=[]):
+def stop_for_replica_list(blockchain_id, replica_list, container_name, count):
+    '''
+    Function to stop committer nodes from list of replicas
+    for maximum count provided
+    Args:
+        blockchain_id: Blockchain Id
+        replica_list: List of committer IPs
+        container_name: Name of the container
+        count: Number of committer nodes to be stopped
+    Returns:
+        None
+    '''
+    for i in range(count):
+        concord_host = replica_list[i]
+        assert intr_helper.stop_container(
+            blockchain_id, concord_host, container_name), "Failed to stop committer node [{}]".format(concord_host)
+    log.info("\n*** Stopped {} replicas ***".format(count))
+
+
+def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
     '''
     Function to verify view change happened successfully
     Args:
-        replicas: replicas dict
+        fxBlockchain: Blockchain tuple of (blockchainId, consortiumId, replicas, clientNodes).
         init_primary_rip: Initial primary IP
         init_primary_index: Initial primary index
         interrupted_nodes: Nodes which are stopped        
@@ -374,7 +375,7 @@ def verify_view_change(replicas, init_primary_rip, init_primary_index, interrupt
     try:
         log.debug("Finding new primary replica ip")
         committers_mapping = blockchain_ops.map_committers_info(
-            replicas, interrupted_nodes)
+            fxBlockchain, interrupted_nodes)
         new_primary_rip = committers_mapping["primary_ip"]
         new_primary_index = committers_mapping["primary_index"]
         assert new_primary_rip or new_primary_index, "Primary replica IP & index not found after view change"

@@ -33,6 +33,7 @@ from lib.persephone.provisioning_service_new_helper import ProvisioningServiceNe
 from lib.persephone.vmware.blockchain.deployment.v1 import core_pb2
 from lib.persephone.vmware.blockchain.deployment.v1 import orchestration_pb2
 from lib.persephone.vmware.blockchain.deployment.v1 import provisioning_service_new_pb2 as ps_apis
+import itertools
 
 log = util.hermes_logging.getMainLogger()
 
@@ -477,11 +478,10 @@ def _verify_docker_containers_in_each_node(fxHermesRunSettings, node_info_list):
     """
     status = False
     userConfig = fxHermesRunSettings["hermesUserConfig"]
-    # get default username and password of the node from user config
-    username, password = helper.getNodeCredentials()
-
     error_msg = "Error verifying docker containers"
+
     for node, node_type in node_info_list.items():
+        username, password = helper.getNodeCredentialsForCastor()
         containers_to_verify = _get_docker_containers_by_node_type(userConfig, node_type)
         log.info("Containers to verify for node {} and node type {}".format(node, node_type))
 
@@ -647,9 +647,7 @@ def get_deployed_node_size(ip):
     :param ip: IP of the node
     :return: Dictionary of node configuration which contains - memory, storage and CPU count
     """
-
-    # get default username and password of the node from user config
-    username, password = helper.getNodeCredentials()
+    username, password = helper.getNodeCredentialsForCastor()
 
     deployed_vm_size = {}
     cmd_vm_memory = "grep MemTotal /proc/meminfo"
@@ -794,7 +792,6 @@ def collect_concord_support_bundle(fxHermesRunSettings):
         helper.create_concord_support_bundle(all_nodes, _CONCORD_TYPE.lower(), castorOutputDir)
     except FileNotFoundError:
         log.info("No output file found to collect support bundle. Skipping.........")
-
 
 
 """

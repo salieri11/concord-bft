@@ -11,12 +11,13 @@ class ParticipantPool:
     '''
     This is a pool of participant nodes.
     '''
-    def __init__(self, groups, concord_username, concord_password):
+    def __init__(self, blockchain, groups, concord_username=None, concord_password=None):
         '''
+        blockchain: Blockchain tuple of (blockchainId, consortiumId, replicas, clientNodes).
         groups: {
           "group1": [array of participant node url objects],
           ...
-        }
+        } 
         '''
         if not groups:
             raise Exception("Groups of participant node URLs are required to create a ParticipantPool.  Received '{}'".format(groups))
@@ -25,6 +26,8 @@ class ParticipantPool:
 
         for group in groups:
             for p_url in groups[group]:
+                ip = p_url.hostname
+                concord_username, concord_password = util.helper.getNodeCredentials(blockchain.blockchainId, ip)
                 self.participants.append(Participant(p_url, group, concord_username, concord_password))
 
 

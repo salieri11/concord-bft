@@ -493,14 +493,14 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True, 
    return work_around_bc_5021(resp)
 
 
-def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
+def ssh_parallel(blockchain_id, ips, cmd, condition=None, max_try=3, verbose=True):
   '''
+    blockchain_id: Blockchain id
     Parallel SSH (running identical commands)
     Default pass condition lambda is `lambda output: output is not None`
     returns list of [{ ip: target_ip, output: ssh_output }]
   '''
   log.debug("{} being sent command: {}".format(ips, cmd))
-  user, pw = getNodeCredentials()
   threads = []; results = []
   default_cond = lambda output: output is not None
   if not condition: condition = default_cond
@@ -509,6 +509,7 @@ def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
     log.debug("{} being sent command: {}".format(ip, cmd))
     while try_count < max_try:
       try_count += 1
+      user, pw = getNodeCredentials(blockchain_id, ip)
       output = ssh_connect(ip, user, pw, cmd, verbose=verbose)
       if condition(output): break # condition met; got what we wanted
       log.debug("{} did not return results matching criteria retrying...".format(ip))
@@ -518,7 +519,7 @@ def ssh_parallel(ips, cmd, condition=None, max_try=3, verbose=True):
     threads.append(thr); thr.start()
   for thd in threads: thd.join()
   if len(results) != len(ips):
-    log.error("some ips did not return results after retries".format(ip))
+    log.error("some ips did not return results after retries")
     return None
   return results
 
@@ -556,7 +557,7 @@ def sftp_client(host, username, password, src, dest, action="download", log_mode
       else:
          sftp.put(src, dest)
          cmd_verify_ftp = "ls {}".format(dest)
-         ssh_output = ssh_connect(host, username,password, cmd_verify_ftp)
+         ssh_output = ssh_connect(host, username, password, cmd_verify_ftp)
          log.debug(ssh_output)
          if ssh_output:
             if dest in ssh_output.rstrip():
@@ -926,8 +927,8 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    slackThread = firstMessage['ts'] if firstMessage else None
    slack.reportMonitoringIfTarget( # output link to Wavefront dashboard
      target=notify_target,
-     message = dashboardLink,
-     ts = slackThread,
+     message=dashboardLink,
+     ts=slackThread,
      jobNameShort=notify_job
    )
 
@@ -1009,7 +1010,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
         stats = get_replicas_stats(all_replicas_and_type, concise=True)
         remaining_time = str(int((end_time - time.time()) / 3600))
         duration = str(int((time.time() - start_time) / 3600))
-        midRunMessage =  "<RUN> has {} hour remaining ({}h passed). Status:\n{}".format(
+        midRunMessage = "<RUN> has {} hour remaining ({}h passed). Status:\n{}".format(
                             remaining_time, duration, "\n".join(stats["message_format"]))
         slack.reportMonitoringIfTarget(
           target=notify_target,
@@ -1070,7 +1071,7 @@ def print_long_runtest_result(overall_result, tests):
    for result_set in overall_result:
       for iteration_count, iteration_result_set in result_set.items():
          iteration_summary = iteration_result_set["iteration_summary"]
-         result_data =[iteration_count]
+         result_data = [iteration_count]
          for result_set in iteration_summary:
             for test_count, result_info in result_set.items():
                test_result = " PASS " if result_info[
@@ -1135,7 +1136,7 @@ def get_long_running_tests(all_replicas_and_type, test_list_json_file, testset):
 
    log.info("")
    log.info("Tests for this run:")
-   for test in tests: log.info("  * {}".format(test["testname"] ))
+   for test in tests: log.info("  * {}".format(test["testname"]))
    return tests
 
 
@@ -1370,8 +1371,8 @@ def create_concord_support_bundle(replicas, concord_type, test_log_dir,
 
       threads = []
       for concord_ip in replicas:
-          thr = threading.Thread(target = lambda concord_ip: collect_on_ip(concord_ip),
-                                  args = (concord_ip, ))
+          thr = threading.Thread(target=lambda concord_ip: collect_on_ip(concord_ip),
+                                  args=(concord_ip, ))
           threads.append(thr); thr.start()
       for thd in threads: thd.join()
    except Exception as e:
@@ -1553,14 +1554,92 @@ def getZoneConfig(args=None, filepath=None):
    return zone_config_object
 
 
-def getNodeCredentials():
-  '''
-    Returns tuple (username, password) used for ssh_connect to concord node
-    e.g. username, password = getNodeCredentials()
-  '''
-  configObject = getUserConfig()
-  credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
-  return (credentials["username"], credentials["password"])
+
+def getNodeCredentials(blockchain_id, node_ip):
+    '''
+      Returns tuple (username, password) used for ssh_connect to concord node
+      :param blockchain_id: Blockchain Id to which node belongs
+      :param node_ip: IP of given node
+      e.g. username, password = getNodeCredentials('b2129..','10.78.20.41')
+    '''
+    warncolor = "\033[1;33m"
+    reset = "\033[0m"
+    log.warning("\n\n{}".format(warncolor))
+    log.warning("{}".format("*"*85))
+    log.warning("** NOTE: This function will now fetch the strong password.")
+    log.warning("** Its signature has changed and now requires - Blockchain Id, Node IP")
+    log.warning("{}{}\n\n".format("*"*85, reset))
+
+    try:
+        log.debug("\nBlockchain id is {}".format(blockchain_id))
+        log_dir = os.path.dirname(CURRENT_SUITE_LOG_FILE)
+        log_dir = os.path.join(log_dir, "fxBlockchain")
+        log.debug("\nLog directory is {}".format(log_dir))
+
+        if not blockchain_id and not node_ip:
+            raise Exception("Blockchain id and node IP are mandatory")
+        
+        token_descriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
+                                                  True,
+                                                  auth.default_con_admin)
+        log.debug("\nToken descriptor is {}".format(token_descriptor))
+        con_admin_request = rest.request.Request(log_dir,
+                                               "fxBlockchain",
+                                               auth.SERVICE_DEFAULT,
+                                               getUserConfig(),
+                                               tokenDescriptor=token_descriptor,
+                                               service=auth.SERVICE_DEFAULT)
+        log.debug("\nAdmin request object created")
+
+        node_type, node_id = get_node_id_type(con_admin_request, blockchain_id, node_ip)
+        if not node_type or not node_id:
+            raise Exception("Either IP is invalid or does not belong to given Blockchain")
+        
+        log.debug("\nReplica id and type are : [{}, {}]".format(node_id, node_type))
+        node_credentials = con_admin_request.getNodeCredentials(blockchain_id, node_id, node_type)
+
+        log.info("\n*** Credentials are {}".format(node_credentials))
+
+        if "error_code" in node_credentials.keys():
+            error_msg = node_credentials[0]["error_code"] + "-" + node_credentials[0]["error_message"]
+            raise Exception(error_msg)
+
+        return node_credentials["username"], node_credentials["password"]
+
+    except Exception as e:
+        log.error("\nException while fetching node credentials : {}".format(e))
+ 
+
+def getNodeCredentialsForCastor():
+   '''
+      Returns tuple (username, password) used for ssh_connect to concord node
+      e.g. username, password = getNodeCredentials()
+   '''
+   # Castor deployment is separate from Helen deployment, 
+   # so the Helen APIs cannot be used to fetch strong password.
+   configObject = getUserConfig()
+   credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
+   return (credentials["username"], credentials["password"])
+
+
+def get_node_id_type(req_obj, blockchain_id, node_ip):
+    '''
+    Fetch the Node Id and Type using Blockchain Id and Node IP
+    '''
+    # First check in list of replicas, if not found, check in participants.
+    replicas = req_obj.getReplicas(blockchain_id)
+    node_type, node_id = None, None
+    node_found = [r["id"] for r in replicas if r["public_ip"] == node_ip or r["private_ip"] == node_ip]
+    if node_found:
+        node_type = TYPE_DAML_COMMITTER
+        node_id = node_found[0]
+    else:
+        participants = req_obj.get_participant_details(blockchain_id)
+        node_found = [p["id"] for p in participants if p["public_ip"] == node_ip or p["private_ip"] == node_ip]
+        if node_found:
+            node_type = TYPE_DAML_PARTICIPANT
+            node_id = node_found[0]
+    return node_type, node_id
 
 
 def distributeItemsRoundRobin(numSlots, availableItems):
@@ -2022,7 +2101,7 @@ def installHealthDaemon(replicasInfoObject, sleepAfter=True):
       componentsWatchList = getReplicaContainers(deployedType)
       if componentsWatchList: componentsWatchList = ','.join(componentsWatchList)
       # Load config file for healthd
-      command= ('mkdir -p health-daemon\n' +
+      command = ('mkdir -p health-daemon\n' +
                 'cd health-daemon\n' +
                 'echo "' +
                   'ip={}\n'.format(ip) +
@@ -2047,7 +2126,7 @@ def installHealthDaemon(replicasInfoObject, sleepAfter=True):
       sftp_client(ip, username, password, os.path.join('util/healthd', "healthd.py"), destBasePath + 'healthd.py', action="upload")
       sftp_client(ip, username, password, os.path.join('util/healthd', "healthd.sh"), destBasePath + 'healthd.sh', action="upload")
       # Actually run the daemon
-      command= ('cd health-daemon\n' +
+      command = ('cd health-daemon\n' +
                 'nohup bash healthd.sh > /dev/null\n')
       daemonStartOutput = ssh_connect(ip, username, password, command)
       log.debug("Replica: {}\nCommand: {}\nOutput: {}\n\n\n\n".format(ip, command, daemonStartOutput))
