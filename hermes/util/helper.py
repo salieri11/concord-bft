@@ -879,7 +879,7 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    return False
 
 def get_wavefront_metrics(blockchainId, replica_ip):
-   log.info("blockchain_id:::::".format(blockchainId))
+   log.info("blockchain_id:::::{}".format(blockchainId))
    blockchain_id = blockchainId
    metric_name = "vmware.blockchain.concord.command.handler.operation.counters.total.counter"
    metric_query = "ts({}".format(metric_name)
@@ -916,7 +916,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
    blockchainId = getBlockchainId(replica_config)
-   log.info("blockchainId:::::::::".format(blockchainId))
+   log.info("blockchainId:::::::::{}".format(blockchainId))
    BlockchainFixture = collections.namedtuple("BlockchainFixture",
                                               "blockchainId, consortiumId, replicas, clientNodes")
 
@@ -1031,7 +1031,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
-        log.info("blockchainId in monitor replicas::::::".format(blockchainId))
+        log.info("blockchainId in monitor replicas::::::{}".format(blockchainId))
         stats = get_replicas_stats(all_replicas_and_type, blockchainId, concise=True)
         remaining_time = str(int((end_time - time.time()) / 3600))
         duration = str(int((time.time() - start_time) / 3600))
@@ -1250,7 +1250,7 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
 
-  log.info("blockchainId from get_replicas_stats::::::".format(blockchainId))
+  log.info("blockchainId from get_replicas_stats::::::{}".format(blockchainId))
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
     if blockchain_type == TYPE_DAML_PARTICIPANT:
@@ -1260,9 +1260,9 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
     for i, replica_ip in enumerate(replica_ips):
       written_blocks = 0
       metrics = get_wavefront_metrics(blockchainId, replica_ip)
-      log.info("metrics::::::".format(metrics))
+      log.info("metrics::::::{}".format(metrics))
       metrics_json = json.loads(metrics)
-      log.info("metrics_json::::::".format(metrics_json))
+      log.info("metrics_json::::::{}".format(metrics_json))
       for i in metrics_json['timeseries']:
          if i["tags"]["operation"] == "written_blocks":
             written_blocks = i["data"][0][1]
@@ -2060,10 +2060,10 @@ def getBlockchainId(replicas):
       for i, nodeInfo in enumerate(nodeWithThisType):
          if "blockchain_id" in nodeInfo and nodeInfo["blockchain_id"] is not None:
             blockchainId = nodeInfo["blockchain_id"]
-            log.info("blockchainId in getBlockchain if::::".format(blockchainId))
+            log.info("blockchainId in getBlockchain if::::{}".format(blockchainId))
          else:
             blockchainId = None
-            log.info("blockchainId in getBlockchain else::::".format(blockchainId))
+            log.info("blockchainId in getBlockchain else::::{}".format(blockchainId))
 
    return blockchainId
 
