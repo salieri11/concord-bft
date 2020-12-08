@@ -2060,8 +2060,10 @@ def getBlockchainId(replicas):
       for i, nodeInfo in enumerate(nodeWithThisType):
          if "blockchain_id" in nodeInfo and nodeInfo["blockchain_id"] is not None:
             blockchainId = nodeInfo["private_ip"]
+            log.info("blockchainId in getBlockchain::::".format(blockchainId))
          else:
             blockchainId = None
+            log.info("blockchainId in getBlockchain::::".format(blockchainId))
 
    return blockchainId
 
