@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.configuration.util;
 
+import org.assertj.core.util.Strings;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,4 +21,8 @@ public class BlockchainFeatures {
     private int preExecutionThreshold;
     private boolean isTrcTlsEnabled;
     private String operatorSigningKey;
+
+    public boolean isOperatorEnabled() {
+        return !Strings.isNullOrEmpty(operatorSigningKey);
+    }
 }

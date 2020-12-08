@@ -15,7 +15,6 @@ import java.util.stream.IntStream;
 
 import com.vmware.blockchain.configuration.eccerts.TrsTrcTlsSingleCertificateGenerator;
 import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
-import com.vmware.blockchain.configuration.generateconfig.ConfigUtilHelpers;
 import com.vmware.blockchain.configuration.generateconfig.ValidationUtil;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
@@ -52,70 +51,22 @@ public class IdentityManagementUtil {
 
     /**
      * Get TLS node identities of all nodes in the BLockchain.
-     * @param concordNodePrincipals Principals for concord nodes (Replica, Read replica)
-     * @param bftClientNodePrincipals Principals for Clients
      * @param certGen Certificate generator
-     * @param clientProxyPerParticipant Client proxies per participant
      * @return {@link IdentityComponentsLists} list of all identity components
      * @throws ConfigServiceException during an error during the cert generation.
      */
-    public IdentityComponentsLists getAllTlsNodeIdentities(Map<Integer, List<Integer>> concordNodePrincipals,
-                                        Map<Integer, List<Integer>> bftClientNodePrincipals,
-                                        CertificatesGenerator certGen,
-                                        int clientProxyPerParticipant)
+    public IdentityComponentsLists getAllTlsNodeIdentities(CertificatesGenerator certGen,
+                                                           boolean considerClients,
+                                                           int maxPrincipalValue,
+                                                           Map<Integer, List<Integer>> nodePrincipal)
             throws ConfigServiceException {
-        if (!ValidationUtil.isValid(concordNodePrincipals)
-                || !ValidationUtil.isValid(certGen) || !ValidationUtil.isValid(nodeList)
-                || !ValidationUtil.isValid(this.bcFeatures)) {
-            log.error("Invalid input parameters.");
-            throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
-                    "Invalid input parameters.");
-        }
 
         IdentityComponentsLists identityComponentsLists = IdentityComponentsLists.builder().build();
-
-        boolean considerClients = true;
-        if (this.nodeList.getClientSize() == 0) {
-            considerClients = false;
-            if (!bftClientNodePrincipals.isEmpty()) {
-                throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
-                        "Blockchain has no clients. It can not have bft principals.");
-            }
-        }
-
-        // Calculate max principalId, number of clients etc., based on the node list.
-        /**
-         * Client config.
-         */
-        var totalReplicas =
-                this.bcFeatures.isObjectStoreEnabled() ? nodeList.getAllReplicasSize() : nodeList.getReplicaSize();
-        var maxCommitterPrincipalId = (totalReplicas + ConfigUtilHelpers.CLIENT_PROXY_PER_COMMITTER
-                * this.nodeList.getReplicaSize()) - 1;
-
-        var bftClientNumPrincipals = 0;
-
-        /**
-         * Concord config.
-         * Replicas and Read replicas principal id max number.
-         */
-        int numPrincipals = maxCommitterPrincipalId + 1;
-
-        Map<Integer, List<Integer>> nodePrincipal = new HashMap<>(concordNodePrincipals);
-
-        if (considerClients) {
-            bftClientNumPrincipals = maxCommitterPrincipalId + ((nodeList.getClientSize() + clientProxyPerParticipant
-                    * this.nodeList.getClientSize()) - 1);
-            numPrincipals = bftClientNumPrincipals + 1;
-            bftClientNodePrincipals.forEach((key, value) ->
-                    nodePrincipal.put(concordNodePrincipals.size() + key, value));
-        }
-
         List<Identity> tlsIdentityList =
-                certGen.generateSelfSignedCertificates(numPrincipals,
-                        ConcordComponent.ServiceType.CONCORD);
+                certGen.generateSelfSignedCertificates(maxPrincipalValue, ConcordComponent.ServiceType.CONCORD);
 
         buildConcordAndBftClientTlsIdentity(tlsIdentityList, nodePrincipal,
-                numPrincipals, considerClients, identityComponentsLists);
+                                            maxPrincipalValue, considerClients, identityComponentsLists);
 
         if (considerClients) {
             buildTrsTrcTlsIdentities(identityComponentsLists);
@@ -224,6 +175,20 @@ public class IdentityManagementUtil {
             throw new ConfigServiceException(ErrorCode.GENERATE_TLS_NODE_IDENTITIES_INVALID_INPUT_FAILURE,
                     "Not enough nodes are available in the node list.");
         }
+        List<Identity> serverList = List.copyOf(identities.subList(0, identities.size() / 2));
+        List<Identity> clientList = List.copyOf(identities.subList(identities.size() / 2, identities.size()));
+
+        List<IdentityComponent> replicaNodeIdentities = new ArrayList<>();
+        List<IdentityComponent> clientNodeIdentities = new ArrayList<>();
+
+        IntStream.range(0, numCerts).boxed().collect(Collectors.toList()).forEach(entry -> {
+            replicaNodeIdentities.add(replaceClientUrl(serverList.get(entry).getCertificate(), false));
+            replicaNodeIdentities.add(replaceClientUrl(clientList.get(entry).getCertificate(), false));
+
+            clientNodeIdentities.add(replaceClientUrl(serverList.get(entry).getCertificate(), true));
+            clientNodeIdentities.add(replaceClientUrl(clientList.get(entry).getCertificate(), true));
+        });
+
         for (int node : principals.keySet()) {
             // We assume that if clients are available, then this must be a DAML Blockchain.
 
@@ -232,32 +197,20 @@ public class IdentityManagementUtil {
             boolean isBftClient = this.nodeList.getClientNodeIds() != null && nodeList.getClientNodeIds()
                     .contains(allNodeIds.get(node));
 
-            List<IdentityComponent> nodeIdentities = new ArrayList<>();
-
-            List<Integer> notPrincipal = IntStream.range(0, numCerts)
-                    .boxed().collect(Collectors.toList());
-            notPrincipal.removeAll(principals.get(node));
-
-            List<Identity> serverList = new ArrayList<>(identities.subList(0, identities.size() / 2));
-            List<Identity> clientList = new ArrayList<>(identities.subList(identities.size() / 2, identities.size()));
-
-            notPrincipal.forEach(entry -> {
-                nodeIdentities.add(replaceClientUrl(serverList.get(entry).getCertificate(), isBftClient));
-                nodeIdentities.add(replaceClientUrl(clientList.get(entry).getCertificate(), isBftClient));
-            });
-
-            // add self keys
-            nodeIdentities.add(replaceClientUrl(serverList.get(node).getKey(), isBftClient));
-            nodeIdentities.add(replaceClientUrl(clientList.get(node).getKey(), isBftClient));
+            List<IdentityComponent> nodeIdentities = isBftClient ? new ArrayList<>(clientNodeIdentities) :
+                                                     new ArrayList<>(replicaNodeIdentities);
 
             principals.get(node).forEach(entry -> {
-                nodeIdentities.add(replaceClientUrl(serverList.get(entry).getCertificate(), isBftClient));
                 nodeIdentities.add(replaceClientUrl(serverList.get(entry).getKey(), isBftClient));
-                nodeIdentities.add(replaceClientUrl(clientList.get(entry).getCertificate(), isBftClient));
                 nodeIdentities.add(replaceClientUrl(clientList.get(entry).getKey(), isBftClient));
             });
+
             // Add the Identities for the node.
             if (isBftClient) {
+                if (bcFeatures.isOperatorEnabled()) {
+                    nodeIdentities.add(replaceClientUrl(serverList.get(numCerts - 1).getKey(), true));
+                    nodeIdentities.add(replaceClientUrl(clientList.get(numCerts - 1).getKey(), true));
+                }
                 bftIdentityComponents.putIfAbsent(allNodeIds.get(node), nodeIdentities);
                 log.info("Total node mappings available for node {} is {}", node, bftIdentityComponents.size());
             } else {
