@@ -42,6 +42,8 @@ COPY ./castor/src/main/resources/deployment-descriptor-v1.schema ./orchestrator-
 WORKDIR /castor
 COPY ./castor/src/main/resources/application.properties ./application.properties
 COPY --from=0 /home/test/castor/target/castor*.jar ./castor.jar
-
+RUN chown -R vmware:vmware /castor
+RUN chmod 755 /castor
+USER vmware
 CMD ["java", "-Dspring.config.location=/config/app/profiles/,./", "-jar", "castor.jar"]
 

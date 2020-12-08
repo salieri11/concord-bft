@@ -62,7 +62,7 @@ public class SiteValidatorServiceImpl implements SiteValidatorService {
             try {
                 orchestrationSiteClient.validateOrchestrationSite(validationRequest);
                 // Ignore the response from the above. If the call succeeds, the request has valid values.
-                log.error("Site validation succeeded for zone: {}", zoneName);
+                log.info("Site validation succeeded for zone: {}", zoneName);
                 printWriter.printf("Site validation succeeded for zone: %s\n", zoneName);
             } catch (Exception e) {
                 log.error("Site validation failed for zone: {} with exception: {}", zoneName, e);
