@@ -24,6 +24,8 @@ import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -60,22 +62,22 @@ public class SingleBouncyCertificateGenerator {
      */
     static Identity generateIdentity(String path, String cn, String ou) {
         String certName = path.substring(path.lastIndexOf("/") + 1) + ".cert";
-        return generateIdentity(path, certName, "pk.pem", cn, ou);
+        return generateIdentity(path, certName, cn, ou, null);
     }
 
     /**
      * Generates the X509Certificate and private key pair.
      * @param path : string path to where it should be generated in
      * @param certName : Name of the certificate
-     * @param keyName : Name of the private key
      * @param cn : subject cn value
      * @param ou : subject ou value
+     * @param san : subject alternate name value
      * @return : {@link Identity}
      */
-    static Identity generateIdentity(String path, String certName, String keyName, String cn, String ou) {
+    static Identity generateIdentity(String path, String certName, String cn, String ou, String san) {
         KeyPair keyPair = generateEcKeyPair();
-        X509Certificate certificate = generateSelfSignedCertificate(keyPair, cn, ou);
-        return getIdentity(keyPair, certificate, path, certName, keyName);
+        X509Certificate certificate = generateSelfSignedCertificate(keyPair, cn, ou, san);
+        return getIdentity(keyPair, certificate, path, certName, "pk.pem");
     }
 
     /**
@@ -83,11 +85,11 @@ public class SingleBouncyCertificateGenerator {
      * @param keypair {@link KeyPair}
      * @param cn : subject cn value
      * @param ou : subject ou value
+     * @param san : subject alternate name value
      * @return {@link X509Certificate}
      */
-    private static X509Certificate generateSelfSignedCertificate(KeyPair keypair, String cn, String ou) {
+    private static X509Certificate generateSelfSignedCertificate(KeyPair keypair, String cn, String ou, String san) {
 
-        byte[] id = new byte[20];
         BigInteger serial = new BigInteger(160, random);
         X500Name subject = new X500NameBuilder()
                 .addRDN(BCStyle.C, "NA")
@@ -116,6 +118,12 @@ public class SingleBouncyCertificateGenerator {
             BasicConstraints constraints = new BasicConstraints(true);
             certificateBuilder.addExtension(Extension.basicConstraints,
                     true, constraints.getEncoded());
+
+            if (san != null) {
+                // currently using ip address as that is the only requirement. This could be generalized further later.
+                var sanExtension = new GeneralNames(new GeneralName(GeneralName.dNSName, san));
+                certificateBuilder.addExtension(Extension.subjectAlternativeName, true, sanExtension);
+            }
 
             ContentSigner signer = new JcaContentSignerBuilder("SHA256withECDSA").build(keypair.getPrivate());
             X509CertificateHolder holder = certificateBuilder.build(signer);

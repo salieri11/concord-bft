@@ -147,13 +147,13 @@ public class IdentityManagementUtil {
             futures.add(CompletableFuture.supplyAsync(() -> getTrsTrcIdentityPerNode(replica.getId(),
                     ServiceType.CONCORD,
                     replica.getIp(),
-                    this.blockchainId)));
+                    replica.getId())));
         });
         this.nodeList.getClients().forEach(client -> {
             futures.add(CompletableFuture.supplyAsync(() -> getTrsTrcIdentityPerNode(client.getId(),
                     ServiceType.DAML_LEDGER_API,
-                    client.getClientGroupId(),
-                    this.blockchainId)));
+                    client.getIp(),
+                    client.getClientGroupId())));
             clientIdMap.put(client.getId(), client.getClientGroupId());
         });
 
@@ -325,10 +325,10 @@ public class IdentityManagementUtil {
      * get per node identity element.
      */
     private Map.Entry<String, Identity> getTrsTrcIdentityPerNode(String id, ServiceType serviceType,
-                                                                        String identifier, String blockchainId) {
+                                                                        String identifier, String orgUnit) {
         CertificatesGenerator certificatesGenerator = new TrsTrcTlsSingleCertificateGenerator();
         List<Identity> identity = certificatesGenerator
-                .generateSelfSignedCertificates(1, serviceType, identifier, blockchainId);
+                .generateSelfSignedCertificates(1, serviceType, identifier, orgUnit);
 
         return new AbstractMap.SimpleEntry<>(id, identity.get(0));
     }

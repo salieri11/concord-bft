@@ -3,7 +3,7 @@ export INDEXDB_PORT=5432
 export INDEXDB_USER=indexdb
 export REPLICAS=concord:50051
 export JAVA_OPTS="-XX:+UseG1GC -Xmx10G -XX:ErrorFile=/config/daml-ledger-api/cores/err_pid%p.log"
-export THIN_REPLICA_SETTINGS="--use-thin-replica --jaeger-agent-address jaeger-agent:6831 --insecure-thin-replica-client=False --thin-replica-tls-cert-path=/config/daml-ledger-api/config-local/trc_tls_certs"
+export THIN_REPLICA_SETTINGS="--use-thin-replica --jaeger-agent-address jaeger-agent:6831 --insecure-thin-replica-client=false --thin-replica-tls-cert-path=/config/daml-ledger-api/config-local/trc_tls_certs"
 export PARTICIPANT_ID=pTEST_NODE
 export PRE_EXECUTION_TIME_THRESHOLD=0s
 export BFT_CLIENT_SETTINGS="--use-bft-client --bft-client-config-path=/config/daml-ledger-api/config-public/bftclient.config"

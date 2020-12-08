@@ -63,7 +63,7 @@ class CertificatesGeneratorTest {
                 assert server.getKey().getUrl().equalsIgnoreCase(String.format("%s/%s/server/pk.pem",
                         certGen.FILE_PREFIX + certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
 
-                testCertificate(server, "node" + index + "ser", String.valueOf(index));
+                testCertificate(server, "node" + index + "ser", String.valueOf(index), null);
             }
 
             for (int index = 0; index < clientList.size(); index++) {
@@ -76,7 +76,7 @@ class CertificatesGeneratorTest {
                         .equalsIgnoreCase(String.format("%s/%s/client/pk.pem",
                                 certGen.FILE_PREFIX + certGen.CONCORD_TLS_SECURITY_IDENTITY_PATH, index));
 
-                testCertificate(client, "node" + index + "cli", String.valueOf(index));
+                testCertificate(client, "node" + index + "cli", String.valueOf(index), null);
             }
         });
     }
@@ -104,7 +104,7 @@ class CertificatesGeneratorTest {
                 assert identity.getKey().getUrl().equalsIgnoreCase(
                         String.format("%s/pk.pem", paths.get(index)));
 
-                testCertificate(identity, "node" + index, String.valueOf(index));
+                testCertificate(identity, "node" + index, String.valueOf(index), null);
             }
         });
     }
@@ -112,14 +112,13 @@ class CertificatesGeneratorTest {
     @Test
     void testTrsTrcTlsCertificates() {
         assertDoesNotThrow(() -> {
-            String id = "myId";
-            String cn = "myCN";
+            String cn = "1.2.3.4";
             String ou = "myOU";
             CertificatesGenerator certGen = new TrsTrcTlsSingleCertificateGenerator();
             var actual = certGen.generateSelfSignedCertificates(1, ServiceType.CONCORD, cn, ou);
             assert (actual.size() == 1);
             Identity identity = actual.get(0);
-            testCertificate(identity, cn, ou);
+            testCertificate(identity, cn, ou, cn);
             assert (identity.getCertificate().getUrl().equals(CertificatesGenerator.FILE_PREFIX
                     + CertificatesGenerator.TRS_TLS_IDENTITY_PATH + "/server.cert"));
             assert (identity.getKey().getUrl().equals(CertificatesGenerator.FILE_PREFIX
@@ -128,7 +127,7 @@ class CertificatesGeneratorTest {
             actual = certGen.generateSelfSignedCertificates(1, ServiceType.DAML_LEDGER_API, cn, ou);
             assert (actual.size() == 1);
             identity = actual.get(0);
-            testCertificate(identity, cn, ou);
+            testCertificate(identity, cn, ou, cn);
             assert (identity.getCertificate().getUrl().equals(CertificatesGenerator.FILE_PREFIX
                     + CertificatesGenerator.TRC_TLS_IDENTITY_PATH + "/client.cert"));
             assert (identity.getKey().getUrl().equals(CertificatesGenerator.FILE_PREFIX
@@ -145,13 +144,19 @@ class CertificatesGeneratorTest {
         testIdentityFactor(certGen.getIdentityFactor());
     }
 
-    private void testCertificate(Identity identity, String cn, String ou) throws CertificateException {
+    private void testCertificate(Identity identity, String cn, String ou, String san) throws CertificateException {
         CertificateFactory fact = CertificateFactory.getInstance("X.509");
         InputStream inputStream = new ByteArrayInputStream(identity.getCertificate()
                 .getBase64Value().getBytes());
         X509Certificate cert = (X509Certificate) fact.generateCertificate(inputStream);
         assert cert.getIssuerDN().getName().equalsIgnoreCase(
                 "CN=" + cn + ", OU=" + ou + ", O=NA, L=NA, ST=NA, C=NA");
+        if (san != null) {
+            assert cert.getSubjectAlternativeNames().size() == 1;
+            cert.getSubjectAlternativeNames().forEach(name -> {
+                assert name.get(1).equals(san);
+            });
+        }
     }
 
     private void testIdentityFactor(IdentityFactors identityFactor) {

@@ -41,7 +41,7 @@ public class TrsTrcTlsSingleCertificateGenerator implements CertificatesGenerato
             throw new IllegalArgumentException("Certs only for TRS and TRC are supported.");
         }
 
-        Identity identity = SingleBouncyCertificateGenerator.generateIdentity(path, certName, "pk.pem", cn, ou);
+        Identity identity = SingleBouncyCertificateGenerator.generateIdentity(path, certName, cn, ou, cn);
         return List.of(identity);
     }
 
