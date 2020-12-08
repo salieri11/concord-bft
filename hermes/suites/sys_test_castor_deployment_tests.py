@@ -84,6 +84,7 @@ def upPrereqsDocker(fxHermesRunSettings, product):
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     log.info(castorOutputDir)
     os.makedirs(castorOutputDir, exist_ok=True)
+    os.chmod(castorOutputDir, 0o777)
     prereqsComposeFile = None
     for dcf in dockerComposeFiles:
         if "prereqs.yml" in dcf:
@@ -166,6 +167,7 @@ def upCastorDockerCompose(request, fxHermesRunSettings, product):
     dockerComposeFiles = fxHermesRunSettings['hermesCmdlineArgs'].dockerComposeFile
     castorOutputDir = fxHermesRunSettings["hermesTestLogDir"]
     os.makedirs(castorOutputDir, exist_ok=True)
+    os.chmod(castorOutputDir, 0o777)
     castorComposeFile = None
     for dcf in dockerComposeFiles:
         if "docker-compose-orchestrator.yml" in dcf:
