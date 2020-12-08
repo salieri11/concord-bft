@@ -916,6 +916,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
    blockchainId = getBlockchainId(replica_config)
+   log.info("blockchainId:::::::::".format(blockchainId))
    BlockchainFixture = collections.namedtuple("BlockchainFixture",
                                               "blockchainId, consortiumId, replicas, clientNodes")
 
@@ -1030,7 +1031,6 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
-        stats = get_replicas_stats(all_replicas_and_type, concise=True)
         log.info("blockchainId in monitor replicas::::::".format(blockchainId))
         stats = get_replicas_stats(all_replicas_and_type, blockchainId, concise=True)
         remaining_time = str(int((end_time - time.time()) / 3600))
@@ -2060,10 +2060,10 @@ def getBlockchainId(replicas):
       for i, nodeInfo in enumerate(nodeWithThisType):
          if "blockchain_id" in nodeInfo and nodeInfo["blockchain_id"] is not None:
             blockchainId = nodeInfo["private_ip"]
-            log.info("blockchainId in getBlockchain::::".format(blockchainId))
+            log.info("blockchainId in getBlockchain if::::".format(blockchainId))
          else:
             blockchainId = None
-            log.info("blockchainId in getBlockchain::::".format(blockchainId))
+            log.info("blockchainId in getBlockchain else::::".format(blockchainId))
 
    return blockchainId
 
