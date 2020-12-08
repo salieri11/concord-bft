@@ -28,6 +28,7 @@ import time
 from datetime import datetime, timezone
 import traceback
 from dataclasses import dataclass, asdict
+import itertools
 
 log = util.hermes_logging.getMainLogger()
 
@@ -461,11 +462,10 @@ def _verify_docker_containers_in_each_node(fxHermesRunSettings, node_info_list):
     """
     status = False
     userConfig = fxHermesRunSettings["hermesUserConfig"]
-    # get default username and password of the node from user config
-    username, password = helper.getNodeCredentials()
-
     error_msg = "Error verifying docker containers"
+
     for node, node_type in node_info_list.items():
+        username, password = helper.getNodeCredentialsForCastor()
         containers_to_verify = _get_docker_containers_by_node_type(userConfig, node_type)
         log.info("Containers to verify for node {} and node type {}".format(node, node_type))
 

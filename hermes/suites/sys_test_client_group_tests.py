@@ -60,8 +60,8 @@ def create_ppool_and_parties(blockchain, num_parties, test_name, bc_id=None):
     '''
     groups = {}
     groups = define_groups(blockchain)
-    user, passwd = util.helper.getNodeCredentials()
-    ppool = participants_lib.ParticipantPool(groups, user, passwd)
+    # Do not pass concord credentials from here, same will be fetched internally
+    ppool = participants_lib.ParticipantPool(blockchain, groups) 
     ppool.wait_for_startup()
     parties = parties_lib.Parties(ppool, num_parties, test_name)
     return ppool, parties

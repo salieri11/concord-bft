@@ -40,7 +40,7 @@ def fxLocalSetup(fxHermesRunSettings, fxBlockchain, fxConnection):
     log.info("\nIn fxLocalSetup fixture, Participants are {}\nCommitters are {}\n".format(
         client_hosts, concord_hosts))
 
-    version = backup_restore_helper.get_product_version(concord_hosts[0]).split(".")
+    version = backup_restore_helper.get_product_version(fxBlockchain.blockchainId, concord_hosts[0]).split(".")
     if int(version[0]) == 0:
         if int(version[1]) == 9:
             client_node_db = "/config/daml-index-db/db/"
@@ -93,28 +93,29 @@ def format_hosts_structure(all_replicas):
     return client_hosts, concord_hosts
 
 
-def check_replica_block(replica_nodes):
+def check_replica_block(blockchain_id, replica_nodes):
     '''
     Verify all the replicas have the same blocks after backup or restore
     - get last block id of one replica.
     - get raw block detail of the last block.
     - compare this raw block detail with all other replicas of the network.
     Args:
+        blockchain_id: Blockchain id
         replica_nodes: List of replica node details of network.
     '''
     length = len(replica_nodes)
-    block_id = backup_restore_helper.get_block_id(replica_nodes[length - 1])
-    raw_block_detail = backup_restore_helper.get_raw_block(replica_nodes[length-1], block_id)
+    block_id = backup_restore_helper.get_block_id(blockchain_id, replica_nodes[length - 1])
+    raw_block_detail = backup_restore_helper.get_raw_block(blockchain_id, replica_nodes[length-1], block_id)
     while length > 1:
         length = length - 1
-        node_raw_block_detail = backup_restore_helper.get_raw_block(replica_nodes[length-1], block_id)
+        node_raw_block_detail = backup_restore_helper.get_raw_block(blockchain_id, replica_nodes[length-1], block_id)
         assert node_raw_block_detail == raw_block_detail, \
             'Contents of last block do not match for the nodes {} & {}'.format(replica_nodes[length-1],
                                                                                replica_nodes[-1])
 
 
 @describe("test participants post backup")
-def test_participants_post_backup(fxLocalSetup, fxHermesRunSettings):
+def test_participants_post_backup(fxLocalSetup, fxBlockchain, fxHermesRunSettings):
     '''
     Verify participant node post backup.
     - Connect to a participant node of a group.
@@ -123,6 +124,7 @@ def test_participants_post_backup(fxLocalSetup, fxHermesRunSettings):
     - Repeat it for one Participant of a group.
     Args:
         fxLocalSetup: Local fixture
+        fxBlockchain: Blockchain fixture
         fxHermesRunSettings: Hermes command line arguments
     '''
     log.info("Test participant post backup")
@@ -132,14 +134,13 @@ def test_participants_post_backup(fxLocalSetup, fxHermesRunSettings):
     for client_node in client_nodes:
         if client_group != client_node['group_name']:
             client_group = client_node['group_name']
-            assert backup_restore_helper.node_backup(client_node['private_ip'], fxLocalSetup.clients_db,
-                                                     backup_restore_helper.CLIENT), \
-                'Backup failed on {}'.format(client_node)
+            assert backup_restore_helper.node_backup(fxBlockchain.blockchainId, client_node['private_ip'], fxLocalSetup.clients_db,
+                                                     backup_restore_helper.CLIENT), 'Backup failed on {}'.format(client_node)
             assert helper.run_daml_sanity([client_node['private_ip']], output_dir), 'DAML test failed'
 
 
 @describe("test replicas post backup")
-def test_replicas_post_backup(fxLocalSetup, fxHermesRunSettings):
+def test_replicas_post_backup(fxLocalSetup, fxBlockchain, fxHermesRunSettings):
     '''
     Verify replica node post backup.
     - Connect to a replica node of network.
@@ -149,22 +150,23 @@ def test_replicas_post_backup(fxLocalSetup, fxHermesRunSettings):
     - Compare serialized raw block of each replicas.
     Args:
         fxLocalSetup: Local fixture
+        fxBlockchain: Blockchain fixture
         fxHermesRunSettings: Hermes command line arguments
     '''
     log.info("Test replica post backup")
     output_dir = fxHermesRunSettings["hermesTestLogDir"]
     replica_nodes = fxLocalSetup.concord_hosts
     for replica_node in replica_nodes:
-        assert backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db,
+        assert backup_restore_helper.node_backup(fxBlockchain.blockchainId, replica_node, fxLocalSetup.replica_db,
                                                  backup_restore_helper.REPLICA),\
             'Backup failed on {}'.format(replica_node)
     node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
     assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
-    check_replica_block(fxLocalSetup.concord_hosts)
+    check_replica_block(fxBlockchain.blockchainId, fxLocalSetup.concord_hosts)
 
 
 @describe("test replica post restore")
-def test_replica_post_restore(fxLocalSetup, fxHermesRunSettings):
+def test_replica_post_restore(fxLocalSetup, fxBlockchain, fxHermesRunSettings):
     '''
     Verify replicas post restore.
     - Connect to a replica node of network.
@@ -176,6 +178,7 @@ def test_replica_post_restore(fxLocalSetup, fxHermesRunSettings):
     - Compare serialized raw block of each replicas.
     Args:
         fxLocalSetup: Local fixture
+        fxBlockchain: Blockchain fixture
         fxHermesRunSettings: Hermes command line arguments
     '''
 
@@ -183,23 +186,23 @@ def test_replica_post_restore(fxLocalSetup, fxHermesRunSettings):
     output_dir = fxHermesRunSettings["hermesTestLogDir"]
     replica_nodes = fxLocalSetup.concord_hosts
     for replica_node in replica_nodes:
-        if not backup_restore_helper.check_backup(replica_node):
-            backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
+        if not backup_restore_helper.check_backup(fxBlockchain.blockchainId, replica_node):
+            backup_restore_helper.node_backup(fxBlockchain.blockchainId, replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
 
     node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
     assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
 
     for replica_node in replica_nodes:
-        backup_restore_helper.node_restore(replica_node, fxLocalSetup.replica_db,
+        backup_restore_helper.node_restore(fxBlockchain.blockchainId, replica_node, fxLocalSetup.replica_db,
                                            backup_restore_helper.REPLICA, clean_metadata=False)
         node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
         assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
 
-    check_replica_block(fxLocalSetup.concord_hosts)
+    check_replica_block(fxBlockchain.blockchainId, fxLocalSetup.concord_hosts)
 
 
 @describe("test all replica post restore")
-def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
+def test_all_replicas_post_restore(fxLocalSetup, fxBlockchain, fxHermesRunSettings):
     '''
     Verify all replica post restore.
     - Take backup on all client and replica nodes.
@@ -214,6 +217,7 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     - Compare serialized raw block of each replicas.
     Args:
         fxLocalSetup: Local fixture
+        fxBlockchain: Blockchain fixture
         fxHermesRunSettings: Hermes command line arguments
     '''
     log.info('Test all replicas post restore')
@@ -222,25 +226,25 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     replica_nodes = fxLocalSetup.concord_hosts
 
     for client_node in client_nodes:
-        backup_restore_helper.node_backup(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
+        backup_restore_helper.node_backup(fxBlockchain.blockchainId, client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
     for replica_node in replica_nodes:
-        backup_restore_helper.node_backup(replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
+        backup_restore_helper.node_backup(fxBlockchain.blockchainId, replica_node, fxLocalSetup.replica_db, backup_restore_helper.REPLICA)
 
     assert helper.run_daml_sanity(client_nodes, output_dir), 'DAML test failed'
 
     for client_node in client_nodes:
-        backup_restore_helper.node_start_stop(client_node, backup_restore_helper.STOP_NODE)
+        backup_restore_helper.node_start_stop(fxBlockchain.blockchainId, client_node, backup_restore_helper.STOP_NODE)
 
     # stopping one and restoring the backup.
     for replica_node in replica_nodes:
-        assert backup_restore_helper.node_restore(replica_node, fxLocalSetup.replica_db,
+        assert backup_restore_helper.node_restore(fxBlockchain.blockchainId, replica_node, fxLocalSetup.replica_db,
                                                   backup_restore_helper.REPLICA, skip_start=True), \
             'Restoration failed on {}'.format(replica_node)
     # getting the latest backup from a node.
     replicas_with_block = {}
     for replica_node in replica_nodes:
         replicas_with_block[replica_node] = \
-            int(backup_restore_helper.get_block_id(replica_node, skip_start=True, skip_stop=True))
+            int(backup_restore_helper.get_block_id(fxBlockchain.blockchainId, replica_node, skip_start=True, skip_stop=True))
 
     replica_with_highest_block = max(replicas_with_block.items(), key=lambda x: x[1])
     log.info('Max block id: {}'.format(replica_with_highest_block[1]))
@@ -249,7 +253,7 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     # restore latest block on all other nodes
     for replica_node in replica_nodes:
         if replica_node != replica_with_highest_block[0]:
-            assert backup_restore_helper.cross_node_restore(replica_with_highest_block[0],
+            assert backup_restore_helper.cross_node_restore(fxBlockchain.blockchainId, replica_with_highest_block[0],
                                                             replica_node, backup_restore_helper.REPLICA,
                                                             fxLocalSetup.replica_db, skip_start=True), \
                 'Cross restore failed'
@@ -259,19 +263,19 @@ def test_all_replicas_post_restore(fxLocalSetup, fxHermesRunSettings):
     log.info("Starting all the Nodes")
     for replica_node in replica_nodes:
         time.sleep(factor * factor * sec + 60)
-        backup_restore_helper.node_start_stop(replica_node, backup_restore_helper.START_NODE)
+        backup_restore_helper.node_start_stop(fxBlockchain.blockchainId, replica_node, backup_restore_helper.START_NODE)
         factor = factor + 1
     log.info("Nodes started successfully")
 
     for client_node in client_nodes:
-        backup_restore_helper.node_restore(client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
+        backup_restore_helper.node_restore(fxBlockchain.blockchainId, client_node, fxLocalSetup.clients_db, backup_restore_helper.CLIENT)
 
     assert helper.run_daml_sanity(client_nodes, output_dir), 'DAML test failed'
-    check_replica_block(fxLocalSetup.concord_hosts)
+    check_replica_block(fxBlockchain.blockchainId, fxLocalSetup.concord_hosts)
 
 
 @describe("test participants post restore")
-def test_participants_post_restore(fxLocalSetup, fxHermesRunSettings):
+def test_participants_post_restore(fxLocalSetup, fxBlockchain, fxHermesRunSettings):
     '''
     Verify participant nodes post restore
     - Connect to a participant node of network.
@@ -281,6 +285,7 @@ def test_participants_post_restore(fxLocalSetup, fxHermesRunSettings):
     - Run DAML test.
     Args:
         fxLocalSetup: Local fixture
+        fxBlockchain: Blockchain fixture
         fxHermesRunSettings: Hermes command line arguments
     '''
     log.info('Test participant post restore')
@@ -293,12 +298,11 @@ def test_participants_post_restore(fxLocalSetup, fxHermesRunSettings):
         if client_group != client_node['group_name']:
             client_group = client_node['group_name']
             nodes_for_restore.append(client_node)
-            backup_restore_helper.node_backup(client_node['private_ip'], fxLocalSetup.clients_db,
+            backup_restore_helper.node_backup(fxBlockchain.blockchainId, client_node['private_ip'], fxLocalSetup.clients_db,
                                               backup_restore_helper.CLIENT)
     node_for_daml_test = random.choice(fxLocalSetup.client_hosts)
     assert helper.run_daml_sanity([node_for_daml_test], output_dir), 'DAML test failed'
     for client_node in nodes_for_restore:
-        assert backup_restore_helper.node_restore(client_node['private_ip'], fxLocalSetup.clients_db,
-                                                  backup_restore_helper.CLIENT), \
-            'Restore failed on {}'.format(client_node['private_ip'])
+        assert backup_restore_helper.node_restore(fxBlockchain.blockchainId, client_node['private_ip'], fxLocalSetup.clients_db,
+                                                  backup_restore_helper.CLIENT), 'Restore failed on {}'.format(client_node['private_ip'])
         assert helper.run_daml_sanity([client_node['private_ip']], output_dir), 'DAML test failed'

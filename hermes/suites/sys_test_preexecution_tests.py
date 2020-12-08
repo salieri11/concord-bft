@@ -155,14 +155,15 @@ def run_request_tool(host, port=LEDGER_PORT, iterations=1):
         assert success, "Running request tool app failed"
 
 
-def get_primary_ip(committers):
+def get_primary_ip(fxBlockchain, committers):
     '''
+    fxBlockchain: Blockchain tuple of (blockchainId, consortiumId, replicas, clientNodes).
     committers: List of committers.
     Returns the IP of the primary.
     '''
-    primary_rid = util.blockchain_ops.get_primary_rid(committers)
+    primary_rid = util.blockchain_ops.get_primary_rid(fxBlockchain) 
     arbitrary_committer_ip = committers[0]
-    username, password = util.helper.getNodeCredentials()
+    username, password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, arbitrary_committer_ip)
     success = False
     msg = None
     e = None
@@ -187,12 +188,13 @@ def get_primary_ip(committers):
     raise("Could not find ip for replica '{}' in: '{}'".format(primary_rid, config))
 
 
-def start_tx_failure_ok(ledger):
+def start_tx_failure_ok(blockchain_id, ledger):
     '''
     Start a tx on the given ledger and do not mind if it fails.
     Launched in a separate thread.
+    Blockchain Id is required here to get strong password.
     '''
-    username, password = util.helper.getNodeCredentials()
+    username, password = util.helper.getNodeCredentials(blockchain_id, ledger) 
 
     try:
         timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
@@ -203,18 +205,20 @@ def start_tx_failure_ok(ledger):
         log.info("Fibo max failed at ledger time {}, but that is ok.".format(timestamp))
 
 
-def sleep_and_kill(sleep_time, committer, ledger):
+def sleep_and_kill(blockchain_id, sleep_time, committer, ledger):
     '''
     Sleep a while, then kill the given committer.
     Launched in a separate thread.
+    Blockchain Id is required here to get strong password.
     '''
     log.info("Sleeping for {} seconds and then killing the primary, {}".format(sleep_time, committer))
     time.sleep(sleep_time)
-    username, password = util.helper.getNodeCredentials()
-    c_timestamp = util.blockchain_ops.get_docker_timestamp(committer, username, password, "concord")
-    l_timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+    c_username, c_password = util.helper.getNodeCredentials(blockchain_id, committer)
+    l_username, l_password = util.helper.getNodeCredentials(blockchain_id, ledger)
+    c_timestamp = util.blockchain_ops.get_docker_timestamp(committer, c_username, c_password, "concord")
+    l_timestamp = util.blockchain_ops.get_docker_timestamp(ledger, l_username, l_password, "daml_ledger_api")
     log.info("Stopping concord at concord time {} and ledger time {}".format(c_timestamp, l_timestamp))
-    util.blockchain_ops.stop_services(committer, username, password, ["concord"])
+    util.blockchain_ops.stop_services(committer, c_username, c_password, ["concord"])
 
 
 @pytest.fixture
@@ -349,35 +353,38 @@ def test_stop_nonprimary_nodes(fxBlockchain, fxFiboMax, fxAppSetup, fxInstallDam
     '''
     participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
     ledger = participants[0]
-    util.blockchain_ops.wait_for_state_transfer_complete(committers)
-    primary_ip = get_primary_ip(committers)
+    util.blockchain_ops.wait_for_state_transfer_complete(fxBlockchain.blockchainId, committers)
+    primary_ip = get_primary_ip(fxBlockchain, committers)
     log.info("primary: {}".format(primary_ip))
     f = (len(committers) - 1) / 3
-    username, password = util.helper.getNodeCredentials()
+    
     stopped_nodes = []
 
     for committer in committers:
         if not committer == primary_ip:
-            timestamp = util.blockchain_ops.get_docker_timestamp(committer, username, password, "concord")
+            c_username, c_password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, committer) 
+            timestamp = util.blockchain_ops.get_docker_timestamp(committer, c_username, c_password, "concord")
             log.info("Stopping Concord on {} at timestamp {}".format(committer, timestamp))
             stopped_nodes.append(committer)
-            util.blockchain_ops.stop_services(committer, username, password, ["concord"])
+            util.blockchain_ops.stop_services(committer, c_username, c_password, ["concord"])
             if len(stopped_nodes) == f:
                 break
 
-    timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+    l_username, l_password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, ledger) 
+    timestamp = util.blockchain_ops.get_docker_timestamp(ledger, l_username, l_password, "daml_ledger_api")
     log.info("Starting transactions on {} at timestamp {}".format(ledger, timestamp))
     run_fibo(ledger, num_fib_values=fibo_max)
     run_request_tool(ledger)
-    timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+    timestamp = util.blockchain_ops.get_docker_timestamp(ledger, l_username, l_password, "daml_ledger_api")
     log.info("Finished transactions on {} at timestamp {}".format(ledger, timestamp))
 
     for committer in stopped_nodes:
-        timestamp = util.blockchain_ops.get_docker_timestamp(ledger, username, password, "daml_ledger_api")
+        c_username, c_password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, committer)
+        timestamp = util.blockchain_ops.get_docker_timestamp(ledger, l_username, l_password, "daml_ledger_api")
         log.info("Restarting Concord {} at {}".format(committer, timestamp))
-        util.blockchain_ops.start_services(committer, username, password, ["concord"])
+        util.blockchain_ops.start_services(committer, c_username, c_password, ["concord"])
 
-    util.blockchain_ops.wait_for_state_transfer_complete(committers)
+    util.blockchain_ops.wait_for_state_transfer_complete(fxBlockchain.blockchainId, committers)
     run_fibo(ledger, num_fib_values=1)
     run_request_tool(ledger)
 
@@ -393,12 +400,11 @@ def test_view_change_during_preexecution(fxBlockchain, fxInstallDamlSdk, fxAppSe
     Resubmit the long transaction and verify that it works.
     '''
     participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
-    orig_primary_ip = get_primary_ip(committers)
+    orig_primary_ip = get_primary_ip(fxBlockchain, committers)
     ledger = participants[0]
     log.info("ledger: {}".format(ledger))
     log.info("primary ip: {}".format(orig_primary_ip))
 
-    username, password = util.helper.getNodeCredentials()
     before = time.time()
     run_fibo(ledger, num_fib_values=fibo_max)
     after = time.time()
@@ -406,9 +412,9 @@ def test_view_change_during_preexecution(fxBlockchain, fxInstallDamlSdk, fxAppSe
     futures = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers = 2) as executor:
-        future = executor.submit(start_tx_failure_ok, ledger)
+        future = executor.submit(start_tx_failure_ok, fxBlockchain.blockchainId, ledger)
         futures.append(future)
-        future = executor.submit(sleep_and_kill, sleep_time, orig_primary_ip, ledger)
+        future = executor.submit(sleep_and_kill, fxBlockchain.blockchainId, sleep_time, orig_primary_ip, ledger)
         futures.append(future)
 
     # This will trigger failures if there are Pytest assertion failures.
@@ -417,14 +423,15 @@ def test_view_change_during_preexecution(fxBlockchain, fxInstallDamlSdk, fxAppSe
 
     # Give plenty of time for nodes to notice that the primary is gone before restarting this one.
     time.sleep(30)
+    username, password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, orig_primary_ip)
     util.blockchain_ops.start_services(orig_primary_ip, username, password, ["concord"])
-    new_primary_ip = get_primary_ip(committers)
+    new_primary_ip = get_primary_ip(fxBlockchain, committers)
     start_time = time.time()
 
     while new_primary_ip == orig_primary_ip and time.time() - start_time < 180:
         log.info("Waiting for primary to change. Current primary: {}".format(new_primary_ip))
         time.sleep(5)
-        new_primary_ip = get_primary_ip(committers)
+        new_primary_ip = get_primary_ip(fxBlockchain, committers)
 
     run_fibo(ledger, num_fib_values=1)
 
