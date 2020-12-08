@@ -1,0 +1,151 @@
+# Minimum docker deployment for vDAML.
+# In contrast to the full deployment, it only contains 2 ledger api servers
+# and a single postgres database cluster with 2 separate index databases on it.
+
+version: '3'
+services:
+  # Note: Make sure that Concord's configuration files have  -
+  #       1. `daml_enable` set
+  #       2. `insecure_thin_replica_server` set false if using TLS for TRS-TRC communication
+  #       3. correct certificate path in `thin_replica_tls_cert_path` if not using the default path
+  # If `insecure_thin_replica_server` is set to false, verify `insecure-thin-replica-client` should also
+  # be set to false in THIN_REPLICA_SETTINGS
+  # Path in `thin-replica-tls-cert-path` in THIN_REPLICA_SETTINGS and concord's config file should be same
+  concord1:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    depends_on:
+      - daml_execution_engine1
+    ports:
+      - "50051:50051"
+    expose:
+      - 5458
+      - 9891
+      - 3501/udp
+    volumes:
+      - ./devdata/rocksdbdata1:/concord/rocksdbdata
+      - ./devdata/log1:/concord/log
+      - ./devdata/securestore1:/concord/config-generated
+      - ./config-concord1:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./signing_keys:/concord/signing_keys:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+
+  concord2:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    depends_on:
+      - daml_execution_engine1
+    ports:
+      - "50052:50051"
+    expose:
+      - 5458
+      - 9891
+      - 3501/udp
+    volumes:
+      - ./devdata/rocksdbdata2:/concord/rocksdbdata
+      - ./devdata/log2:/concord/log
+      - ./devdata/securestore2:/concord/config-generated
+      - ./config-concord2:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./signing_keys:/concord/signing_keys:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+
+  concord3:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    depends_on:
+      - daml_execution_engine1
+    ports:
+      - "50053:50051"
+    expose:
+      - 5458
+      - 9891
+      - 3501/udp
+    volumes:
+      - ./devdata/rocksdbdata3:/concord/rocksdbdata
+      - ./devdata/log3:/concord/log
+      - ./devdata/securestore3:/concord/config-generated
+      - ./config-concord3:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./signing_keys:/concord/signing_keys:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+
+  concord4:
+    image: "${concord_repo}:${concord_tag}"
+    privileged: true
+    depends_on:
+      - daml_execution_engine1
+    ports:
+      - "50054:50051"
+    expose:
+      - 5458
+      - 9891
+      - 3501/udp
+    volumes:
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
+      - ./devdata/securestore4:/concord/config-generated
+      - ./config-concord4:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+      - ./signing_keys:/concord/signing_keys:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+
+  daml_ledger_api1:
+    image: "${daml_ledger_api_repo}:${daml_ledger_api_tag}"
+    environment:
+      - INDEXDB_HOST=index_db
+      - INDEXDB_PORT=5432
+      - INDEXDB_USER=indexdb
+      - INDEXDB_PASSWORD=indexdb
+      - INDEX_DB_SCHEMA=daml_ledger_api1
+      - REPLICAS=concord1:50051,concord2:50051,concord3:50051,concord4:50051
+      - PARTICIPANT_ID=daml_ledger_api1
+      - JAVA_OPTS=-XX:+UseG1GC -Xmx4G
+      - ENABLE_BATCHING=false
+      - TLS_SETTINGS=--pem /daml_tls/server.key --crt /daml_tls/server.crt --cacrt /daml_tls/root-ca.crt
+    depends_on:
+      - concord1
+      - index_db
+    expose:
+      - 6865
+      - 55001
+    ports:
+      - "6861:6865"
+      - "55002:55001" # http server for prometheus metrics
+    volumes:
+      - ./config-public:/concord/config-public:ro
+      - ./tls_certs:/concord/tls_certs:ro
+      - ./trs_trc_tls_certs:/concord/trs_trc_tls_certs:ro
+      - ./daml_tls:/daml_tls:ro
+
+  daml_execution_engine1:
+    image: "${daml_execution_engine_repo}:${daml_execution_engine_tag}"
+    environment:
+      - JAVA_OPTS=-XX:+UseG1GC -Xmx5G
+    expose:
+      - 55000
+      - 55001
+    ports:
+      - "55001:55001" # http server for graph and prometheus metrics
+
+  index_db:
+    image: "${daml_index_db_repo}:${daml_index_db_tag}"
+    restart: always
+    environment:
+      - POSTGRES_USER=indexdb
+      - POSTGRES_PASSWORD=indexdb
+      - POSTGRES_MULTIPLE_SCHEMAS=daml_ledger_api1
+      - USE_POSTGRES_CONFIG_FILE=true
+    volumes:
+      - ./devdata/index_db:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql.conf:ro
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+
