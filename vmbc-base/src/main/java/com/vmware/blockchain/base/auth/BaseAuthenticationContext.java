@@ -75,8 +75,8 @@ public class BaseAuthenticationContext extends AbstractAuthenticationToken {
 
     @Override
     public String toString() {
-        return String.format("AuthContext: userName %s orgId %s orgType %s isImpersonation %s"
-                             + " isCrossOrg %s roles [%s]",
+        return String.format("AuthContext: userName %s orgId %s"
+                             + " roles [%s]",
                              userName, orgId,
                              getAuthorities() == null ? "[None]" :
                              getAuthorities().stream().map(GrantedAuthority::getAuthority)

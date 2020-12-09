@@ -70,8 +70,8 @@ public class AuthenticationContext extends BaseAuthenticationContext {
 
     @Override
     public String toString() {
-        return String.format("AuthContext: userName %s orgId %s orgType %s isImpersonation %s"
-                             + " isCrossOrg %s roles [%s]",
+        return String.format("AuthContext: userName %s orgId %s"
+                             + " roles [%s]",
                              getUserName(), getOrgId(),
                              getAuthorities() == null ? "[None]" :
                              getAuthorities().stream().map(GrantedAuthority::getAuthority)
