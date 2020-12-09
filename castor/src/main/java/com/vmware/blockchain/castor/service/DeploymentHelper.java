@@ -99,7 +99,9 @@ public class DeploymentHelper {
         // Build sites
         List<OrchestrationSite> orchestrationSites =
                 buildSites(infrastructureDescriptorModel,
-                           deploymentDescriptorModel.getReplicas(), deploymentDescriptorModel.getClients());
+                           deploymentDescriptorModel.getReplicas(),
+                           deploymentDescriptorModel.getReadonlyReplicas(),
+                           deploymentDescriptorModel.getClients());
 
         // Build deployment spec
         DeploymentDescriptorModel.Blockchain blockchainDescriptor = deploymentDescriptorModel.getBlockchain();
@@ -315,12 +317,19 @@ public class DeploymentHelper {
      */
     public static List<OrchestrationSite> buildSites(
             InfrastructureDescriptorModel infrastructureDescriptorModel,
-            List<DeploymentDescriptorModel.Replica> replicas, List<DeploymentDescriptorModel.Client> clients) {
+            List<DeploymentDescriptorModel.Replica> replicas,
+            List<DeploymentDescriptorModel.ReadonlyReplica> readonlyReplicas,
+            List<DeploymentDescriptorModel.Client> clients) {
 
         Set<String> allUniqueZoneNames = new HashSet<>();
         Set<String> replicaZoneNames = replicas.stream().map(
                 DeploymentDescriptorModel.Replica::getZoneName).collect(Collectors.toSet());
         allUniqueZoneNames.addAll(replicaZoneNames);
+        if (readonlyReplicas != null) {
+            Set<String> readOnlyReplicaZoneNames = readonlyReplicas.stream().map(
+                    DeploymentDescriptorModel.ReadonlyReplica::getZoneName).collect(Collectors.toSet());
+            allUniqueZoneNames.addAll(readOnlyReplicaZoneNames);
+        }
         Set<String> clientZoneNames = clients.stream()
                 .map(DeploymentDescriptorModel.Client::getZoneName).collect(Collectors.toSet());
         allUniqueZoneNames.addAll(clientZoneNames);
