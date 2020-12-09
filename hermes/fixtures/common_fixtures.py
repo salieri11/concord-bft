@@ -239,6 +239,15 @@ def newZoneEqualsExistingZone(existingZone, newZone):
       return False
 
 
+def get_blockchain_summary_path():
+   '''
+   This returns the location into which blockchain details are written. It is a location
+   in the test suite's results directory, so it is included with Jenkins artifacts.
+   '''
+   suite_log_dir = os.path.dirname(helper.CURRENT_SUITE_LOG_FILE)
+   return os.path.join(suite_log_dir, DEPLOYED_BLOCKCHAIN_FILE)
+
+
 def deployToSddc(logDir, hermes_data, blockchainLocation):
    tokenDescriptor = getTokenDescriptor(hermes_data)
    log.info("deployToSddc using tokenDescriptor {}".format(tokenDescriptor))
@@ -246,7 +255,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
    log.info("tokenDescriptor: {}".format(tokenDescriptor))
 
    #Patch org for local deployment
-   if "local" in hermes_data["hermesCmdlineArgs"].deploymentService and hermes_data["hermesCmdlineArgs"].propertiesString:     
+   if "local" in hermes_data["hermesCmdlineArgs"].deploymentService and hermes_data["hermesCmdlineArgs"].propertiesString:
       patch_organization(logDir, hermes_data)
    conAdminRequest = Request(logDir,
                              "fxBlockchain",
@@ -312,11 +321,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
 
       # This will write the information about the deployed blockchain to the test suite's
       # resultsDir.
-      # blockchain_summary_path = os.path.join(hermes_data["hermesCmdlineArgs"].resultsDir,
-      #                                        DEPLOYED_BLOCKCHAIN_FILE)
-      suite_log_dir = os.path.dirname(helper.CURRENT_SUITE_LOG_FILE)
-      blockchain_summary_path = os.path.join(suite_log_dir,
-                                             DEPLOYED_BLOCKCHAIN_FILE)
+      blockchain_summary_path = get_blockchain_summary_path()
 
       with open(blockchain_summary_path , "w") as f:
          json.dump(blockchainFullDetails, f, indent=4, default=str)
@@ -558,12 +563,12 @@ def patch_organization(logDir, hermes_data):
    for prop in properties:
       key = prop.split(":")[0]
       value = prop.split(":")[1]
-      propertyMap[ key ] = value 
-     
-   orgId = auth.getOrgId(tokenDescriptor["org"])  
+      propertyMap[ key ] = value
+
+   orgId = auth.getOrgId(tokenDescriptor["org"])
    log.debug("Organization details -------------  {}".format((request.getOrg(orgId))))
    response = request.patchOrg(orgId, addProperties = propertyMap, delProperties = None)
-   
+
    if tokenDescriptor["org"] in str(response):
       log.info("Organization patched successfully")
       log.info("Organization detais after patch -------------  {}".format(response))
@@ -659,12 +664,12 @@ def fxProduct(request, hermes_info):
                            waitForStartupParams=waitForStartupParams,
                            checkProductStatusParams=checkProductStatusParams)
          product.launchProduct()
-         
+
          def post_product_processing():
             product.stopProduct()
 
          request.addfinalizer(post_product_processing)
-         
+
          # Instance of product, in case someone wants to access it
          return ProductFixture(product=product)
 
