@@ -879,8 +879,6 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    return False
 
 def get_wavefront_metrics(blockchainId, replica_ip):
-   blockchainId="550f80f3-404e-4994-a343-0a3b56c91e0a"
-   replica_ip="10.72.238.124"
    log.info("blockchain_id:::::{}".format(blockchainId))
    blockchain_id = blockchainId
    metric_name = "vmware.blockchain.concord.command.handler.operation.counters.total.counter"
@@ -1261,13 +1259,14 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
     log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
       written_blocks = 0
+      daml_writes = 0
       metrics = get_wavefront_metrics(blockchainId, replica_ip)
-      log.info("metrics::::::{}".format(metrics))
       metrics_json = json.loads(metrics)
-      log.info("metrics_json::::::{}".format(metrics_json))
       for i in metrics_json['timeseries']:
          if i["tags"]["operation"] == "written_blocks":
             written_blocks = i["data"][len(i["data"])-1]
+         elif i["tags"]["operation"] == "daml_writes":
+            daml_writes = i["data"][len(i["data"])-1]
       try:
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
@@ -1280,12 +1279,14 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
               all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
             if not concise:
-              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%, written Blocks: {}".format(
-                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks
+              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%, written Blocks: {}, "
+                                                   "daml writes: {}".format(
+                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks,
+                 daml_writes
               ))
             else:
-              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {}".format(
-                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks
+              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {} | {}".format(
+                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks, daml_writes
               ))
         else:
            raise Exception("Failed retrieving stats for replica '{}', file '{}', to "
