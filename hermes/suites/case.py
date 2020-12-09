@@ -1,7 +1,7 @@
 #################################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
-# cases.py 
+# cases.py
 # Individual Test Cases Reporting (Test Functions Hijacking)
 #
 #################################################################################
@@ -9,9 +9,6 @@
 import inspect
 import traceback
 import json
-import hashlib
-import base64
-import urllib.parse
 import os
 import re
 import requests
@@ -23,6 +20,9 @@ from enum import Enum
 from functools import wraps
 
 from util import hermes_logging, helper, wavefront, racetrack
+from util.alm.alm_constants import TestSetStates, TestRunRecordStates
+from util.alm.alm_testset import AlmTestSet
+from util.alm.alm_test_run_record import AlmTestRunRecord
 
 log = hermes_logging.getMainLogger()
 
@@ -35,17 +35,52 @@ SUITENAME_OVERRIDE = {
   "EthCoreVmTests": "Z_EthCoreVmTests"
 }
 
+# Used by ALM and set when pytest is starting up.  See conftest.py, set_hermes_info().
+alm_api_key = ""
+alm_dir_override = ""
+alm_enabled = False
+alm_tester = ""
+product_branch = ""
+product_build = ""
+test_run_record = None
 
 class CaseType(Enum):
   SMOKE = "SMOKE"
 
 
+def start_alm_test(test_func):
+  '''
+  setTestCaseAttributes() runs once, very early, before command line parameters are parsed.
+  So we have to do additional initialization at this point.
+  :param test_func: A test case being executed, if it has a test ID annotation.
+  This is the test function that is written in a hermes/suites/*.py file.
+  :return: Nothing
+  Raises an exception is there is a problem.  Ideally, we do not want to fail
+  something like a Master run just because we could not get set up with ALM, but
+  let the caller of this method decide what to do about it.
+  '''
+  global alm_api_key, alm_dir_override, alm_tester, product_build, product_branch
+  setattr(test_func, "_alm_api_key", alm_api_key)
+  setattr(test_func, "_alm_dir_override", alm_dir_override)
+  setattr(test_func, "_branch", product_branch)
+  setattr(test_func, "_build", product_build)
+  setattr(test_func, "_tester", alm_tester)
+
+  ts = AlmTestSet(test_func._branch, test_func._suite_name, test_func._alm_dir_override)
+  ts.update_test_set_status(TestSetStates.RUNNING)
+  test_instance = ts.get_test_instance_for_test_id(test_func._test_case_id)
+
+  if not test_instance:
+    raise Exception("Could not find test instance for test ID {} in test set {}".format(test_func._test_case_id, ts))
+  return AlmTestRunRecord(test_instance, test_func._build, ldap_user=test_func._tester)
+
+
 def getInvocationProxy(testFunc):
   '''
-    Returnes a wrapped proxy function of supplied testFunc
+    Returns a wrapped proxy function of supplied testFunc
     This enables triggering pre/post script execution with
     having clear test context (used to auto publish test cases
-    on to Racetrack or Wavefront)
+    to Racetrack, Wavefront, or ALM)
   '''
   def pre(*args, **kwargs):
     '''
@@ -53,6 +88,13 @@ def getInvocationProxy(testFunc):
     '''
     try:
       setattr(testFunc, "_suite_name", helper.CURRENT_SUITE_NAME)
+
+      global test_run_record, alm_enabled
+      if testFunc._test_case_id and alm_enabled:
+        test_run_record = start_alm_test(testFunc)
+      else:
+        test_run_record = None
+
       if helper.thisHermesIsFromJenkins():
         dontReport = hasattr(testFunc, "_dont_report")
         suiteName = helper.CURRENT_SUITE_NAME
@@ -89,7 +131,7 @@ def getInvocationProxy(testFunc):
     except Exception as e:
       helper.hermesNonCriticalTrace(e, "Cannot execute pre function of {}".format(testFunc._name))
       return
-      
+
   def post(result, errorMessage, stackInfo, originalE, *args, **kwargs):
     '''
       Script to be executed after test case function finished
@@ -98,6 +140,16 @@ def getInvocationProxy(testFunc):
       suiteName = getattr(testFunc, "_current_suite_name", None)
       caseName = getattr(testFunc, "_current_case_name", None)
       description = getattr(testFunc, "_current_description", None)
+
+      global test_run_record
+      if test_run_record:
+        if result:
+          test_run_record.update_run(TestRunRecordStates.PASSED)
+        else:
+          test_run_record.update_run(TestRunRecordStates.FAILED)
+
+        test_run_record = None
+
       if helper.thisHermesIsFromJenkins():
         if hasattr(testFunc, "_case_id") and testFunc._case_id:
           racetrack.caseEnd(
@@ -118,14 +170,14 @@ def getInvocationProxy(testFunc):
   def callHijacker(*args, **kwargs):
     '''
       Wraps the supplied test function in order to intercept the supplied
-      arguments, and execute pre/post script 
+      arguments, and execute pre/post script
     '''
     try:
-      
+
       pre(*args, **kwargs) # set test case as started
 
       result = testFunc(*args, **kwargs) # invoke test function; stack trace below if errored.
-      
+
       booleanResult = True if result else False
       if result is None: booleanResult = True # for pytests, no assertion created means success
       errorMessage = ""
@@ -136,9 +188,9 @@ def getInvocationProxy(testFunc):
         booleanResult = result[0]
         errorMessage = result[1]
         stackInfo = result[2]
-      
+
       post(booleanResult, errorMessage, stackInfo, None, *args, **kwargs) # report the test result (PASS/FAIL)
-      
+
       # return original result as it is for other original scripts depending on it
       return result
 
@@ -153,7 +205,7 @@ def getInvocationProxy(testFunc):
       except Exception as e:
         helper.hermesNonCriticalTrace(e)
       raise # raise the same exception/assertion so TestSuite/Pytest can handle it
-  
+
   setattr(callHijacker, "_is_invocation_proxy", True)
   return callHijacker
 
@@ -184,20 +236,21 @@ def failed(message):
   return (False, message, stack()[1:])
 
 
-def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicReportOverride=None):
+def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicReportOverride=None,
+             test_case_id=None):
   '''
     Decorator function to describe the test case and hijack the test function
     to make it automatically publish caseBegin/caseEnd with the case outcome
-    
+
     Decorator usage:
     ```python
     @describe("Should deploy 7 nodes and pass sanity check")
     def test_function_name(arg1, arg2):
     ```
 
-    `dynamicReportOverride` function can be supplied to uniquely report cases 
+    `dynamicReportOverride` function can be supplied to uniquely report cases
     where the same test function is used multiple times with different arguments
-    by overriding `suiteName`, `caseName`, or `description` of the case based on 
+    by overriding `suiteName`, `caseName`, or `description` of the case based on
     provided arguments to the test function. `dynamicReportOverride` function
     must have the same argument signature as the test function it is trying to
     override (e.g. `def dynamicReportOverride_func(arg1, arg2):` )
@@ -205,11 +258,11 @@ def describe(description="", casetype=CaseType.SMOKE, dontReport=False, dynamicR
     `dontReport` flag will skip pass/fail reporting on Racetrack
     (failure summary still saved when errored.)
 
-    For decorating fixtures, supplied description starting with "fixture;" and 
+    For decorating fixtures, supplied description starting with "fixture;" and
     put `@describe` the decorator BELOW the fixture decorator.
   '''
   def wrapper(func):
-    setTestCaseAttributes(func, description, casetype, stack())
+    setTestCaseAttributes(func, description, casetype, stack(), test_case_id)
     if dontReport: setattr(func, "_dont_report", True)
     if dynamicReportOverride: setattr(func, "_dynamic_report_override", dynamicReportOverride)
     proxy = getInvocationProxy(func)
@@ -257,7 +310,7 @@ def summarizeExceptions(func):
   return wrapper
 
 
-def setTestCaseAttributes(func, description, casetype, stackInfo):
+def setTestCaseAttributes(func, description, casetype, stackInfo, test_case_id):
   decoratorsList = getDecorators(func)
   shortCaseName = getCaseNameShort(func.__name__)
   setattr(func, "_stack", stackInfo)
@@ -266,6 +319,8 @@ def setTestCaseAttributes(func, description, casetype, stackInfo):
   setattr(func, "_description", description)
   setattr(func, "_decorators", decoratorsList)
   setattr(func, "_casetype", casetype)
+  setattr(func, "_test_case_id", test_case_id)
+
   if description.startswith("fixture;") or shortCaseName.startswith("fx"):
     setattr(func, "_is_fixture", True)
 
@@ -275,7 +330,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     Based on captured stackInfo and argument to test function output
     failure point summary to `failure_summary` json and log. This is
     designed for pipeline notification to provide a way to one-click
-    access the summary and target log file. 
+    access the summary and target log file.
   '''
   try:
     # Save arguments supplied to the test function
@@ -299,7 +354,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
         testArgValue = re.sub(r" at 0x[0-9a-fA-F]+", "", str(testArgValue)) # remove object refs (e.g."at 0x7f8f7a70d898")
         testArgsSummary.append("{} = {}".format(testArgName, testArgValue))
       testArgsSummary = "\n".join(testArgsSummary)
-    
+
     # If from Jenkins, output directly to workspace, otherwise defulat log path
     artifactSummaryLogPath = ""
     artifactFilteredLogPath = ""
@@ -331,7 +386,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     else:
       testLogPath = ""
       outputPath = ""
-    
+
     failurePointInfo = traceStackData(stackInfo[0], func)
 
     # Capture unique signature of the failure point
@@ -339,7 +394,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
     returnCodeLine = failurePointInfo["line"].strip()
     caseName = func.__name__ if callable(func) else failurePointInfo["name"] # actual function whole name
     caseNameShort = getCaseNameShort(caseName) # short name reported to Racetrack
-    if hasattr(func, "_current_case_name"): 
+    if hasattr(func, "_current_case_name"):
       caseNameShort = getattr(func, "_current_case_name")
     suiteAndCase = suiteName + '::' + caseName
     if hasattr(func, "_dynamic_report_override"): # implies multiple calls to single test function
@@ -352,13 +407,13 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
       # to uniquely identify the failure return code line
       ingested = "hermes::" + suiteAndCase + "::" + returnCodeLine
     longSignature, shortSignature = helper.getContentSignature(ingested)
-    
+
     stackTraceList = traceback.format_stack(limit=10)
     stackTraceList.reverse()
     stackTraceList = stackTraceList[2:]
     while len(stackTraceList) > 0 and "post(" in stackTraceList[0]:
       stackTraceList = stackTraceList[1:]
-    
+
     if originalE:
       stackTrace = "\n".join(traceback.format_exception(
         originalE.__class__, originalE, originalE.__traceback__
@@ -456,7 +511,7 @@ def extractAndSaveFailurePoint(func, errorMessage, stackInfo, originalE, args, k
         if not os.path.exists(outputPath + FAILURE_FOLDER):
           os.makedirs(outputPath + FAILURE_FOLDER)
         outputFileName = outputPath + FAILURE_FOLDER + "/" + FAILURE_SUMMARY_FILENAME + "_" + shortSignature
-      
+
       # Save to .log and .json
       with open(outputFileName + '.log', "w+") as f:
         f.write(failureSummaryLog)
@@ -579,14 +634,14 @@ def extractAndSavePipelineFailurePoint(pipelineError):
         f.write(json.dumps(failureSummaryJson, indent=4, default=str))
       if helper.thisHermesIsFromJenkins():
         reportSummaryToLogstash(failureSummaryJson)
-    
+
     # Other Pipeline Failures
     else:
       originalErrorMessage = errorMessage
       errorMessage = "Pipeline error: " + originalErrorMessage
       if stageName == "Run tests in containers" and "script returned exit code" in errorMessage:
         errorMessage = "Uncaptured error while running test suites."
-      if filename.startswith("(") and not forceStopped: 
+      if filename.startswith("(") and not forceStopped:
         errorMessage += " (groovy stack trace not parsable)"
       failureSummaryLog = "\n{}\n\n\n{}\n\n\n{}\n\n\n{}\n\n\n".format(
         "{}{} :: {}".format(
@@ -770,7 +825,7 @@ def reportSummaryToLogstash(summaryJson, timeOverride=None):
     helper.hermesNonCriticalTrace(e)
 
 
-def filterErrorsInLogs(logFilePath, lookFor, ignoreFor=[], 
+def filterErrorsInLogs(logFilePath, lookFor, ignoreFor=[],
                         preErrorKept=4, postErrorKept=5, expandMultilines=True):
   '''
     scans the log file for errors

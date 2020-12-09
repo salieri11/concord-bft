@@ -8,11 +8,13 @@ import traceback
 import urllib
 
 from util.alm.alm_constants import AlmApiRequestFields, AlmApiResponseFields
-
 from lxml import etree
 
+from util import hermes_logging
+log = hermes_logging.getMainLogger()
+
 ALM_CERT_FILE = os.path.join(os.getcwd(), "alm_cert_bundle")
-ALM_API_KEY = "not checking in"
+ALM_API_KEY = "Not checking in"
 VMBC_BASE_URL_V1 = "https://quality-api.eng.vmware.com:8443/QCIntgrt/rest/solutions/blockchain/"
 VMBC_BASE_URL_V2 = "https://quality-api.eng.vmware.com/QCIntgr2/rest/rest.php/domains/solutions/projects/blockchain/"
 
@@ -152,7 +154,7 @@ class AlmRequest():
                 full_url += "?{}".format(params)
 
         log_msg = "send_request:\n  url:{}\n  params: {}".format(full_url, params)
-        print(log_msg)
+        log.info(log_msg)
         error = None
 
         if action == "get":

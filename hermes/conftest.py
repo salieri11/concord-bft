@@ -1,13 +1,14 @@
 #################################################################################
-# Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # This file allows one to customize aspects of PyTest.
 #################################################################################
 import json
 import os
-import sys
 import pytest
+import sys
 import tempfile
+import suites.case
 from suites.case import describe
 from time import strftime, localtime
 import util.chessplus.chessplus_helper as chessplus_helper
@@ -286,9 +287,18 @@ def set_hermes_info(request, hermes_info):
                                     resultsDir)
     # Set Real Name same as Current Name
     helper.CURRENT_SUITE_NAME = cmdLineArguments.suitesRealname if cmdLineArguments.suitesRealname else short_name
-
     helper.CURRENT_SUITE_LOG_FILE = os.path.join(
         resultsDir, helper.CURRENT_SUITE_NAME + ".log")
+
+    suites.case.product_build = cmdLineArguments.build
+    suites.case.product_branch += cmdLineArguments.branch  # += helps with debugging.
+    suites.case.alm_tester = cmdLineArguments.tester if cmdLineArguments.tester else os.environ["USER"]
+    suites.case.alm_api_key = cmdLineArguments.almApiKey
+    suites.case.alm_enabled = cmdLineArguments.alm
+
+    # ALM API requires double backslashes; protect users from that as it becomes problematic.
+    if cmdLineArguments.almDirOverride:
+        suites.case.alm_dir_override = cmdLineArguments.almDirOverride.replace("/", "\\")
 
     if pipeline.isDryRun():
         # CI dry run might not have to run the suite
@@ -645,6 +655,33 @@ def pytest_addoption(parser):
                                    help="Whether to skip the post-deployment verification tests. (Running a DAML suite.)",
                                    default=False,
                                    action="store_true")
+
+    almConfig = parser.getgroup(
+        "ALParameters", "ALM Parameters:")
+    almConfig.addoption("--alm",
+                        help="Send results to ALM.  Requires --almApiKey, --branch, --build, and --tester",
+                        default=False,
+                        action="store_true")
+    almConfig.addoption("--almApiKey",
+                        help="The ALM API key to use.  Defaults to the team API key for Jenkins runs. Can be " \
+                        "passed in for local runs.",
+                        default="")
+    almConfig.addoption("--almDirOverride",
+                        help="When this is not set, the ALM test set path is /<branch_param>/<suitesRealName_param>. " \
+                        "If the directory needs to be overridden for unforeseen reasons, use this parameter to set " \
+                        "the folder to something else.",
+                        #type=unescaped_str,
+                        default=None)
+    almConfig.addoption("--branch",
+                        help="The product branch being tested, typically 'master' or the first three digits of the" \
+                        "the build. e.g. 1.1.  Must match a folder in ALM ",
+                        default="")
+    almConfig.addoption("--build",
+                        help="The product build being tested, including the full version.  e.g. 0.0.0.1234",
+                        default="")
+    almConfig.addoption("--tester",
+                        help="The user who ALM will be told is doing this test run.  Defaults to logged in user.",
+                        default="")
 
 
 def _get_suite_short_name(module_name):
