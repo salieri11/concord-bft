@@ -1,5 +1,5 @@
 #################################################################################
-# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2019-2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # This file allows one to customize aspects of PyTest.
 #################################################################################
@@ -17,6 +17,8 @@ from util.dlr import dlr_helper
 from util.stats_gatherer import StatsGatherer
 import event_recorder
 
+import fixtures.common_fixtures
+
 local_modules = [os.path.join(".", "lib", "persephone")]
 for path in local_modules:
     sys.path.append(path)
@@ -25,7 +27,6 @@ log = hermes_logging.getMainLogger()
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/eth_core_vm_tests_to_skip.json"
 
 TEST_LOGDIR = "test_logs"
-SUPPORT_BUNDLE = "support_bundles.json"
 REPORT = "execution_results.json"
 TESTSTATUS = "test_status.pass"
 
@@ -58,7 +59,7 @@ def getEthCoreVmTests(metafunc):
     hermes_tests = None
 
     if metafunc.config.option.tests:
-        hermes_tests = metafunc.config.option.tests 
+        hermes_tests = metafunc.config.option.tests
 
     cmdline_args = metafunc.config.option
     user_config = helper.getUserConfig(
@@ -197,9 +198,6 @@ def hermes_info(request):
             cmdline_args, "zoneOverrideFolder") else None
         util.infra.overrideDefaultZones(cmdline_args.zoneOverride, folder)
 
-    support_bundle_file = os.path.join(
-        log_dir, SUPPORT_BUNDLE)
-
     # Set appropriate  log level
     hermes_logging.setUpLogging(cmdline_args)
     helper.CMDLINE_ARGS = vars(cmdline_args)
@@ -212,20 +210,46 @@ def hermes_info(request):
         log.info("Complete Success? ({})".format(complete_success))
 
         if not complete_success:
-            all_replicas_and_type = None
+            all_replicas_and_type = {}
             if cmdline_args.replicasConfig:
                 all_replicas_and_type = helper.parseReplicasConfig(
                     cmdline_args.replicasConfig)
             elif cmdline_args.damlParticipantIP != "localhost":
                 all_replicas_and_type = {
-                    helper.TYPE_DAML_PARTICIPANT: [cmdline_args.damlParticipantIP]}
+                    helper.TYPE_DAML_PARTICIPANT: [cmdline_args.damlParticipantIP]
+                }
+            elif helper.blockchainIsRemote(cmdline_args):
+                # When Hermes does a deployment, details are placed in this file.
+                log.info("We deployed a blockchain and tests failed. Attempting support bundle retrieval.")
+                blockchain_summary_path = fixtures.common_fixtures.get_blockchain_summary_path()
+                log.info("Looking for file '{}' to gather support bundles".format(blockchain_summary_path))
+
+                if os.path.isfile(blockchain_summary_path):
+                    with open(blockchain_summary_path, "r") as f:
+                        nodes_list = json.load(f)
+
+                    nodes_list = nodes_list["nodes_list"]
+
+                    for node in nodes_list:
+                        # We have a flat list of nodes. Create a structure like:
+                        # {
+                        #   daml_participants: [ ip, ip, ...],
+                        #   daml_committers: [ ip, ip, ...]
+                        # }
+                        if not node["type_name"] in all_replicas_and_type:
+                            all_replicas_and_type[node["type_name"]] = []
+
+                        ips = helper.fetch_ips_from_fxBlockchain_entry([node])
+                        all_replicas_and_type[node["type_name"]].append(ips[0])
+                else:
+                    log.info("File '{}' was not found.  Unable to gather support bundles.")
 
             if all_replicas_and_type:
                 log.info("*************************************")
                 log.info("Collecting support bundle(s)...")
-                for blockchain_type, replica_ips in all_replicas_and_type.items():
+                for blockchain_or_node_type, replica_ips in all_replicas_and_type.items():
                     helper.create_concord_support_bundle(
-                        replica_ips, blockchain_type, log_dir)
+                        replica_ips, blockchain_or_node_type, log_dir)
                 log.info("*************************************")
 
     request.addfinalizer(post_session_processing)
@@ -233,8 +257,7 @@ def hermes_info(request):
         "hermesCmdlineArgs": cmdline_args,
         "hermesUserConfig": user_config,
         "hermesZoneConfig": zone_config,
-        "hermesTestLogDir": log_dir,
-        "supportBundleFile": support_bundle_file
+        "hermesTestLogDir": log_dir
     }
 
 
@@ -284,15 +307,8 @@ def set_hermes_info(request, hermes_info):
     logHandler = hermes_logging.addFileHandler(
         helper.CURRENT_SUITE_LOG_FILE, cmdLineArguments.logLevel)
 
-    support_bundle_file = os.path.join(
-        resultsDir, SUPPORT_BUNDLE)
-    hermes_info["supportBundleFile"] = support_bundle_file
-
     def post_module_processing():
         log.info("Teardown module...")
-
-        helper.collectSupportBundles(
-            hermes_info["supportBundleFile"], resultsDir)
 
         if cmdLineArguments.eventsFile:
             event_recorder.record_event(
@@ -315,7 +331,6 @@ def fxHermesRunSettings(request, set_hermes_info):
     user_config: The dictionary containing the contents of user_config.json.
     zone_config: The dictionary containing the contents of zone_config.json.
     log_dir: The log directory path, as a string.
-    support_bundle_file: The support bundle file path.
     """
     log.info("Setting up Hermes for '{0}' of '{1}'".format(
         request.node.name, helper.CURRENT_SUITE_NAME))
@@ -634,13 +649,6 @@ def pytest_addoption(parser):
                                    default=False,
                                    action="store_true")
 
-    parser.addoption(
-        "--supportBundleFile",
-        action="store",
-        default="support_bundles.json",
-        help="Path to a file a test suite should create to have the framework create support "
-        "bundles. POPULATED BY HERMES.")
-
 
 def _get_suite_short_name(module_name):
     '''
@@ -717,7 +725,7 @@ def prepare_report(items, results_dir):
                       'skipped': 0, 'failed': 0,
                       'un-expected-pass': 0,
                       'not-executed': 0, 'total': len(items)}
-    
+
     fail = "\033[1;91m"
     ok = "\033[1;92m"
     yellow = "\033[1;33m"
@@ -752,8 +760,8 @@ def prepare_report(items, results_dir):
                 # Deliberately not marking complete_success=False
                 # and reporting 'unexpected pass' similar to  'pass'
                 # Should there be need to report xfail marked test as failed
-                # when actual test result is pass, 
-                # Suggest to use strict=True with xfail 
+                # when actual test result is pass,
+                # Suggest to use strict=True with xfail
                 result_summary['un-expected-pass'] += 1
             else:
                 result_summary['succeeded'] += 1
@@ -783,7 +791,7 @@ def prepare_report(items, results_dir):
              "tests not-executed {8}, {9}Total Tests: {10}{11}"
              .format(ok, result_summary['succeeded'], fail, result_summary['failed'],
                      yellow, result_summary['skipped'],
-                     result_summary['expected-failed'], 
+                     result_summary['expected-failed'],
                      result_summary['un-expected-pass'],
                      result_summary['not-executed'],
                      blue, result_summary['total'], reset))

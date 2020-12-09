@@ -1996,6 +1996,8 @@ def parseReplicasConfig(replicas):
     fxBlockchain dict object directly. This function
     is used to standardize replicas parsing across codebase
   '''
+  log.info("*** parseReplicasConfig received {}".format(replicas))
+
   if not replicas: replicas = REPLICAS_JSON_PATH
   
   if isinstance(replicas, str): # path supplied
@@ -2449,32 +2451,6 @@ def get_time_now_in_milliseconds():
    '''
    milli_sec = int(round(time.time() * 1000))
    return str(milli_sec)
-
-
-def collectSupportBundles(supportBundleFile, testLogDir):
-   '''
-   Collect support bundles found in support_bundles.json.  The structure must be:
-   {
-      "<host>": {
-      "type": "daml | ethereum",  (mandatory)
-      "dir": "<directory>"        (optional, defaults to the suite's _testLogDir)
-      }
-   }
-   '''
-   if os.path.isfile(supportBundleFile):
-      with open(supportBundleFile, "r") as f:
-            bundles = json.load(f)
-
-      log.info("bundles: {}".format(bundles))
-
-      for bundleHost in bundles:
-            if "dir" in bundles[bundleHost]:
-               logDir = bundles[bundleHost]["dir"]
-            else:
-               logDir = testLogDir
-
-            create_concord_support_bundle(
-               [bundleHost], bundles[bundleHost]["type"], logDir)
 
 
 def parsePytestTestName(parseMe):
