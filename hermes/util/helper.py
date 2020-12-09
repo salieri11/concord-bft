@@ -879,6 +879,8 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
    return False
 
 def get_wavefront_metrics(blockchainId, replica_ip):
+   blockchainId="550f80f3-404e-4994-a343-0a3b56c91e0a"
+   replica_ip="10.72.238.124"
    log.info("blockchain_id:::::{}".format(blockchainId))
    blockchain_id = blockchainId
    metric_name = "vmware.blockchain.concord.command.handler.operation.counters.total.counter"
@@ -889,11 +891,11 @@ def get_wavefront_metrics(blockchainId, replica_ip):
    # Get start and end datetime in epoch
    # Time range is a crucial parameter, do not increase/decrease
    # without analyzing the API calls properly.
-   start_epoch = (datetime.now() - timedelta(seconds=3600)).strftime('%s')
-   end_epoch = (datetime.now() + timedelta(seconds=60)).strftime('%s')
+   start_epoch = (datetime.now() - timedelta(seconds=300)).strftime('%s')
+   end_epoch = (datetime.now() + timedelta(seconds=2)).strftime('%s')
    log.info("Start time is {} and end time is {}".format(
       start_epoch, end_epoch))
-   wavefrontMetrics = wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="h")
+   wavefrontMetrics = wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="m")
    log.info("wavefrontMetrics: {}".format(wavefrontMetrics))
    return wavefrontMetrics
 
@@ -1265,7 +1267,7 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
       log.info("metrics_json::::::{}".format(metrics_json))
       for i in metrics_json['timeseries']:
          if i["tags"]["operation"] == "written_blocks":
-            written_blocks = i["data"][0][1]
+            written_blocks = i["data"][len(i["data"])-1]
       try:
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
