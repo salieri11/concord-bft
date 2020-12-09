@@ -6,18 +6,19 @@ from utils.reversor import reversor
 from datetime import datetime
 from typing import TextIO
 
-def add_sorting_value(split_line : list, dst_value : str, src_value : str) -> list:
+def add_sorting_value(split_line : list, dst_value : str, src_value : str, config : dict) -> list:
     """Add a sender/receiver value to create the causal order.
 
     Args:
         split_line (str) : All the values needed to sort the logs in causal order
         dst_value (str) : The sender/receiver value
         src_value (str) : The sender/receiver value
+        config (dict): contains the necesary information to parse the specified logs format
 
     Returns:
         list : A tuple of all the values needed to sort the logs.
     """
-    sorting_column = int(os.getenv('sorting_column'))
+    sorting_column = int(config['sorting_column'])
     logger_name_column = 3
     if "st.dst" in split_line[logger_name_column]:
         return split_line[sorting_column].split("-") + [dst_value]
@@ -26,7 +27,7 @@ def add_sorting_value(split_line : list, dst_value : str, src_value : str) -> li
     else:
         return []
 
-def preprocess(logs : list) -> list:
+def preprocess(logs : list, config : dict) -> list:
     """Preprocess composed of the following:
         1. Filter redundant logs.
         2. Add a sender/recevier value to the logs for causal order.
@@ -35,31 +36,28 @@ def preprocess(logs : list) -> list:
 
     Args:
         list : The logs from the replicas
-    """
-    sorting_column = int(os.getenv('sorting_column'))
-    processed_logs = []
-    two_sorting_pattern = re.compile(r"^\d+-\d+$")
-    four_sorting_pattern = re.compile(r"^\d+-\d+-\d+-\d+$")
-    logs_pattern = re.compile(r'\d+[\|.+\|]+')
+        config (dict): contains the necesary information to parse the specified logs format
 
-    redundants = ["saveReservedPage", "createCheckpointOfCurrentState",
-     "checkpointReservedPages", "createCheckpointDesc",
-      "deleteOldCheckpoints", "getDigestOfCheckpoint", "startCollectingState"]
+    """
+    sorting_column = int(config['sorting_column'])
+    processed_logs = []
+    sorting_values_pattern = re.compile(r"^\d+-\d+-\d+-\d+$")
+
+    ignored = ["saveReservedPage", "createCheckpointOfCurrentState",
+                    "checkpointReservedPages", "createCheckpointDesc",
+                    "deleteOldCheckpoints", "getDigestOfCheckpoint",
+                    "startCollectingState", "concord.bft.st.inmem",
+                    "concord.bft.st.dbdatastore"]
 
     for line in logs:
-        if not logs_pattern.match(line):
+        if ("concord.bft.st" not in line) or any(word in line for word in ignored):
             continue
         split_line = line.split("|")
-
-        if two_sorting_pattern.match(split_line[sorting_column]) and not any(word in line for word in redundants):
-            split_line[sorting_column] += "-0-0"
-            split_line[sorting_column] = add_sorting_value(split_line,"0", "1")
-            if not split_line[sorting_column]:
-                continue
-        elif four_sorting_pattern.match(split_line[sorting_column]) and not any(word in line for word in redundants):
-            split_line[sorting_column] = add_sorting_value(split_line,"1", "0")
-            if not split_line[sorting_column]:
-                continue  
+        
+        if sorting_values_pattern.match(split_line[sorting_column]) and "-0-0" in split_line[sorting_column]:
+            split_line[sorting_column] = add_sorting_value(split_line,"0", "1", config)
+        elif sorting_values_pattern.match(split_line[sorting_column]):
+            split_line[sorting_column] = add_sorting_value(split_line,"1", "0", config)
         else:
             continue
 
@@ -67,37 +65,41 @@ def preprocess(logs : list) -> list:
 
     return processed_logs
 
-def print_summary(summary : dict , file : TextIO) -> None:
+def print_summary(summary : dict , file : TextIO, idx : int) -> None:
     """Prints a summary of the protocol major events
     Args:
         summary (dict): A dictionary that contains information on the protocol's main events
         file (TextIO): A file for writing the logs and summary
 
     """
+    #TODO add the number of ST summary
     file.write("\n***********************\n")
-    file.write("\t-SUMMARY-\n")
+    file.write(f"-SUMMARY fot State Transfer number {idx + 1} -\n")
     sum = [key + val + "\n" for key, val in summary.items()]
     file.write("".join(sum))
+    file.write("\t*WARNING*\n")
+    file.write("The summary content extracted from the logs,\ntherefore information might be missing.\n")
     file.write("***********************\n\n")
+    
 
-def print_to_file(logs : list, out_path : str, summaries : list) -> None:
+def print_to_file(logs : list, out_path : str, summaries : list, config : dict) -> None:
     """Print's the logs and summary of the protocol to a file in a given path
     Args:
         logs (list): list of the causal ordered logs
         out_path (str) : Output file path
         summaries (list) : Contains all the summaries collected for each protocol
+        config (dict): contains the necesary information to parse the specified logs format
 
     """
-
-    sorting_column = int(os.getenv('sorting_column'))
+    sorting_column = int(config['sorting_column'])
     with open(out_path + "st_causal_order.log", "w+") as file:
         for line in logs:
             if type(line[sorting_column]) is list:
                 line[sorting_column] = "-".join(line[sorting_column])
             file.write("|".join(line))
             
-        for summary in summaries:
-            print_summary(summary, file)
+        for idx,summary in enumerate(summaries):
+            print_summary(summary, file, idx)
 
 
 def find_number(text : str, c : str) -> list:
@@ -111,7 +113,7 @@ def find_number(text : str, c : str) -> list:
     """
     return re.findall(r'%s(\d+)' % c, text).pop()
 
-def collect_summary(logs: list) -> list: 
+def collect_summary(logs: list, config : dict) -> list: 
     """
         Collect's the following information from the logs:
         1. Destination replica number
@@ -124,15 +126,19 @@ def collect_summary(logs: list) -> list:
 
     Args:
         protocols (list): list of the logs seperated to each protocol triggerd
+        config (dict): contains the necesary information to parse the specified logs format
 
     Returns:
         list : A dictionary that contains a summary of the main events of the protocol
     """
     summaries = list()
     summary = {}
-    sorting_column = int(os.getenv('sorting_column'))
-    function_name_column = 9
-    msg_column = 10
+    sorting_column = int(config['sorting_column'])
+    dst_replica_column = int(config['dst_replica_column'])
+    function_name_column = int(config['function_name_column'])
+    msg_column = int(config['msg_column'])
+    time_stamp_column = int(config['time_stamp_column'])
+    time_stamp_pattern = config['time_stamp_pattern']
 
     for line in logs:
         try:
@@ -140,42 +146,77 @@ def collect_summary(logs: list) -> list:
                 if summary and "End Time: " not in summary.keys():
                     summaries.append(summary)
                 summary = {}
-                summary["Destination replica: "] = line[0]
-                summary["Start time: "] = line[1]
+                summary["Destination replica: "] = line[dst_replica_column]
+                summary["Start time: "] = line[time_stamp_column]
             elif "Start fetching checkpoint" in line[msg_column]:
                 summary["Source Checkpoint Number: "] = find_number(line[msg_column], "newCheckpoint.checkpointNum: ")
                 summary["Source Last Block: "] = find_number(line[msg_column], "newCheckpoint.lastBlock: ")
                 summary["Destination Last Reachable Block: "] = find_number(line[msg_column], "lastReachableBlockNum: ")
-            elif "Selected source" in line[msg_column]:
-                summary["Selected New Source: "] = find_number(line[msg_column], "source replica: ")
+            elif "Selected new source replica" in line[msg_column]:
+                summary["Selected New Source: "] = find_number(line[msg_column], "new source replica: ")
             elif "Invoking onTransferringComplete" in line[msg_column]:
-                end_time = line[1]
-                summary["End Time: "] = end_time
-                time_format = "%d-%m-%Y %H:%M:%S.%f"
+                summary["End Time: "] = line[time_stamp_column]
+                end = datetime.strptime(summary["End Time: "], time_stamp_pattern)
                 if "Start time: " in summary.keys():
-                    start = datetime.strptime(summary["Start time: "], time_format)
-                    end = datetime.strptime(end_time, time_format)
+                    start = datetime.strptime(summary["Start time: "], time_stamp_pattern)
                     summary["Duration: "] = str(int((end - start).microseconds / 1000)) + "ms"
                 summaries.append(summary)
+                summary =  {}
         except IndexError as e:
-            print(f"Failed to collect summary, tried to access out of the log bound, message error: {e}")
+            print(f"Failed to collect summary, tried to access index out of the log bound, message error: {e}")
         except Exception as e:
             print(f"Failed to collect summary, message error: {e}")
 
     return summaries
 
+def create_config(is_deploy : str) -> dict:
+    """
+        Set's all the variables needed to parse the logs according to deployment or local run logs.
+    Args:
+        deployment (str): A flag that indicates which logs format will be parsed.
+
+    Returns:
+        None
+    """
+    config = dict()
+    if is_deploy:
+        config['sorting_column'] = "6"
+        config['dst_replica_column'] = "2"
+        config['function_name_column'] = "8"
+        config['msg_column'] = "9"
+        config['time_stamp_column'] = "0"
+        config['time_stamp_pattern'] = "%Y-%m-%dT%H:%M:%S,%fZ"
+    elif not is_deploy:
+        config['sorting_column'] = "7"
+        config['dst_replica_column'] = "0"
+        config['function_name_column'] = "9"
+        config['msg_column'] = "10"
+        config['time_stamp_column'] = "1"
+        config['time_stamp_pattern'] = "%d-%m-%Y %H:%M:%S.%f"
+    else:
+        raise click.BadParameter(f"'{deployment}', Try 'cli st_parser --help' for help.")
+    
+    return config
+
+def get_key(log, config):
+    sorting_column = int(config['sorting_column'])
+    return (int(log[sorting_column][0]), int(log[sorting_column][1]),
+            int(log[sorting_column][2]), reversor(int(log[sorting_column][3])),
+            int(log[sorting_column][4]))
+
 @click.command('st_parser', short_help='This command parse State Transfer logs')
 @click.argument('in_path')
 @click.argument('out_path')
-def parse(in_path : str, out_path : str) -> None:
+@click.option('--is_deploy', default=True, type=bool,
+              help='Sets the parser to work on deployment logs. Valid values: true/false')
+def parse(in_path : str, out_path : str, is_deploy : bool) -> None:
     """
         \b
         This command parse State Transfer logs
     """
-    sorting_column = 7
-    os.environ['sorting_column'] = str(sorting_column)
+    config = create_config(is_deploy)
     raw_logs = read_all_log_files(in_path)
-    processed_logs = preprocess(raw_logs)
-    ordered_logs = sorted(processed_logs, key=lambda log: (int(log[sorting_column][0]), int(log[sorting_column][1]),int(log[sorting_column][2]), reversor(int(log[sorting_column][3])), int(log[sorting_column][4])))
-    summaries = collect_summary(ordered_logs)
-    print_to_file(ordered_logs, out_path, summaries)
+    processed_logs = preprocess(raw_logs, config)
+    ordered_logs = sorted(processed_logs, key=lambda log : get_key(log, config))
+    summaries = collect_summary(ordered_logs, config)
+    print_to_file(ordered_logs, out_path, summaries, config)
