@@ -344,5 +344,5 @@
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     runWithGenericTests: false
-    baseCommand: '${MAIN_PYTEST} suites/dlr_test.py --damlParticipantIP "${concord_ips}" --dlrNoOfAgreements "${no_of_agreements}" --dlrNoOfVuser "${no_of_users}" --dlrLoadBatchSize "${load_batch_size}"'
+    baseCommand: '${MAIN_PYTEST} suites/dlr_test.py --damlParticipantIP "${concord_ips}" --dlrNoOfAgreements "${no_of_agreements}" --dlrNoOfVuser "${no_of_users}"'
     testModule: 'suites/dlr_test.py'

@@ -5,7 +5,6 @@
 #           --damlParticipantIP <DAML ledger host>
 #           --dlrNoOfAgreements <No. of Agreements to run DLR simulation>
 #           --dlrNoOfVuser <No. of Users to run DLR simulation>
-#           --dlrLoadBatchSize <Batch size of agreements for an iteration>
 #           --resultsDir <Results/log directory path>
 #################################################################################
 

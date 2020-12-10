@@ -535,9 +535,6 @@ def pytest_addoption(parser):
     parser.addoption("--dlrNoOfVuser",
                      help="No. of Users to run DLR simulation",
                      default=dlr_helper.DEFAULT_NO_OF_VUSER)
-    parser.addoption("--dlrLoadBatchSize",
-                     help="Batch size of agreements for an iteration",
-                     default=dlr_helper.DEFAULT_LOAD_BATCH_SIZE)
 
     concordConfig = parser.getgroup(
         "Concord configuration", "Concord Options:")
