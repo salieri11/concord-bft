@@ -138,6 +138,7 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         List<OrchestrationSite> orchestrationSites =
                 DeploymentHelper.buildSites(infrastructureDescriptorModel,
                                             provisioningDescriptorModel.getReplicas(),
+                                            provisioningDescriptorModel.getReadonlyReplicas(),
                                             provisioningDescriptorModel.getClients());
         Sites sites = Sites.newBuilder()
                 .addAllInfoList(orchestrationSites)
