@@ -57,7 +57,6 @@ import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
@@ -534,7 +533,8 @@ public class BlockchainControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, C2_ID.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", C2_ID.toString()), message);
     }
 
     @Test
@@ -549,7 +549,8 @@ public class BlockchainControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+        Assertions.assertEquals(MessageFormat.format(
+                "Blockchain with ID {0} not found.", BC_MISSING.toString()), message);
     }
 
     @Test
@@ -592,7 +593,8 @@ public class BlockchainControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_UNAVAILABLE), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_UNAVAILABLE), message);
     }
 
     @Test
@@ -771,7 +773,8 @@ public class BlockchainControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_UNAVAILABLE), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_UNAVAILABLE), message);
     }
 
     @Test
@@ -785,7 +788,8 @@ public class BlockchainControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_MISSING), message);
     }
 
     @Test
@@ -972,7 +976,7 @@ public class BlockchainControllerTest {
 
         String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(ErrorCode.BAD_TLS_CREDENTIALS_PEM, errorMessage);
+        Assertions.assertEquals("Invalid PEM value provided in TLS credentials.", errorMessage);
     }
 
     @Test
@@ -986,7 +990,7 @@ public class BlockchainControllerTest {
 
         String errorMessage = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(ErrorCode.BAD_TLS_CREDENTIALS_CRT, errorMessage);
+        Assertions.assertEquals("Invalid CRT value provided in TLS credentials.", errorMessage);
     }
 
     @Test

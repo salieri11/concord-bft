@@ -56,7 +56,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.HelenException;
@@ -423,7 +422,7 @@ public class BlockchainController {
             blockchain = blockchainService.put(blockchain);
             return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
         } else {
-            throw new BadRequestException(String.format("Blockchain %s is already de-registered.", bid.toString()));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_ALREADY_DEREGISTERED, bid.toString());
         }
     }
 
@@ -455,8 +454,7 @@ public class BlockchainController {
                             com.google.protobuf.util.JsonFormat.parser().ignoringUnknownFields().merge(k, builder);
                             return builder.build();
                         } catch (InvalidProtocolBufferException e) {
-                            throw new HelenException(
-                                    String.format("Error accepting request for deletion {}", bid.toString()));
+                            throw new HelenException(ErrorCodeType.BLOCKCHAIN_DELETION_ERROR, bid.toString());
                         }
                     }).collect(Collectors.toList());
 
@@ -471,8 +469,7 @@ public class BlockchainController {
             return new ResponseEntity<>(new BlockchainGetResponse(blockchain), HttpStatus.ACCEPTED);
 
         } else {
-            throw new BadRequestException(String.format("Blockchain %s is in active state and cannot be deleted."
-                                                        + "Deregister the blockchain first.", bid.toString()));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_ACTIVE_CANNOT_DELETE, bid.toString());
         }
     }
     // --------------------- Private methods -------------------- //
@@ -484,10 +481,8 @@ public class BlockchainController {
     private void createDeployment(BlockchainPost body, Organization organization, Task task) throws Exception {
         // Validate number of replicas and clients.
         if (!validateNumberofReplicas(body) || !validateNumberOfClients(body)) {
-            throw new BadRequestException(String.format("Expected number of replicas is %s", replicaNumber,
-                                                        "user input replicas %s", body.getReplicaZoneIds().size(),
-                                                        "Expected number of clients is <= %s", clientNumber,
-                                                        "user input clients is %s", body.getClientNodes().size()));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_UNEXPECTED_NUMBER_REPLICAS_CLIENTS,
+                    replicaNumber, body.getReplicaZoneIds().size(), clientNumber, body.getClientNodes().size());
         }
         NodeAssignment.Builder nodeAssignment = NodeAssignment.newBuilder();
 
@@ -588,7 +583,7 @@ public class BlockchainController {
                                 PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
                                 RSAPrivateKey rsaPrivateKey = (RSAPrivateKey) keyFactory.generatePrivate(keySpec);
                             } catch (Exception ex) {
-                                throw new BadRequestException(ErrorCode.BAD_TLS_CREDENTIALS_PEM);
+                                throw new BadRequestException(ErrorCodeType.BAD_TLS_CREDENTIALS_PEM);
                             }
 
                             String crt = k.getCrt();
@@ -599,7 +594,7 @@ public class BlockchainController {
                                         .generateCertificate(new ByteArrayInputStream(crt.getBytes()));
                                 crtCertificate.checkValidity();
                             } catch (Exception ex) {
-                                throw new BadRequestException(ErrorCode.BAD_TLS_CREDENTIALS_CRT);
+                                throw new BadRequestException(ErrorCodeType.BAD_TLS_CREDENTIALS_CRT);
                             }
 
                             String cacrt = k.getCacrt();
@@ -867,10 +862,10 @@ public class BlockchainController {
         try {
             blockchain = blockchainService.get(bid);
             if (blockchain == null) {
-                throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+                throw new NotFoundException(ErrorCodeType.BLOCKCHAIN_NOT_FOUND, bid.toString());
             }
         } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+            throw new NotFoundException(ErrorCodeType.BLOCKCHAIN_NOT_FOUND, bid.toString());
         }
 
         return blockchain;
@@ -918,7 +913,7 @@ public class BlockchainController {
         String modeVal = mode != null ? mode + ": " : "";
         if (sizingInfo == null || sizingInfo.isEmpty()) {
             logger.error(modeVal + "Sizing Info is not available. Quit validation.");
-            throw new BadRequestException(modeVal + "Sizing Info is not available.");
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_SIZING_INFO_NOT_AVAILABLE, modeVal);
         }
         NodeSizeTemplate nst = nodeSizeTemplateService.getTemplate();
         NodeSizeTemplate.Range range = nst.getRange();
@@ -935,20 +930,17 @@ public class BlockchainController {
         String cpuCount = sizingInfo.get(NodeSizeTemplate.Parameter.NO_OF_CPUS);
         Integer cpuCountInt = Pattern.matches("\\d+", cpuCount) ? Integer.parseInt(cpuCount) : 0;
         if (cpuCountInt < cpuMin || cpuCountInt > cpuMax) {
-            throw new BadRequestException(String.format(modeVal + "Expected value of cpu's is between"
-                                                        + " %s and %s", cpuMin, cpuMax));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_SIZING_INFO_BAD_CPU, modeVal, cpuMin, cpuMax);
         }
         String vmMemory = sizingInfo.get(NodeSizeTemplate.Parameter.MEMORY_IN_GIGS);
         Integer vmMemoryInt = Pattern.matches("\\d+", vmMemory) ? Integer.parseInt(vmMemory) : 0;
         if (vmMemoryInt < memoryMin || vmMemoryInt > memoryMax) {
-            throw new BadRequestException(String.format(modeVal + "Expected value of memory in Gigs is "
-                                                        + "between %s and %s", memoryMin, memoryMax));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_SIZING_INFO_BAD_MEMORY, modeVal, cpuMin, cpuMax);
         }
         String vmStorage = sizingInfo.get(NodeSizeTemplate.Parameter.STORAGE_IN_GIGS);
         Integer vmStorageInt = Pattern.matches("\\d+", vmStorage) ? Integer.parseInt(vmStorage) : 0;
         if (vmStorageInt < storageMin || vmStorageInt > storageMax) {
-            throw new BadRequestException(String.format(modeVal + "Expected value of storage in Gigs is"
-                                                        + " between %s and %s", storageMin, storageMax));
+            throw new BadRequestException(ErrorCodeType.BLOCKCHAIN_SIZING_INFO_BAD_STORAGE, modeVal, cpuMin, cpuMax);
         }
         return true;
     }

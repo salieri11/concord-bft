@@ -30,9 +30,28 @@ public final class ErrorCodeType {
     public static final ErrorCodeType BAD_REQUEST = new ErrorCodeType("helen.bad.request.missing.request.body", 0);
     public static final ErrorCodeType BAD_REQUEST_PARAM =
             new ErrorCodeType("helen.bad.request.missing.request.param", 0);
+    public static final ErrorCodeType BAD_TLS_CREDENTIALS_CRT = new ErrorCodeType("helen.bad.tls.crt", 0);
+    public static final ErrorCodeType BAD_TLS_CREDENTIALS_PEM = new ErrorCodeType("helen.bad.tls.pem", 0);
     public static final ErrorCodeType BAD_TOKEN = new ErrorCodeType("helen.bad.token", 0);
     public static final ErrorCodeType BAD_UUID_FORMAT = new ErrorCodeType("helen.error.converting.to.UUID", 1);
+    public static final ErrorCodeType BLOCKCHAIN_ACTIVE_CANNOT_DELETE =
+            new ErrorCodeType("helen.blockchain.active.cannot.delete", 1);
+    public static final ErrorCodeType BLOCKCHAIN_ALREADY_DEREGISTERED =
+            new ErrorCodeType("helen.blockchain.deregistered", 1);
+    public static final ErrorCodeType BLOCKCHAIN_DELETION_ERROR =
+            new ErrorCodeType("helen.blockchain.deletion.error", 1);
     public static final ErrorCodeType BLOCKCHAIN_LIMIT = new ErrorCodeType("helen.blockchain.limit", 1);
+    public static final ErrorCodeType BLOCKCHAIN_NOT_FOUND = new ErrorCodeType("helen.blockchain.not.found", 1);
+    public static final ErrorCodeType BLOCKCHAIN_SIZING_INFO_BAD_CPU =
+            new ErrorCodeType("helen.blockchain.sizinginfo.bad.cpu", 3);
+    public static final ErrorCodeType BLOCKCHAIN_SIZING_INFO_BAD_MEMORY =
+            new ErrorCodeType("helen.blockchain.sizinginfo.bad.memory", 3);
+    public static final ErrorCodeType BLOCKCHAIN_SIZING_INFO_BAD_STORAGE =
+            new ErrorCodeType("helen.blockchain.sizinginfo.bad.storage", 3);
+    public static final ErrorCodeType BLOCKCHAIN_SIZING_INFO_NOT_AVAILABLE =
+            new ErrorCodeType("helen.blockchain.sizinginfo.unavailable", 1);
+    public static final ErrorCodeType BLOCKCHAIN_UNEXPECTED_NUMBER_REPLICAS_CLIENTS =
+            new ErrorCodeType("helen.blockchain.unexpected.replicas.clients", 4);
     public static final ErrorCodeType BLOCKCHAIN_UNSPECIFIED = new ErrorCodeType("helen.no.blockchain.specified", 0);
     public static final ErrorCodeType BYTECODE_OR_METADATA_ALLOWED =
             new ErrorCodeType("helen.only.metadata.file.path.are.supported", 0);
