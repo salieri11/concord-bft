@@ -43,7 +43,13 @@
                     "10.78.1.132",
                     "10.78.1.133"
                 ]
+            },
+            "containerRegistry": {
+                "url": "https://blockchain-docker-internal.artifactory.eng.vmware.com",
+                "userName": "blockchain-artifactory-deployer",
+                "password": "<CONTAINER_PASSWORD>"
             }
+
         }
     ]
 }
