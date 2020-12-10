@@ -32,6 +32,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.google.common.base.Strings;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
 import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
@@ -60,14 +61,17 @@ public class ValidatorServiceImpl implements ValidatorService {
         switch (deploymentType) {
             case PROVISION:
             case VALIDATE:
-                ProvisionDescriptorDescriptorModel provisionDesc =
-                        ProvisionDescriptorDescriptorModel.class.cast(deploymentDescriptor);
-                errors = validateProvisioning(infrastructureDescriptor, provisionDesc);
+                errors = validateProvisioning(infrastructureDescriptor,
+                                              ProvisionDescriptorDescriptorModel.class.cast(deploymentDescriptor));
                 break;
             case RECONFIGURE:
-                ReconfigurationDescriptorModel reconfigDesc =
-                        ReconfigurationDescriptorModel.class.cast(deploymentDescriptor);
-                errors = validateReconfiguration(infrastructureDescriptor, reconfigDesc);
+
+                errors = validateReconfiguration(infrastructureDescriptor,
+                                                 ReconfigurationDescriptorModel.class.cast(deploymentDescriptor));
+                break;
+            case CLONE:
+                errors = validateCloning(infrastructureDescriptor,
+                                         ReconfigurationDescriptorModel.class.cast(deploymentDescriptor));
                 break;
             default:
                 break;
@@ -282,7 +286,7 @@ public class ValidatorServiceImpl implements ValidatorService {
         }
 
         //Ensure all or none of the client nodes have DAML DB password
-        long clientDamlDbPassCount = deploymentDescriptor.getClients().stream().mapToInt(c -> {
+        long clientDamlDbPassCount = deploymentDescriptor.getPopulatedClients().stream().mapToInt(c -> {
             return StringUtils.hasText(c.getDamlDbPassword()) ? 1 : 0;
         }).sum();
         int totalClients = deploymentDescriptor.getClients().size();
@@ -295,6 +299,47 @@ public class ValidatorServiceImpl implements ValidatorService {
             errors.add(e);
         }
 
+        log.info("Finished reconfiguration validation, found {} errors", errors.size());
+        return errors;
+    }
+
+    private List<ValidationError> validateCloning(
+            InfrastructureDescriptorModel infrastructureDescriptor,
+            ReconfigurationDescriptorModel deploymentDescriptor) {
+        // Delegate to provisioning validator for base validations.
+        // The 2 differences for the reconfiguration are:
+        // 1. The blockchain id from a previous PROVISION deployment type is MANDATORY
+        // 2. IP addresses are MANDATORY for reconfig.
+        // 3. If a client node has DAML DB password, then all the client nodes should have DAML DB passwords
+
+        List<ValidationError> errors = validateProvisioning(infrastructureDescriptor, deploymentDescriptor);
+
+        int totalClients = deploymentDescriptor.getClients().size();
+
+        //Ensure all or none of the client nodes have DAML DB password
+        long clientDamlDbPassCount = deploymentDescriptor.getPopulatedClients().stream().mapToInt(c -> {
+            return StringUtils.hasText(c.getDamlDbPassword()) ? 1 : 0;
+        }).sum();
+        if (clientDamlDbPassCount != 0 && clientDamlDbPassCount != totalClients) {
+            String error = "not.all.clients.daml.db.passwords.provided";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("damlDbPassword")
+                    .build();
+            errors.add(e);
+        }
+
+        long clientGroupIdCount = deploymentDescriptor.getPopulatedClients().stream().mapToInt(c -> {
+            return !Strings.isNullOrEmpty(c.getClientGroupId()) ? 1 : 0;
+        }).sum();
+        if (clientGroupIdCount != totalClients) {
+            String error = "not.all.clients.daml.db.passwords.provided";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("damlDbPassword")
+                    .build();
+            errors.add(e);
+        }
         log.info("Finished reconfiguration validation, found {} errors", errors.size());
         return errors;
     }

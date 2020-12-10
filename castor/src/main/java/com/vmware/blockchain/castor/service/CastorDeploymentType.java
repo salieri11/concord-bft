@@ -11,5 +11,6 @@ public enum CastorDeploymentType {
     NONE,
     PROVISION,
     RECONFIGURE,
-    VALIDATE
+    VALIDATE,
+    CLONE
 }

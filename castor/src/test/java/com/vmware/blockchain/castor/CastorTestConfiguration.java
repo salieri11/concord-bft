@@ -12,6 +12,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.mock.env.MockEnvironment;
 
+import com.vmware.blockchain.castor.service.CloningService;
+import com.vmware.blockchain.castor.service.CloningServiceImpl;
 import com.vmware.blockchain.castor.service.DeployerService;
 import com.vmware.blockchain.castor.service.DeployerServiceImpl;
 import com.vmware.blockchain.castor.service.DescriptorService;
@@ -83,7 +85,15 @@ public class CastorTestConfiguration {
     @Bean
     public ReconfigurerService reconfigurerService() {
         return new ReconfigurerServiceImpl(blockingProvisioningClient);
+    }
 
+    /**
+     * Create a cloning service bean.
+     * @return the cloning service singleton.
+     */
+    @Bean
+    public CloningService cloningService() {
+        return new CloningServiceImpl(blockingProvisioningClient, provisionerService());
     }
 
     /**
@@ -112,6 +122,6 @@ public class CastorTestConfiguration {
     public DeployerService deployerService() {
         return new DeployerServiceImpl(
                 mockEnvironment(), descriptorService(), validatorService(),
-                provisionerService(), reconfigurerService(), siteValidatorService());
+                provisionerService(), reconfigurerService(), cloningService(), siteValidatorService());
     }
 }

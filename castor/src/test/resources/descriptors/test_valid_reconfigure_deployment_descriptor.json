@@ -17,16 +17,20 @@
       "providedIp": "10.72.216.91"
     }
   ],
-  "clients": [
+  "populatedClients": [
     {
       "zoneName": "test-zone-1 - A",
       "providedIp": "10.72.216.95",
-      "damlDbPassword": "pass"
+      "damlDbPassword": "pass",
+      "clientGroupId" : "UUID1",
+      "groupName" : "g1"
     },
     {
       "zoneName": "test-zone-1 - A",
       "providedIp": "10.72.216.93",
-      "damlDbPassword": "pass"
+      "damlDbPassword": "pass",
+      "clientGroupId" : "UUID2",
+      "groupName" : "g2"
     }
   ],
   "blockchain": {

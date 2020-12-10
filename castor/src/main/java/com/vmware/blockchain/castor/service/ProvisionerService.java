@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
 import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
+import com.vmware.blockchain.deployment.v1.DeploymentRequest;
 
 /**
  * Provisioner service.
@@ -25,4 +26,16 @@ public interface ProvisionerService {
             PrintWriter printWriter, InfrastructureDescriptorModel infrastructureDescriptorModel,
             ProvisionDescriptorDescriptorModel provisioningDescriptorModel,
             CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture);
+
+    /**
+     * Internal API to trigger deployment.
+     */
+    String submitDeploymentRequest(
+            DeploymentRequest deploymentRequest,
+            CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture);
+
+    /**
+     * Internal API to track deployment.
+     */
+    CastorDeploymentStatus provisionAndComplete(PrintWriter printWriter, String deploymentRequestId);
 }
