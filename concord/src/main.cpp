@@ -209,7 +209,8 @@ std::string resolve_host(std::string &host_port, Logger &logger) {
   }
 }
 
-void initialize_tracing(ConcordConfiguration &nodeConfig, Logger &logger) {
+void initialize_tracing(ConcordConfiguration &globalConfig,
+                        ConcordConfiguration &nodeConfig, Logger &logger) {
   std::string jaeger_agent =
       nodeConfig.hasValue<std::string>("jaeger_agent")
           ? nodeConfig.getValue<std::string>("jaeger_agent")
@@ -259,17 +260,19 @@ static concord::storage::s3::StoreConfig getS3ConfigParams(
 }
 
 std::unique_ptr<IStorageFactory> create_storage_factory(
+    const ConcordConfiguration &globalConfig,
     const ConcordConfiguration &nodeConfig, Logger logger, bool isReadOnly) {
-  if (!nodeConfig.hasValue<std::string>("blockchain_db_impl")) {
+  if (!globalConfig.hasValue<std::string>("blockchain_db_impl")) {
     LOG_FATAL(logger, "Missing blockchain_db_impl config");
     throw EVMException("Missing blockchain_db_impl config");
   }
 
   const auto db_impl_name =
-      nodeConfig.getValue<std::string>("blockchain_db_impl");
+      globalConfig.getValue<std::string>("blockchain_db_impl");
   auto storage_type = std::string{};
-  if (nodeConfig.hasValue<std::string>("blockchain_storage_type")) {
-    storage_type = nodeConfig.getValue<std::string>("blockchain_storage_type");
+  if (globalConfig.hasValue<std::string>("blockchain_storage_type")) {
+    storage_type =
+        globalConfig.getValue<std::string>("blockchain_storage_type");
   }
 
   if (db_impl_name == "memory") {
@@ -284,7 +287,7 @@ std::unique_ptr<IStorageFactory> create_storage_factory(
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     const auto rocks_path =
-        nodeConfig.getValue<std::string>("blockchain_db_path");
+        globalConfig.getValue<std::string>("blockchain_db_path");
 
     if (isReadOnly) {
       concord::storage::s3::StoreConfig s3Config =
@@ -837,10 +840,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
         initialise_bft_metrics_aggregator(nodeConfig, logger,
                                           prometheus_for_concordbft);
 
-    ReplicaImp replica(
-        icomm, replicaConfig,
-        create_storage_factory(nodeConfig, logger, replicaConfig.isReadOnly),
-        bft_metrics_aggregator);
+    ReplicaImp replica(icomm, replicaConfig,
+                       create_storage_factory(config, nodeConfig, logger,
+                                              replicaConfig.isReadOnly),
+                       bft_metrics_aggregator);
 
     replica.setReplicaStateSync(
         new ReplicaStateSyncImp(new ConcordBlockMetadata(replica)));
@@ -1086,10 +1089,10 @@ int run_ro_service(ConcordConfiguration &config,
         initialise_bft_metrics_aggregator(nodeConfig, logger,
                                           prometheus_for_concordbft);
 
-    ReplicaImp replica(
-        icomm, replicaConfig,
-        create_storage_factory(nodeConfig, logger, replicaConfig.isReadOnly),
-        bft_metrics_aggregator);
+    ReplicaImp replica(icomm, replicaConfig,
+                       create_storage_factory(config, nodeConfig, logger,
+                                              replicaConfig.isReadOnly),
+                       bft_metrics_aggregator);
 
     // replica.set_command_handler(kvb_commands_handler.get());
     replica.start();
@@ -1144,15 +1147,15 @@ int main(int argc, char **argv) {
                    : config.subscope("node", nodeIndex);
 
     // Initialize logger
-    LOG_CONFIGURE_AND_WATCH(nodeConfig.getValue<std::string>("logger_config"),
-                            nodeConfig.getValue<int>("logger_reconfig_time"));
+    LOG_CONFIGURE_AND_WATCH(config.getValue<std::string>("logger_config"),
+                            config.getValue<int>("logger_reconfig_time"));
 
     // re-initialize logger after configuration
     mainLogger = Logger::getInstance("concord.main");
     // say hello
     LOG_INFO(mainLogger, "VMware Project concord starting");
 
-    initialize_tracing(nodeConfig, mainLogger);
+    initialize_tracing(config, nodeConfig, mainLogger);
     tracingInitialized = true;
     // actually run the service - when this call returns, the
     // service has shutdown
