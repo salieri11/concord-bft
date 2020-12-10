@@ -42,11 +42,6 @@ def test_init(fxProduct, fxHermesRunSettings):
     global operator_docker_utils
     operator_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.operator_containers)
 
-
-def _process_response(response):
-    return response.decode('utf-8').rstrip().replace("'", '"').replace('True', '"true"').replace('False', '"false"')
-
-
 def _try_to_perform_an_action(action, stop_condition):
     for i in range(MAX_TRIES_TO_PERFORM_AN_ACTION):
         res = action()
@@ -61,25 +56,23 @@ def _try_to_perform_an_action(action, stop_condition):
 def _get_latestPrunableBlock():
     cmd = "./concop prune latestPruneableBlock"
     response = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
-    response = response.decode('utf-8').rstrip().replace("'", '"')
     if response.lower() == "none":
         return None
     latest_prunable_blocks_id = {}
     res = json.loads(response)
     for k in res:
-        latest_prunable_blocks_id[int(k)] = int(res[k]['block_id'])
+        latest_prunable_blocks_id[k] = res[k]['block_id']
     return latest_prunable_blocks_id
 
 
 def _execute_prune_request():
     cmd = "./concop prune execute"
     response = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
-    response = _process_response(response)
     if response.lower() == "none":
         return None, -1
     res = json.loads(response)
-    if res["succ"].lower() == "true":
-        return True, int(res["additional_data"])
+    if res["succ"]:
+        return True, res["pruned_block"]
     else:
         return False, -1
 
@@ -98,10 +91,12 @@ def test_get_latestPruneableBlock_with_lagging_replica(fxProduct, fxHermesRunSet
     net_utils.isolate_target(hermes_docker_utils.concord_containers[3], hermes_docker_utils.concord_containers[:3])
     time.sleep(2)
     latest_pruneable_blocks = _try_to_perform_an_action(_get_latestPrunableBlock, lambda _: _ is not None)
-    lagging_replica_latestPruneableBlock = latest_pruneable_blocks[3]
+    lagging_replica_latestPruneableBlock = min(latest_pruneable_blocks.values())
+    num_of_bigger_ids = 0
     for k in latest_pruneable_blocks:
-        if k != 3:
-            assert latest_pruneable_blocks[k] > lagging_replica_latestPruneableBlock
+        if latest_pruneable_blocks[k] > lagging_replica_latestPruneableBlock:
+            num_of_bigger_ids += 1
+    assert num_of_bigger_ids == 3
     net_utils.flush_ip_tables(hermes_docker_utils.concord_containers[3])
 
 
@@ -122,8 +117,10 @@ def test_pruning_with_lagging_replica(fxProduct, fxHermesRunSettings):
     time.sleep(2)
     latest_pruneable_blocks = _try_to_perform_an_action(_get_latestPrunableBlock, lambda _: _ is not None)
     highest_prunable_block = max(latest_pruneable_blocks.values())
+    min_pruneable_block = min(latest_pruneable_blocks.values())
     prune_res = _try_to_perform_an_action(_execute_prune_request, lambda _: _[0] is True)
     assert prune_res[0] is True
     # We expect the actual pruned block to be less than the highest pruneable block we found before
     assert prune_res[1] < highest_prunable_block
+    assert prune_res[1] == min_pruneable_block
     net_utils.flush_ip_tables(hermes_docker_utils.concord_containers[3])

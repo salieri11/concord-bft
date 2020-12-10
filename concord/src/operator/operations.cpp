@@ -206,6 +206,9 @@ concord::op::Response concord::op::Operations::initiatePrune(
   std::string cid = "operator-PruneRequest-command";
   return initiateWriteRequest(conc_req, LinearizableQuorum{}, timeout, cid, "");
 }
+std::string concord::op::Operations::getNodeIp(bft::communication::NodeNum id) {
+  return config_.comm_config.nodes[id].host;
+}
 
 concord::op::Response::Response(const bft::client::Reply& reply) {
   for (auto& rsi : reply.rsi) {

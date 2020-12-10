@@ -137,8 +137,7 @@ void startServer(concord::op::Operations& ops) {
         auto& data = std::get<1>(rsi).data();
         concord::messages::deserialize(
             std::vector<uint8_t>(data.begin(), data.end()), wedge_response);
-        j[std::to_string(std::get<0>(rsi).val)] =
-            wedge_response.stopped ? "true" : "false";
+        j[ops.getNodeIp(std::get<0>(rsi).val)] = wedge_response.stopped;
       }
       res.set_content(j.dump(), "application/json");
       LOG_INFO(logger, "done running wedge status command");
@@ -211,9 +210,8 @@ void startServer(concord::op::Operations& ops) {
             std::vector<uint8_t>(data.begin(), data.end()), response_);
         auto sig_str =
             concord::op::Utils::stringToByteString(response_.signature);
-        j[std::to_string(std::get<0>(rsi).val)] = {
-            {"block_id", std::to_string(response_.block_id)},
-            {"signautre", sig_str}};
+        j[ops.getNodeIp(std::get<0>(rsi).val)] = {
+            {"block_id", response_.block_id}, {"signautre", sig_str}};
       }
       res.set_content(j.dump(), "application/json");
       LOG_INFO(logger, "done running prunelatestPruneableBlock command");
@@ -258,7 +256,11 @@ void startServer(concord::op::Operations& ops) {
                                  latest_pruneable_blocks);
 
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
-      if (result.res.reconfiguration_sm_response().has_additionaldata()) {
+      if (result.res.reconfiguration_sm_response().success()) {
+        j["pruned_block"] = std::stoi(
+            result.res.reconfiguration_sm_response().additionaldata());
+      } else if (result.res.reconfiguration_sm_response()
+                     .has_additionaldata()) {
         j["additional_data"] =
             result.res.reconfiguration_sm_response().additionaldata();
       }

@@ -9,7 +9,8 @@
     "daml-index-db",
     "client-pool-lib",
     "participant-lib",
-    "persephone-configuration"
+    "persephone-configuration",
+    "operator"
   ],
   "test_suites": [
     "ChessPlusTestsOnPredeployedBlockchain",
