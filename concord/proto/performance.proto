@@ -1,6 +1,8 @@
 syntax = "proto3";
 package com.vmware.concord.performance;
 
+import "google/protobuf/duration.proto";
+
 // This service is a first step in creating performance oriented interface to Concord, which can be used
 // for performance measurements in runtime.
 // Currently, it is used purely as Yet Another Execution Engine, but in future it can be used for various purposed,
@@ -69,4 +71,22 @@ message PerfCleanRequest {
 
 message PerfCleanResponse {
   string message = 1;
+}
+
+message KeyValuePair {
+  bytes key = 1;
+  bytes value = 2;
+}
+
+message KVSet {
+  repeated KeyValuePair pairs = 1;
+}
+
+// This struct is used to record the executed commands
+message RecordedCommand {
+  string cid = 1;
+  google.protobuf.Duration exec_duration = 2;
+  KVSet pre_execution_reads = 3;
+  KVSet post_execution_reads = 4;
+  KVSet post_execution_writes = 5;
 }
