@@ -34,15 +34,14 @@ MAX_TRIES_TO_PERFORM_AN_ACTION = 10
 
 operator_docker_utils = None
 concord_docker_utils = None
+
+
 @describe()
 def test_init(fxProduct, fxHermesRunSettings):
     global operator_docker_utils
     global concord_docker_utils
     operator_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.operator_containers)
     concord_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.concord_containers)
-
-def _process_response(response):
-    return response.decode('utf-8').rstrip().replace("'", '"').replace('True', '"true"').replace('False', '"false"')
 
 
 def _try_to_perform_an_action(action, stop_condition):
@@ -58,31 +57,30 @@ def _try_to_perform_an_action(action, stop_condition):
 
 def _system_has_stopped():
     cmd = "./concop wedge status"
-    output = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
-    msg = _process_response(output)
+    msg = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
     if msg.lower() == "none":
         return None
+    res = json.loads(msg)
+    if "succ" in res and not res['succ']:
+        return None
     else:
-        res = json.loads(msg)
         for v in list(res.values()):
-            if v.lower() == "false":
+            if not v:
                 return False
         return True
 
 
 def _try_to_wedge():
     cmd = "./concop wedge stop"
-    output = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
-    msg = _process_response(output)
+    msg = operator_docker_utils.exec_cmd(id=0, cmd=cmd)
     if msg.lower() == "none":
         return None
     else:
         res = json.loads(msg)
-        if res["succ"].lower() == "true":
+        if res["succ"]:
             return True
         else:
             return False
-
 
 @describe()
 def test_wedge_stop_command(fxProduct, fxHermesRunSettings):

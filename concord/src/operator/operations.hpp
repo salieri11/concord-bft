@@ -68,18 +68,21 @@ class Operations {
       const std::vector<concord::messages::LatestPrunableBlock>&
           latestPruneableBlocks);
 
+  std::string getNodeIp(bft::communication::NodeNum);
+
  private:
-  /*
-   * This method sign on a reconfiguration message and set the
-   * ReconfigurationSmRequest signature to that signature.
-   */
-  void signRequest(concord::messages::ReconfigurationRequest& request);
   std::unique_ptr<concord::utils::openssl_crypto::AsymmetricPrivateKey>
       priv_key_;
   bft::client::Client& client_;
   Config config_;
   bft::client::SeqNumberGenerator snGen_;
   logging::Logger logger_ = logging::getLogger("operator.operations");
+
+  /*
+   * This method sign on a reconfiguration message and set the
+   * ReconfigurationSmRequest signature to that signature.
+   */
+  void signRequest(concord::messages::ReconfigurationRequest& request);
 
   Response initiateWriteRequest(
       const com::vmware::concord::ConcordRequest& request,
