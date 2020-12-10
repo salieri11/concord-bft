@@ -14,6 +14,7 @@ client_sends_request_to_all_replicas_first_thresh: 4
 client_sends_request_to_all_replicas_period_thresh: 2
 client_periodic_reset_thresh: 30
 prometheus_port: 9873
+num_ro_replicas: 0
 node:
   - replica:
       - replica_host: 10.0.0.1

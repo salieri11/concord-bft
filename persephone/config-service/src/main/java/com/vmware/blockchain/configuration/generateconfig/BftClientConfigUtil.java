@@ -288,6 +288,10 @@ public class BftClientConfigUtil {
         configInput
                 .put(ConfigUtilHelpers.ConfigProperty.CLIENTS_PER_PARTICIPANT_NODE.name, clientProxyPerParticipant);
 
+        // Also add num_ro_replicas. I was asked to put this back, otherwise principalId computation formula fails.
+        configInput.put(ConfigUtilHelpers.ConfigProperty.OBJ_STORE_NUM_RO_REPLICAS.name,
+                        nodeList.getReadReplicaSize());
+
         BufferedWriter writer = null;
         try {
             writer = Files.newBufferedWriter(path);
