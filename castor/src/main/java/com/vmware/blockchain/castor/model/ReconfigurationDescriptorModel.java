@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.castor.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.validation.Valid;
@@ -15,7 +16,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Deployment Descriptor for reconfiguration. Contains properties that are specific to each blockchain reconfiguration.
+ * Deployment Descriptor for cloning.
  */
 @Getter
 @Setter
@@ -41,7 +42,8 @@ public class ReconfigurationDescriptorModel implements DeploymentDescriptorModel
 
     @NotEmpty(message = "deployment.clients.not.specified")
     @Valid
-    private List<Client> clients;
+    @Getter
+    private List<PopulatedClient> populatedClients;
 
     @Valid
     private NodeSpecification clientNodeSpec;
@@ -51,4 +53,40 @@ public class ReconfigurationDescriptorModel implements DeploymentDescriptorModel
 
     @Valid
     private OperatorSpecifications operatorSpecifications;
+
+    /**
+     * Required client.
+     */
+    @Getter
+    @Setter
+    @EqualsAndHashCode
+    public static class PopulatedClient extends Client {
+        private String damlDbPassword;
+        private String clientGroupId;
+
+        /**
+         * Override builder for inheritance.
+         */
+        @Builder
+        public PopulatedClient(String damlDbPassword, String clientGroupId,
+                               String zoneName, String authUrlJwt, String providedIp, String groupName,
+                               TlsLedgerData tlsLedgerData) {
+            super(zoneName, authUrlJwt, providedIp, groupName, tlsLedgerData);
+            this.damlDbPassword = damlDbPassword;
+            this.clientGroupId = clientGroupId;
+        }
+
+        /**
+         * Builder class. Do NOT Delete this. Compilation will fail even if Intellij says so.
+         */
+        public static class PopulatedClientBuilder extends ClientBuilder {
+            PopulatedClientBuilder() {
+                super();
+            }
+        }
+    }
+
+    public List<Client> getClients() {
+        return new ArrayList<>(populatedClients);
+    }
 }

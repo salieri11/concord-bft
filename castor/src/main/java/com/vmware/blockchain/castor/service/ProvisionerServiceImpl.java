@@ -80,7 +80,10 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         }
     }
 
-    private String submitDeploymentRequest(
+    /**
+     * Internal API to trigger deployment.
+     */
+    public String submitDeploymentRequest(
             DeploymentRequest deploymentRequest,
             CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture) throws CastorException {
         try {
@@ -95,7 +98,10 @@ public class ProvisionerServiceImpl implements ProvisionerService {
         }
     }
 
-    private CastorDeploymentStatus provisionAndComplete(PrintWriter printWriter, String deploymentRequestId) {
+    /**
+     * Internal API to track deployment.
+     */
+    public CastorDeploymentStatus provisionAndComplete(PrintWriter printWriter, String deploymentRequestId) {
 
         // This future is for completion of provisioning itself, since those callbacks are asynchronous
         CompletableFuture<CastorDeploymentStatus> provisioningCompletionFuture = new CompletableFuture<>();

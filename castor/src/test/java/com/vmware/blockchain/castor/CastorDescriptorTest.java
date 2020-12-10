@@ -35,6 +35,7 @@ import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
 import com.vmware.blockchain.castor.model.ProvisionDescriptorDescriptorModel;
 import com.vmware.blockchain.castor.service.CastorDeploymentType;
 import com.vmware.blockchain.castor.service.DeployerService;
+import com.vmware.blockchain.castor.service.DeploymentHelper;
 import com.vmware.blockchain.castor.service.DescriptorService;
 import com.vmware.blockchain.castor.service.ValidationError;
 import com.vmware.blockchain.castor.service.ValidatorService;
@@ -695,6 +696,24 @@ public class CastorDescriptorTest {
         expectedErrorCodes.add("not.all.clients.daml.db.passwords.provided");
         assertEquals(1, validationErrorCodes.size());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
+    }
+
+    @Test
+    public void testValidReconfigDescriptorForCloning() throws IOException {
+        Resource deploymentResource = resourceLoader.getResource(VALID_RECONFIGURE_DEPLOYMENT_DESCRIPTOR);
+        String deploymentLocation = deploymentResource.getFile().getAbsolutePath();
+        DeploymentDescriptorModel readValidDeployment =
+                descriptorService.readDeploymentDescriptorSpec(CastorDeploymentType.RECONFIGURE, deploymentLocation);
+        Resource infraResource = resourceLoader.getResource(INFRASTRUCTURE_DESCRIPTOR);
+        String infraLocation = infraResource.getFile().getAbsolutePath();
+        InfrastructureDescriptorModel readInfra =
+                descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+        List<ValidationError> errors = validatorService.validate(
+                CastorDeploymentType.CLONE, readInfra, readValidDeployment);
+        Set<String> validationErrorCodes = errors.stream()
+                .map(ValidationError::getErrorCode).collect(Collectors.toSet());
+        DeploymentHelper.constructDeploymentRequest(readInfra, readValidDeployment);
+        assertEquals(0, validationErrorCodes.size());
     }
 
     /**

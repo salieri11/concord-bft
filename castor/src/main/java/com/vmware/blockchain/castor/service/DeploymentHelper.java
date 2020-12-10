@@ -21,6 +21,7 @@ import com.vmware.blockchain.castor.exception.CastorException;
 import com.vmware.blockchain.castor.exception.ErrorCode;
 import com.vmware.blockchain.castor.model.DeploymentDescriptorModel;
 import com.vmware.blockchain.castor.model.InfrastructureDescriptorModel;
+import com.vmware.blockchain.castor.model.ReconfigurationDescriptorModel;
 import com.vmware.blockchain.deployment.v1.BlockchainType;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.DeployedResource;
@@ -93,8 +94,7 @@ public class DeploymentHelper {
         buildReadOnlyReplicas(deploymentDescriptorModel, readonlyReplicas, nodeAssignmentBuilder);
 
         // Build Clients
-        List<DeploymentDescriptorModel.Client> clients = deploymentDescriptorModel.getClients();
-        buildClients(deploymentDescriptorModel, clients, nodeAssignmentBuilder);
+        buildClients(deploymentDescriptorModel, deploymentDescriptorModel.getClients(), nodeAssignmentBuilder);
 
         // Build sites
         List<OrchestrationSite> orchestrationSites =
@@ -246,9 +246,6 @@ public class DeploymentHelper {
                 propBuilder.putValues(
                         DeployedResource.DeployedResourcePropertyKey.PRIVATE_IP.name(), client.getProvidedIp());
             }
-            if (StringUtils.hasText(client.getDamlDbPassword())) {
-                propBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), client.getDamlDbPassword());
-            }
             if (deploymentDescriptorModel.getClientNodeSpec() != null) {
                 int diskSize = deploymentDescriptorModel.getClientNodeSpec().getDiskSizeGb();
                 if (diskSize > 0) {
@@ -283,21 +280,26 @@ public class DeploymentHelper {
                 }
             }
 
-            // Process client group and add group properties.
-            String groupId;
-            String groupName = client.getGroupName();
-            if (groupMap.containsKey(groupName)) {
-                groupId = groupMap.get(groupName);
+            if (client instanceof ReconfigurationDescriptorModel.PopulatedClient) {
+                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(),
+                                      ((ReconfigurationDescriptorModel.PopulatedClient) client).getClientGroupId());
+                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), client.getGroupName());
             } else {
-                groupId = UUID.randomUUID().toString();
-                groupMap.put(groupName, groupId);
-            }
+                // Process client group and add group properties.
+                String groupId;
+                String groupName = client.getGroupName();
+                if (groupMap.containsKey(groupName)) {
+                    groupId = groupMap.get(groupName);
+                } else {
+                    groupId = UUID.randomUUID().toString();
+                    groupMap.put(groupName, groupId);
+                }
 
-            if (StringUtils.hasText(groupName)) {
-                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId);
-                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
+                if (StringUtils.hasText(groupName)) {
+                    propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), groupId);
+                    propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), groupName);
+                }
             }
-
 
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder().setType(NodeType.CLIENT)
