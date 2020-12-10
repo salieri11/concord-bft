@@ -15,6 +15,7 @@ import java.util.stream.IntStream;
 
 import com.vmware.blockchain.configuration.eccerts.TrsTrcTlsSingleCertificateGenerator;
 import com.vmware.blockchain.configuration.generatecerts.CertificatesGenerator;
+import com.vmware.blockchain.configuration.generateconfig.DamlLedgerApiUtil;
 import com.vmware.blockchain.configuration.generateconfig.ValidationUtil;
 import com.vmware.blockchain.configuration.util.BlockchainFeatures;
 import com.vmware.blockchain.configuration.util.BlockchainNodeList;
@@ -104,7 +105,7 @@ public class IdentityManagementUtil {
             futures.add(CompletableFuture.supplyAsync(() -> getTrsTrcIdentityPerNode(client.getId(),
                     ServiceType.DAML_LEDGER_API,
                     client.getIp(),
-                    client.getClientGroupId())));
+                    DamlLedgerApiUtil.convertToParticipantId(client.getClientGroupId()))));
             clientIdMap.put(client.getId(), client.getClientGroupId());
         });
 
