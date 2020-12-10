@@ -20,9 +20,9 @@ insecure_thin_replica_server: false
 thin_replica_tls_cert_path: /concord/trs_trc_tls_certs
 genesis_block: /concord/config-public/daml_genesis.json
 time_pusher_period_ms: 1000
+logger_config: /concord/config-public/log4cplus.properties
+blockchain_db_path: /concord/rocksdbdata/
 node__TEMPLATE:
-  logger_config: /concord/config-public/log4cplus.properties
-  blockchain_db_path: /concord/rocksdbdata/
   bft_client_timeout_ms: 4294967295
   jaeger_agent: jaeger-agent:6831
   metrics_config: /concord/config-public/metrics_config.yaml

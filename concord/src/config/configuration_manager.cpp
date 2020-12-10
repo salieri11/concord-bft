@@ -2608,40 +2608,33 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.addValidator("api_worker_pool_size",
                     make_shared<PositiveReplicaIntValidator>());
 
-  auto blockchain_db_impl_param = [&](ConcordConfiguration& c) {
-    c.declareParameter("blockchain_db_impl",
-                       "Database implementation to be used by this replica to "
-                       "persist blockchain state.",
-                       "rocksdb");
-    c.tagParameter("blockchain_db_impl", defaultableByReplicaTags);
-    c.tagParameter("blockchain_db_impl", applicationTag);
-    c.addValidator("blockchain_db_impl",
-                   make_shared<DatabaseImplementationValidator>());
-  };
-  blockchain_db_impl_param(node);
-  blockchain_db_impl_param(ro_node);
+  config.declareParameter(
+      "blockchain_db_impl",
+      "Database implementation to be used by this replica to "
+      "persist blockchain state.",
+      "rocksdb");
+  config.tagParameter("blockchain_db_impl", publicDefaultableTags);
+  config.tagParameter("blockchain_db_impl", applicationTag);
+  config.addValidator("blockchain_db_impl",
+                      make_shared<DatabaseImplementationValidator>());
 
-  auto blockchain_db_path_param = [&](ConcordConfiguration& c) {
-    c.declareParameter(
-        "blockchain_db_path",
-        "Path to storage to use to persist blockchain data for this replica "
-        "using the database implementation specified by blockchain_db_impl.",
-        "rocksdbdata");
-    c.tagParameter("blockchain_db_path", applicationTag);
-    c.tagParameter("blockchain_db_path", defaultableByReplicaTags);
-  };
-  blockchain_db_path_param(node);
-  blockchain_db_path_param(ro_node);
+  config.declareParameter(
+      "blockchain_db_path",
+      "Path to storage to use to persist blockchain data for this replica "
+      "using the database implementation specified by blockchain_db_impl.",
+      "rocksdbdata");
+  config.tagParameter("blockchain_db_path", applicationTag);
+  config.tagParameter("blockchain_db_path", publicDefaultableTags);
 
-  node.declareParameter(
+  config.declareParameter(
       "blockchain_storage_type",
       "The mechanism for storing blockchain data on top of the key/value "
       "store. Possible values are: \"merkle\" and \"basic\"",
       "merkle");
-  node.tagParameter("blockchain_storage_type", publicOptionalTags);
-  node.tagParameter("blockchain_storage_type", applicationTag);
-  node.addValidator("blockchain_storage_type",
-                    make_shared<StorageTypeValidator>());
+  config.tagParameter("blockchain_storage_type", publicOptionalTags);
+  config.tagParameter("blockchain_storage_type", applicationTag);
+  config.addValidator("blockchain_storage_type",
+                      make_shared<StorageTypeValidator>());
 
   node.declareParameter("store_time_data_in_non_provable_keys",
                         "Store Time service keys outside of the Merkle Tree",
@@ -2674,17 +2667,17 @@ void specifyConfiguration(ConcordConfiguration& config) {
   ro_node.tagParameter("s3-url", publicInputTags);
   ro_node.tagParameter("s3-url", deploymentTag);
 
-  node.declareParameter(
+  config.declareParameter(
       "concord-bft_enable_debug_statistics",
       "If set to true, Concord-BFT will periodically log debug statistics for "
       "this Concord node, such as throughput metrics and number of messages "
       "sent/received.",
       "false");
-  node.tagParameter("concord-bft_enable_debug_statistics",
-                    defaultableByReplicaTags);
-  node.tagParameter("concord-bft_enable_debug_statistics", applicationTag);
-  node.addValidator("concord-bft_enable_debug_statistics",
-                    make_shared<BooleanValidator>());
+  config.tagParameter("concord-bft_enable_debug_statistics",
+                      publicDefaultableTags);
+  config.tagParameter("concord-bft_enable_debug_statistics", applicationTag);
+  config.addValidator("concord-bft_enable_debug_statistics",
+                      make_shared<BooleanValidator>());
 
   config.declareParameter(
       "genesis_block",
@@ -2693,17 +2686,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("genesis_block", publicOptionalTags);
   config.tagParameter("genesis_block", applicationTag);
 
-  auto logger_config_param = [&](ConcordConfiguration& c) {
-    c.declareParameter("logger_config",
-                       "Path, in this node's local filesystem to a "
-                       "configuration for Log4CPlus, "
-                       "the logging framework Concord uses.",
-                       "/concord/resources/log4cplus.properties");
-    c.tagParameter("logger_config", defaultableByReplicaTags);
-    c.tagParameter("logger_config", applicationTag);
-  };
-  logger_config_param(node);
-  logger_config_param(ro_node);
+  config.declareParameter("logger_config",
+                          "Path, in this node's local filesystem to a "
+                          "configuration for Log4CPlus, "
+                          "the logging framework Concord uses.",
+                          "/concord/resources/log4cplus.properties");
+  config.tagParameter("logger_config", publicDefaultableTags);
+  config.tagParameter("logger_config", applicationTag);
 
   auto current_node_param = [&](ConcordConfiguration& c) {
     c.declareParameter("current_node",
@@ -2717,20 +2706,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
   current_node_param(node);
   current_node_param(ro_node);
 
-  auto logger_reconfig_time_param = [&](ConcordConfiguration& c) {
-    c.declareParameter(
-        "logger_reconfig_time",
-        "Interval, measured in milliseconds, with which this replica should "
-        "check the file specified by logger_config for changes in requested "
-        "logging behavior.",
-        "60000");
-    c.tagParameter("logger_reconfig_time", defaultableByReplicaTags);
-    c.tagParameter("logger_reconfig_time", applicationTag);
-    c.addValidator("logger_reconfig_time",
-                   make_shared<PositiveReplicaIntValidator>());
-  };
-  logger_reconfig_time_param(node);
-  logger_reconfig_time_param(ro_node);
+  config.declareParameter(
+      "logger_reconfig_time",
+      "Interval, measured in milliseconds, with which this replica should "
+      "check the file specified by logger_config for changes in requested "
+      "logging behavior.",
+      "60000");
+  config.tagParameter("logger_reconfig_time", publicDefaultableTags);
+  config.tagParameter("logger_reconfig_time", applicationTag);
+  config.addValidator("logger_reconfig_time",
+                      make_shared<PositiveReplicaIntValidator>());
 
   node.declareParameter(
       "jaeger_agent",

@@ -143,7 +143,7 @@ inline bool InitializeSbftConfiguration(
     // committers only
     if (selfNumber < numOfReplicas) {
       repConf->debugStatisticsEnabled =
-          nodeConfig.getValue<bool>("concord-bft_enable_debug_statistics");
+          config.getValue<bool>("concord-bft_enable_debug_statistics");
 
       repConf->keyExchangeOnStart =
           config.getValue<bool>("key_exchange_on_start");
