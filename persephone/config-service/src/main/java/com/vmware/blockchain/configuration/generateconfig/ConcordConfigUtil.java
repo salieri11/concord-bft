@@ -245,7 +245,7 @@ public class ConcordConfigUtil {
         configInput.put(ConfigUtilHelpers.ConfigProperty.F_VAL.name, fVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.C_VAL.name, cVal);
         configInput.put(ConfigUtilHelpers.ConfigProperty.TLS_CERTIFICATES_FOLDER_PATH.name,
-                CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
+                CertificatesGenerator.IDENTITY_PATH_PREFIX + CertificatesGenerator.CONCORD_TLS_SECURITY_IDENTITY_PATH);
         configInput.put(ConfigUtilHelpers.ConfigProperty.NUM_EXTERNAL_CLIENTS.name, bftClients);
 
         if (bcFeatures.isPreExecutionDeployment()) {
