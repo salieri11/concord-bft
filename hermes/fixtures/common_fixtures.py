@@ -730,7 +730,6 @@ def fxBlockchain(request, hermes_info, fxProduct):
    elif hermes_data["hermesCmdlineArgs"].replicasConfig:
       # Hermes was told to use a passed in blockchain
       replicas = helper.parseReplicasConfig(hermes_data["hermesCmdlineArgs"].replicasConfig)
-      log.info("\nreplicas is {}".format(replicas))
       # hermesCmdlineArgs is types.SimpleNamespace
       if hasattr(hermes_data["hermesCmdlineArgs"],'vm_handles'):
          log.info("VM handles is already available")
