@@ -143,7 +143,8 @@ class ProvisioningServiceNewRPCHelper(RPCHelper):
         sites = self.create_sites(site_ids, site_infos)
 
         # Increasing CPU count for deployed nodes due to https://jira.eng.vmware.com/browse/BC-5750
-        properties_dict = {'IMAGE_TAG': self.args.deploymentComponents, 'VM_STORAGE': '32', 'VM_CPU_COUNT': '4'}
+        properties_dict = {'IMAGE_TAG': self.args.deploymentComponents,
+                           'VM_STORAGE': '32', 'VM_CPU_COUNT': '4'}
 
         for property_name in helper.DEPLOYMENT_PROPERTIES:
             property_value = helper.DEPLOYMENT_PROPERTIES[property_name]
