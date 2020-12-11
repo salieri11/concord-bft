@@ -8,13 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.agent.services.AgentDockerClient;
 import com.vmware.blockchain.agent.services.exceptions.InvalidConfigurationException;
 import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealth;
 import com.vmware.blockchain.agent.services.node.health.concord.ConcordHealthServiceInvoker;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealth;
 import com.vmware.blockchain.agent.services.node.health.daml.DamlHealthServiceInvoker;
+import com.vmware.blockchain.agent.services.util.DockerClientBuilderUtil;
 import com.vmware.blockchain.agent.services.util.ValidationUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
@@ -34,7 +34,7 @@ public class NodeComponentHealthFactory {
     private final ConcordHealthServiceInvoker concordHealthServiceInvoker;
     private final AgentDockerClient agentDockerClient;
 
-    private final DockerClient dockerClient = DockerClientBuilder.getInstance().build();
+    private final DockerClient dockerClient = DockerClientBuilderUtil.createDefaultDockerClient();
 
     @Autowired
     NodeComponentHealthFactory(ConcordAgentConfiguration concordAgentConfiguration,

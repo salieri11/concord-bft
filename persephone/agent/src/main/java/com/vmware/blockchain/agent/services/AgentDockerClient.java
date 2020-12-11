@@ -28,13 +28,13 @@ import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.model.AuthConfig;
 import com.github.dockerjava.api.model.Network;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.PullImageResultCallback;
 import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
 import com.vmware.blockchain.agent.services.exceptions.AgentException;
 import com.vmware.blockchain.agent.services.exceptions.ErrorCode;
 import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
+import com.vmware.blockchain.agent.services.util.DockerClientBuilderUtil;
 import com.vmware.blockchain.deployment.v1.Endpoint;
 
 import io.micrometer.core.instrument.Tag;
@@ -122,7 +122,8 @@ public class AgentDockerClient {
                 .withRegistryUsername(registryUsername)
                 .withRegistryPassword(registryPassword)
                 .build();
-        var docker = DockerClientBuilder.getInstance(clientConfig).build();
+        var docker = DockerClientBuilderUtil.createDockerClientWithClientConfig(clientConfig);
+
         try {
             var componentImage = new ContainerImage(imageName);
 
@@ -304,7 +305,7 @@ public class AgentDockerClient {
                         Tag.of(MetricsConstants.MetricsTags.TAG_DOCKER_NETWORK.metricsTagName, networkName)));
 
         timer.record(() -> {
-            var dockerClient = DockerClientBuilder.getInstance().build();
+            var dockerClient = DockerClientBuilderUtil.createDefaultDockerClient();
             var listNetworkCmd = dockerClient.listNetworksCmd();
             var createNetworkCmd = dockerClient.createNetworkCmd();
             createNetworkCmd.withName(networkName);

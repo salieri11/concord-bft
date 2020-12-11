@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.agent.services.AgentDockerClient;
 import com.vmware.blockchain.agent.services.NodeStartupOrchestrator;
 import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.HealthStatusResponse;
 import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
+import com.vmware.blockchain.agent.services.util.DockerClientBuilderUtil;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
 import com.vmware.blockchain.deployment.v1.ConcordModelSpecification;
@@ -107,7 +107,7 @@ public class NodeComponentController {
             NodeManagementResponse output = new NodeManagementResponse();
             nodeStartupOrchestrator.getComponents()
                     .forEach(container -> {
-                        var dockerClient = DockerClientBuilder.getInstance().build();
+                        var dockerClient = DockerClientBuilderUtil.createDefaultDockerClient();
                         var containerResponse = agentDockerClient.inspectContainer(dockerClient,
                                 container.getContainerName());
                         agentDockerClient.startComponent(dockerClient, container, containerResponse.getId());
@@ -136,7 +136,7 @@ public class NodeComponentController {
             NodeManagementResponse output = new NodeManagementResponse();
             nodeStartupOrchestrator.getComponents()
                     .forEach(container -> {
-                        var dockerClient = DockerClientBuilder.getInstance().build();
+                        var dockerClient = DockerClientBuilderUtil.createDefaultDockerClient();
                         var containerResponse = agentDockerClient.inspectContainer(dockerClient,
                                 container.getContainerName());
                         agentDockerClient.stopComponent(dockerClient, container, containerResponse.getId());
@@ -158,7 +158,7 @@ public class NodeComponentController {
             NodeManagementResponse output = new NodeManagementResponse();
             nodeStartupOrchestrator.getComponents()
                     .forEach(container -> {
-                        var dockerClient = DockerClientBuilder.getInstance().build();
+                        var dockerClient = DockerClientBuilderUtil.createDefaultDockerClient();
                         var containerResponse = agentDockerClient.inspectContainer(dockerClient,
                                                                                    container.getContainerName());
                         agentDockerClient.deleteComponent(dockerClient, container, containerResponse.getId());
