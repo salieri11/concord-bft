@@ -250,10 +250,9 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
     }
 
     @Override
-    public void generateConfiguration(
-            DeploymentRequest message,
-            StreamObserver<GenerateConfigurationResponse> observer
-    ) {
+    public void generateConfiguration(DeploymentRequest message,
+                                       StreamObserver<GenerateConfigurationResponse> observer) {
+
         var request = Objects.requireNonNull(message);
         var response = Objects.requireNonNull(observer);
 
@@ -277,6 +276,10 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
         var componentsByNode = nodeConfiguration.generateModelSpec(request.getSpec().getBlockchainType(),
                                                                    nodeAssignment, siteMap);
+
+        if (needsDamlDbPasswordForReconfiguration(request, nodeAssignment, componentsByNode)) {
+            nodeAssignment = addDamlDbPassword(componentsByNode, nodeAssignment);
+        }
 
         var localNodeDetailsMap = new HashMap<UUID, DeploymentExecutionContext.LocalNodeDetails>();
 
@@ -310,6 +313,34 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         } catch (Throwable error) {
             response.onError(error);
         }
+    }
+
+    private boolean needsDamlDbPasswordForReconfiguration(DeploymentRequest request, NodeAssignment nodeAssignment,
+                                                         Map<UUID, List<ConcordComponent>> componentsByNode) {
+        boolean requestPasswords = Boolean.parseBoolean(request.getSpec().getProperties().getValuesOrDefault(
+                DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name(), "false"));
+        if (!requestPasswords) {
+            return false;
+        }
+
+        boolean hasPasswords = true;
+        List<String> nodesWithDamlDb = componentsByNode.entrySet().stream().filter(e -> e.getValue().stream()
+                .anyMatch(component -> component.getServiceType() == DAML_INDEX_DB)).map(ee -> ee.getKey().toString())
+                .collect(Collectors.toList());
+        //either all nodes with DAML Index DB have passwords, or none of them has password.
+        //if NodeProperty.DAML_DB_PASSWORD is present, this is enough to conclude that passwords are present
+        //so it is enough to find the first NodeAssignment entry, and check if it has password or not.
+        //this is not validation!
+        for (NodeAssignment.Entry naEntry : nodeAssignment.getEntriesList()) {
+            if (nodesWithDamlDb.contains(naEntry.getNodeId())) {
+                if (!naEntry.getProperties().containsValues(NodeProperty.Name.DAML_DB_PASSWORD.name())) {
+                    hasPasswords = false;
+                }
+                break;
+            }
+        }
+
+        return requestPasswords && !hasPasswords;
     }
 
     //////////////////// Private methods ///////////////////////////////////

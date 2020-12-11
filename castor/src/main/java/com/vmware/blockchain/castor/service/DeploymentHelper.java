@@ -281,8 +281,14 @@ public class DeploymentHelper {
             }
 
             if (client instanceof ReconfigurationDescriptorModel.PopulatedClient) {
-                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(),
-                                      ((ReconfigurationDescriptorModel.PopulatedClient) client).getClientGroupId());
+                ReconfigurationDescriptorModel.PopulatedClient popClient =
+                                                                (ReconfigurationDescriptorModel.PopulatedClient) client;
+                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), popClient.getClientGroupId());
+                if (deploymentDescriptorModel.getBlockchain().getBlockchainType()
+                                                                        == DeploymentDescriptorModel.BlockchainType.DAML
+                    && StringUtils.hasText(popClient.getDamlDbPassword())) {
+                    propBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), popClient.getDamlDbPassword());
+                }
                 propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), client.getGroupName());
             } else {
                 // Process client group and add group properties.
