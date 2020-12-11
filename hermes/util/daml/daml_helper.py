@@ -275,7 +275,7 @@ def upload_test_tool_dars(host='localhost', port='6861',tls_enable_client=False,
                raise Exception("DAR upload failed for an unknown reason.")
 
             break
-         except Error as e:
+         except Exception as e:
             if i != max_retry_attempts-1:
                if verbose: log.info("Retrying in 30 seconds...")
                time.sleep(sleep_time)
