@@ -107,6 +107,9 @@ TYPE_HLF = "hlf"
 TYPE_TEE = "tee"
 TYPE_NO_VERIFY = "no verification required for this blockchain"
 
+# For deriving product type
+TYPE_BLOCKBENCH = "blockbench"
+
 # Port forwarding for testing under VMware firewall
 FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT = 80
 
