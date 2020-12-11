@@ -364,7 +364,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
    if success:
       log.info("Blockchain deployed successfully")
    else:
-      create_support_bundle_from_replicas_info(blockchain_type, logDir)
+      # create_support_bundle_from_replicas_info(blockchain_type, logDir)
       raise Exception("Failed to deploy a new blockchain.")
 
    return blockchainId, conId, replica_dict, clients
@@ -730,6 +730,7 @@ def fxBlockchain(request, hermes_info, fxProduct):
    elif hermes_data["hermesCmdlineArgs"].replicasConfig:
       # Hermes was told to use a passed in blockchain
       replicas = helper.parseReplicasConfig(hermes_data["hermesCmdlineArgs"].replicasConfig)
+      log.info("\nreplicas is {}".format(replicas))
       # hermesCmdlineArgs is types.SimpleNamespace
       if hasattr(hermes_data["hermesCmdlineArgs"],'vm_handles'):
          log.info("VM handles is already available")
@@ -739,13 +740,15 @@ def fxBlockchain(request, hermes_info, fxProduct):
             all_nodes = all_nodes + ips
 
          vm_handles = infra.fetch_vm_handles(all_nodes)
-         log.debug("vm handles: {}".format(vm_handles))
+         # log.info("vm handles: {}".format(vm_handles))
          hermes_data["hermesCmdlineArgs"].vm_handles = vm_handles
 
       # All the nodes have same Blockchain and Consortium Id values
       # So picking the first one
       first_handle = next(iter(hermes_data["hermesCmdlineArgs"].vm_handles.items()))[1]
-      if "attrMap" in first_handle.keys():
+      if "blockchainId" in first_handle.keys() and first_handle["blockchainId"]:
+         blockchainId = first_handle["blockchainId"]
+      elif "attrMap" in first_handle.keys():
          attr_map = first_handle["attrMap"]
          blockchainId = attr_map["blockchain_id"] if "blockchain_id" in attr_map.keys() else None
          conId = attr_map["consortium_id"] if "consortium_id" in attr_map.keys() else None

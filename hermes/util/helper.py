@@ -1562,14 +1562,6 @@ def getNodeCredentials(blockchain_id, node_ip):
       :param node_ip: IP of given node
       e.g. username, password = getNodeCredentials('b2129..','10.78.20.41')
     '''
-    warncolor = "\033[1;33m"
-    reset = "\033[0m"
-    log.warning("\n\n{}".format(warncolor))
-    log.warning("{}".format("*"*85))
-    log.warning("** NOTE: This function will now fetch the strong password.")
-    log.warning("** Its signature has changed and now requires - Blockchain Id, Node IP")
-    log.warning("{}{}\n\n".format("*"*85, reset))
-
     try:
         log.debug("\nBlockchain id is {}".format(blockchain_id))
         log_dir = os.path.dirname(CURRENT_SUITE_LOG_FILE)
@@ -1577,7 +1569,7 @@ def getNodeCredentials(blockchain_id, node_ip):
         log.debug("\nLog directory is {}".format(log_dir))
 
         if not blockchain_id and not node_ip:
-            raise Exception("Blockchain id and node IP are mandatory")
+            raise Exception("Blockchain id and node ip are mandatory")
         
         token_descriptor = auth.getTokenDescriptor(auth.ROLE_CON_ADMIN,
                                                   True,
@@ -1590,7 +1582,7 @@ def getNodeCredentials(blockchain_id, node_ip):
                                                tokenDescriptor=token_descriptor,
                                                service=auth.SERVICE_DEFAULT)
         log.debug("\nAdmin request object created")
-
+      
         node_type, node_id = get_node_id_type(con_admin_request, blockchain_id, node_ip)
         if not node_type or not node_id:
             raise Exception("Either IP is invalid or does not belong to given Blockchain")
@@ -1598,16 +1590,23 @@ def getNodeCredentials(blockchain_id, node_ip):
         log.debug("\nReplica id and type are : [{}, {}]".format(node_id, node_type))
         node_credentials = con_admin_request.getNodeCredentials(blockchain_id, node_id, node_type)
 
-        log.info("\n*** Credentials are {}".format(node_credentials))
+        log.debug("\n*** Credentials are {}".format(node_credentials))
 
         if "error_code" in node_credentials.keys():
             error_msg = node_credentials[0]["error_code"] + "-" + node_credentials[0]["error_message"]
             raise Exception(error_msg)
 
         return node_credentials["username"], node_credentials["password"]
-
     except Exception as e:
-        log.error("\nException while fetching node credentials : {}".format(e))
+        if "No response for a ReST request was received" in str(e):
+           # Cases where blockchain is not created through Helen in the current process
+           # and rather an already created blockchain is passed
+           configObject = getUserConfig()
+           credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
+           return (credentials["username"], credentials["password"])
+        else:
+           log.error("\nException while fetching node credentials : {}".format(e))
+           raise(e)
  
 
 def getNodeCredentialsForCastor():
