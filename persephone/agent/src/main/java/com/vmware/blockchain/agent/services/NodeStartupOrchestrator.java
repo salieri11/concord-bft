@@ -34,7 +34,6 @@ import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.exception.ConflictException;
 import com.github.dockerjava.api.model.Bind;
 import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
 import com.vmware.blockchain.agent.services.configservice.ConfigServiceInvoker;
 import com.vmware.blockchain.agent.services.configuration.BaseContainerSpec;
 import com.vmware.blockchain.agent.services.configuration.DamlCommitterConfig;
@@ -50,6 +49,7 @@ import com.vmware.blockchain.agent.services.metrics.MetricsAgent;
 import com.vmware.blockchain.agent.services.metrics.MetricsConstants;
 import com.vmware.blockchain.agent.services.node.health.HealthCheckScheduler;
 import com.vmware.blockchain.agent.services.node.health.NodeComponentHealthFactory;
+import com.vmware.blockchain.agent.services.util.DockerClientBuilderUtil;
 import com.vmware.blockchain.agent.services.util.ValidationUtil;
 import com.vmware.blockchain.deployment.v1.AgentAttributes;
 import com.vmware.blockchain.deployment.v1.ConcordAgentConfiguration;
@@ -148,7 +148,7 @@ public class NodeStartupOrchestrator {
 
                 // Start all containers
                 // Get Docker client instance
-                var dockerClient = DockerClientBuilder.getInstance().build();
+                var dockerClient = DockerClientBuilderUtil.createDefaultDockerClient();
                 try {
                     containerConfigList.forEach(container ->  {
                         if (!container.isDownloadImageOnly()) {
@@ -236,7 +236,7 @@ public class NodeStartupOrchestrator {
 
     private List<BaseContainerSpec> pullImages() {
 
-        var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
+        final var startMillis = ZonedDateTime.now().toInstant().toEpochMilli();
         final var registryUsername = configuration.getContainerRegistry()
                 .getCredential().getPasswordCredential().getUsername();
         final var registryPassword = configuration.getContainerRegistry()
@@ -246,6 +246,17 @@ public class NodeStartupOrchestrator {
         List<CompletableFuture<BaseContainerSpec>> futures = new ArrayList<>();
         log.info("Configuration model and components list {} {}", configuration.getModel(),
                  configuration.getModel().getComponentsList());
+
+        // Notary Signature Verification is enabled/disabled based on the presence
+        // of notary server in Agent Config
+        if (StringUtils.isEmpty(notaryServer.getAddress())) {
+            log.info("Notary signature verification is disabled");
+        } else {
+            log.info("Notary signature verification is enabled");
+            if (!Files.exists(Path.of(notarySelfSignedCertPath))) {
+                notarySelfSignedCertPath = "";
+            }
+        }
 
         for (var component : configuration.getModel().getComponentsList()) {
             // Bypass non service type image pull...
@@ -257,18 +268,6 @@ public class NodeStartupOrchestrator {
                 } else {
                     containerSpec = getCoreContainerSpec(
                             configuration.getModel().getBlockchainType(), component);
-                }
-
-                // Notary Signature Verification is enabled/disabled based on the presence
-                // of notary server in Agent Config
-                if (StringUtils.isEmpty(notaryServer.getAddress())) {
-                    log.info("Notary signature verification is disabled");
-                } else {
-                    log.info("Notary signature verification is enabled");
-                }
-
-                if (!Files.exists(Path.of(notarySelfSignedCertPath))) {
-                    notarySelfSignedCertPath = "";
                 }
 
                 futures.add(CompletableFuture.supplyAsync(() -> agentDockerClient.getImageIdAfterDl(containerSpec,
