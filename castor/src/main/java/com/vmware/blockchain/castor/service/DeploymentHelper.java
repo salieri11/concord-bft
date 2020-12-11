@@ -372,8 +372,15 @@ public class DeploymentHelper {
         if (generatePassword) {
             propertiesBuilder.putValues(DeploymentAttributes.GENERATE_PASSWORD.name(), "True");
         }
-        if (infrastructureDescriptorModel.getOrganization().isGenerateDamlDbPassword()) {
+
+        // Defaulting the use of Daml Index Db feature. Remove this in next release.
+        if (!propertiesBuilder.getValuesMap().containsKey(DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name())) {
             propertiesBuilder.putValues(DeploymentAttributes.GENERATE_DAML_DB_PASSWORD.name(), "True");
+        }
+
+        // Defaulting the use of TLS-TRC feature. Remove this in next release.
+        if (!propertiesBuilder.getValuesMap().containsKey(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name())) {
+            propertiesBuilder.putValues(DeploymentAttributes.TRC_TRS_TLS_ENABLED.name(), "True");
         }
 
         // Check if notary server details are provided for any of the zone
