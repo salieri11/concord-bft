@@ -561,8 +561,8 @@ def patch_organization(logDir, hermes_data):
    propertyMap = {}
 
    for prop in properties:
-      key = prop.split(":")[0]
-      value = prop.split(":")[1]
+      key = prop.split("=")[0]
+      value = prop.split("=")[1]
       propertyMap[ key ] = value
 
    orgId = auth.getOrgId(tokenDescriptor["org"])
