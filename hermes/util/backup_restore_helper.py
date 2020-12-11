@@ -120,6 +120,45 @@ def get_block_id(blockchain_id, node, skip_start=False, skip_stop=False):
     return block_id['lastBlockID']
 
 
+def get_genesis_block_id(blockchain_id, node, skip_start=False, skip_stop=False):
+    '''
+    Function to get the first (genesis) block id on a node.
+    Args:
+        blockchain_id: Blockchain id
+        node: Node to get genesis block id.
+        skip_start: skips starting the node.
+        skip_stop: skips stopping the node.
+    Returns:
+        genesisBlockID when available.
+        False when it fails to get block id.
+   '''
+    log.info('Getting genesis block id for {}'.format(node))
+    if not skip_stop:
+        assert node_start_stop(blockchain_id, node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+
+    version = get_product_version(blockchain_id, node)
+    if not version:
+        log.error('Unable to get product version')
+        return False
+
+    cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
+    docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
+                 'target=/concord/rocksdbdata $image:{} /concord/sparse_merkle_db_editor ' \
+                 '/concord/rocksdbdata getGenesisBlockID'.format(version)
+    username, password = helper.getNodeCredentials(blockchain_id, node)
+    status_post_action = helper.ssh_connect(node, username=username, password=password,
+                                            command=(cmd + docker_cmd))
+    if 'Failed to execute command' in status_post_action:
+        log.error('Unable to get genesisBlockID from {}'.format(node))
+        return False
+
+    block_id = json.loads(status_post_action)
+    if not skip_start:
+        assert node_start_stop(blockchain_id, node, START_NODE), 'Failed to Start Node {}'.format(node)
+
+    return block_id['genesisBlockID']
+
+
 def get_raw_block(blockchain_id, node, block_id):
     '''
     Function to get raw block for a given block id on a node.
@@ -151,6 +190,58 @@ def get_raw_block(blockchain_id, node, block_id):
         return False
     assert node_start_stop(blockchain_id, node, START_NODE), 'Failed to Start Node {}'.format(node)
     return status_post_action
+
+
+def get_raw_block_range(blockchain_id, node, start_block, end_block):
+    '''
+    Function to get raw block data for a range of block ids.
+    Args:
+        blockchain_id: Blockchain id
+        node: Node to read from.
+        start_block: ID of first block in the range
+        end_block: ID of final block + 1 (not included in results)
+    Returns:
+        Dictionary mapping block ID to hex encoded raw data
+   '''
+    log.info('Getting raw block range for {}'.format(node))
+    assert node_start_stop(blockchain_id, node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+
+    version = get_product_version(blockchain_id, node)
+    if not version:
+        log.error('Unable to get product version')
+        return False
+
+    cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
+    docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
+                 'target=/concord/rocksdbdata $image:{} /concord/sparse_merkle_db_editor ' \
+                 '/concord/rocksdbdata getRawBlockRange {} {}'.format(version, start_block, end_block)
+    username, password = helper.getNodeCredentials(blockchain_id, node)
+    status_post_action = helper.ssh_connect(node, username=username, password=password,
+                                            command=(cmd + docker_cmd))
+
+    if 'NotFoundException' in status_post_action:
+        log.info("No results returned for block range {} to {}".format(start_block, end_block))
+        return False
+
+    '''
+    Output is in the following format, where <num> is block id like '100'
+    and <data> is hex-encoded binary raw data like '123456abcdef':
+    {
+    "rawBlock<num>": "0x<data>",
+    "rawBlock<num>": "0x<data>",
+    ...
+    }
+    '''
+    output = json.loads(status_post_action)
+    key_start = 'rawBlock'
+    key_len = len(key_start)
+    result = {}
+    for key, val in output.items():
+        assert key.startswith(key_start) and val.startswith('0x'), "Unexpected block data: {}:{}".format(key, val)
+        result[key[key_len:]] = val[2:]
+
+    assert node_start_stop(blockchain_id, node, START_NODE), 'Failed to Start Node {}'.format(node)
+    return result
 
 
 def node_start_stop(blockchain_id, node, action):
