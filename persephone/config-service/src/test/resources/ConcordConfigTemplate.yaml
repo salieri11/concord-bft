@@ -19,7 +19,7 @@ node__TEMPLATE:
   blockchain_db_path: /concord/rocksdbdata/
 ro_node__TEMPLATE:
   logger_config: /concord/config-public/log4cplus.properties
-  bft_metrics_udp_port: 4501
+  prometheus_port: 9891
   service_host: 0.0.0.0
   service_port: 5458
   s3-bucket-name: blockchain
@@ -47,3 +47,4 @@ ro_node:
     s3-protocol: HTTP
     s3-url: minio:9000
     s3-secret-key: concordbft
+    prometheus_port: 9891
