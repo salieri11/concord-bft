@@ -745,7 +745,9 @@ def fxBlockchain(request, hermes_info, fxProduct):
       # All the nodes have same Blockchain and Consortium Id values
       # So picking the first one
       first_handle = next(iter(hermes_data["hermesCmdlineArgs"].vm_handles.items()))[1]
-      if "attrMap" in first_handle.keys():
+      if "blockchainId" in first_handle.keys() and first_handle["blockchainId"]:
+         blockchainId = first_handle["blockchainId"]
+      elif "attrMap" in first_handle.keys():
          attr_map = first_handle["attrMap"]
          blockchainId = attr_map["blockchain_id"] if "blockchain_id" in attr_map.keys() else None
          conId = attr_map["consortium_id"] if "consortium_id" in attr_map.keys() else None
