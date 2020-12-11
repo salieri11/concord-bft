@@ -364,7 +364,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
    if success:
       log.info("Blockchain deployed successfully")
    else:
-      # create_support_bundle_from_replicas_info(blockchain_type, logDir)
+      create_support_bundle_from_replicas_info(blockchain_type, logDir)
       raise Exception("Failed to deploy a new blockchain.")
 
    return blockchainId, conId, replica_dict, clients
@@ -740,7 +740,7 @@ def fxBlockchain(request, hermes_info, fxProduct):
             all_nodes = all_nodes + ips
 
          vm_handles = infra.fetch_vm_handles(all_nodes)
-         # log.info("vm handles: {}".format(vm_handles))
+         log.debug("vm handles: {}".format(vm_handles))
          hermes_data["hermesCmdlineArgs"].vm_handles = vm_handles
 
       # All the nodes have same Blockchain and Consortium Id values
