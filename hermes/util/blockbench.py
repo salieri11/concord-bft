@@ -34,7 +34,6 @@ Steps:
  Output the result
 """
 import os
-import sys
 from subprocess import Popen, PIPE, check_output
 from shutil import copyfile
 import traceback
@@ -47,6 +46,7 @@ from time import sleep
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
+
 
 class BlockbenchRestAPIs:
     """
@@ -84,6 +84,8 @@ class BlockbenchRestAPIs:
             else:
                 success_percentage = 0.0
             return True, success_percentage
+        elif return_status == 500:
+            raise Exception('Progree return code - {}, Response - {}'.format(return_status, ret.text))
         else:
             # Done with loadgeneration
             response = ret.text
@@ -240,19 +242,17 @@ def start_influxdb(repopath):
     proc = Popen(command.encode(), stdout=PIPE, stderr=PIPE, shell=True)
     std_out, std_err = proc.communicate()
     exit_code = proc.returncode
-    log.info('influxdb init: rc = {}\n, stdout = \n{}\n, stderr = {}'.format(exit_code, std_out.decode("utf-8"),
-                                                              std_err.decode("utf-8")))
+    log.info('influxdb init: rc = {}\n, stdout = \n{}\n, stderr = {}'.
+             format(exit_code, std_out.decode("utf-8"), std_err.decode("utf-8")))
     if exit_code != 0:
         raise Exception('Could not start influxdb, stdout - {}\n stderr - {}'.
                         format(std_out, std_err))
     os.chdir(currdir)
 
 
-
 def check_if_loadgen_is_running():
     """
     Start the test
-    :param docker_path: Path to docker folder in block-repo
     :return: Port on which Blockbench is available
     """
     try:
@@ -269,6 +269,7 @@ def check_if_loadgen_is_running():
     else:
         return False
 
+
 def start_loadgen(docker_path):
     """
     Start the app.
@@ -279,6 +280,7 @@ def start_loadgen(docker_path):
     stdout = check_output('docker-compose up -d', shell=True)
     log.info('docker-compose up -d output - {}'.format(stdout))
     os.chdir(currdir)
+
 
 def get_loadgen_port():
     """
@@ -345,6 +347,9 @@ def start_blockbench(bc_obj, participant, name, desc, dapp, hopcount, upload_dar
     :param upload_dar: Should upload DAR file?
     :param workload_model: OPEN/CLOSE
     :param workload_size: Blockbench parameter
+    :param timeout: Timeout for loadgen tool
+    :param concurrency: Index of concurrency (load factor)
+    :param connections: Number of connections
     :return: result
     """
     try:
@@ -372,6 +377,9 @@ def run_blockbench(bc_obj, participant, name, desc, dapp, hopcount, upload_dar, 
     :param upload_dar: Should upload DAR file?
     :param workload_model: OPEN/CLOSE
     :param workload_size: Blockbench parameter
+    :param timeout: Timeout for loadgen tool
+    :param concurrency: Index of concurrency (load factor)
+    :param connections: Number of connections
     :return: True - Successful False - unsuccessful
     """
     # in seconds
@@ -464,6 +472,7 @@ def blockbench_main(args):
             log.info('Blockbench Completion Percentage - {}'.format(completion_percentage))
     return result
 
+
 def check_if_in_pipeline():
     """
     Check if we are executing in a Jenkins pipeline.
@@ -473,7 +482,7 @@ def check_if_in_pipeline():
     """
     # The json file is in a folder relative to this file - ../resources/
     user_config_file = os.path.dirname(os.path.abspath(__file__)) + os.sep + \
-                   '..' + os.sep + 'resources' + os.sep + 'user_config.json'
+        '..' + os.sep + 'resources' + os.sep + 'user_config.json'
     user_config_file_path = os.path.normpath(user_config_file)
     log.info('Checking if being executed in a pipeline from - {}'.format(user_config_file_path))
     with open(user_config_file_path, 'r') as jsonfd:

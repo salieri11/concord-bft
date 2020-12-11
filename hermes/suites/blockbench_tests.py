@@ -44,27 +44,27 @@ from fixtures.common_fixtures import fxProduct
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
-productType = helper.TYPE_BLOCKBENCH # Read by the fxProduct fixture
+productType = helper.TYPE_BLOCKBENCH  # Read by the fxProduct fixture
 
 
 @describe("Blockbench test")
 def test_blockbench(fxProduct, fxHermesRunSettings):
-   """
-   Execute blockbench test
-   :param fxProduct: Pytest Fixture
-   :param fxHermesRunSettings: Pytest Fixture
-   :return: result
-   """
-   args = fxHermesRunSettings["hermesCmdlineArgs"]
-   over_all_status = None
-   status = blockbench.blockbench_main(args)
-   if status:
-      log.info("**** Test passed on {}".format(args.blockbench_participant))
-      if over_all_status is None:
-         over_all_status = True
-   else:
-      log.error("**** Test failed on {}".format(args.blockbench_participant))
-      over_all_status = False
-   log.info("Overall Run status: {}".format(over_all_status))
-   assert over_all_status, "Blockbench Run Failed"
+    """
+    Execute blockbench test
+    :param fxProduct: Pytest Fixture
+    :param fxHermesRunSettings: Pytest Fixture
+    :return: result
+    """
+    args = fxHermesRunSettings["hermesCmdlineArgs"]
+    over_all_status = None
+    status = blockbench.blockbench_main(args)
+    if status:
+        log.info("**** Test passed on {}".format(args.blockbench_participant))
+        if over_all_status is None:
+            over_all_status = True
+    else:
+        log.error("**** Test failed on {}".format(args.blockbench_participant))
+        over_all_status = False
+    log.info("Overall Run status: {}".format(over_all_status))
+    assert over_all_status, "Blockbench Run Failed"
 
