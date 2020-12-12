@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
@@ -54,7 +55,8 @@ import io.grpc.ManagedChannel;
  * Tests for AgreementController.
  */
 @ExtendWith(SpringExtension.class)
-@WebMvcTest(secure = false, controllers = { AgreementController.class })
+@WebMvcTest(controllers = { AgreementController.class })
+@AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(classes = MvcConfig.class)
 @ComponentScan(basePackageClasses = { AgreementController.class, HelenExceptionHandler.class})
 public class AgreementControllerTest {
