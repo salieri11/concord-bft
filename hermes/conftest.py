@@ -732,7 +732,6 @@ def pytest_addoption(parser):
                                               dest='blockbench_repo_path')
 
 
-
 def _get_suite_short_name(module_name):
     '''
     This function returns short name of the Test Suite from it's module name
