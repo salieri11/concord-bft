@@ -168,6 +168,7 @@ COPY ./concord/test/concord.supp /concord/concord.supp
 COPY ./concord/resources/log4cplus.properties /concord/resources/log4cplus.properties
 COPY ./concord/resources/metrics_config.yaml /concord/resources/metrics_config.yaml
 COPY ./concord/resources/appconf_input.yaml /concord/resources/appconf_input.yaml
+COPY ./concord/resources/bft_config.yaml /concord/resources/bft_config.yaml
 COPY ./concord/submodules/concord-bft/diagnostics/concord-ctl /concord
 
 COPY --from=0 /concord/build/app1.config /concord/config/application.config

@@ -27,6 +27,11 @@ if [ -f /concord/config-public/rocksdb_default_conf.ini ]; then
   cp /concord/config-public/rocksdb_default_conf.ini /concord/rocksdbdata/OPTIONS_DEFAULT.ini
 fi
 
+# Copy bft_config.yaml to config-local if exists 
+if [ -f /concord/resources/bft_config.yaml -a -d /concord/config-local ]; then
+  cp /concord/resources/bft_config.yaml /concord/config-local/bft_config.yaml
+fi
+
 # Concord can be initialized with a monolithic configuration file i.e. concord.config.
 # Or with a set of three files that are being merged to a monolithic configuration on start up.
 # For backward compatibility the monolithic file get precedence.

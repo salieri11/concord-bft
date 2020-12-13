@@ -48,6 +48,25 @@
 #include <string_view>
 #include "ThresholdSignaturesTypes.h"
 
+// injecting template specialization into YAML namespace
+// for checking whether a scalar node is boolean,
+// since is_type<T>()-like function is missing
+namespace YAML {
+template <typename T>
+struct as_if<T, std::optional<T>> {
+  explicit as_if(const Node& node_) : node(node_) {}
+  const Node& node;
+
+  const boost::optional<T> operator()() const {
+    boost::optional<T> val;
+    T t;
+    if (node.m_pNode && convert<T>::decode(node, t)) val = std::move(t);
+
+    return val;
+  }
+};
+}  // namespace YAML
+
 namespace concord {
 namespace config {
 

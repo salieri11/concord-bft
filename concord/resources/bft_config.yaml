@@ -1,0 +1,44 @@
+concord:
+   bft:
+      #State transfer configuration parameters
+      st:
+         #whether to perform pedantic checks
+         pedanticChecks: false
+
+         # maximum chunk size
+         maxChunkSize: 31457280
+
+
+         # maximum number of chunks to be sent in a reply for a single FetchBlockMessage
+         maxNumberOfChunksInBatch: 64
+      
+         # maximum size of block in the system
+         maxBlockSize: 31457280
+   
+         # maximum size of pending chunks in receiving replica
+         maxPendingDataFromSourceReplica: 268435456
+      
+         # how often onTimer() will be called
+         refreshTimerMs: 300
+      
+         # how long to wait before retransmitting sendAskForCheckpointSummariesMsg()
+         checkpointSummariesRetransmissionTimeoutMs: 2500
+      
+         # how old the message from the asking replica can be
+         maxAcceptableMsgDelayMs: 60000
+      
+         # how often the source replica should be replaced
+         sourceReplicaReplacementTimeoutMs: 15000
+      
+         # how often sendFetchBlocksMsg() or sendFetchResPagesMsg() should be called
+         fetchRetransmissionTimeoutMs: 250
+       
+         # how often metrics should be dumped to a log file
+         metricsDumpIntervalSec: 5
+      
+         # whether to offload State Transfer processing to a separate thread
+         runInSeparateThread: false
+ 
+         # max time to pass since last execution in main window before calling to ST
+         maxTimeSinceLastExecutionInMainWindowMs: 5000
+ 
