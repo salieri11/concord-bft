@@ -34,6 +34,34 @@ using json = nlohmann::json;
 
 static const char* CONFIG_FILE = "/operator/config-local/operator.config";
 
+// We expect the timeout request parameter to be specified in seconds
+std::optional<std::chrono::seconds> validateRequestTimeout(
+    const logging::Logger& logger, const Request& req, Response res) {
+  int timeout;
+  auto timeout_it = req.params.find("timeout");
+  if (timeout_it == req.params.end()) {
+    LOG_ERROR(logger, "Request has no timeout");
+    json j = {{"succ", false}, {"additional_data", "No timeout specified"}};
+    res.set_content(j.dump(), "application/json");
+    return {};
+  }
+  try {
+    timeout = std::stoi(timeout_it->second);
+  } catch (const std::exception& ex) {
+    LOG_ERROR(logger, "Failed to convert timeout parameter: " << ex.what());
+    json j = {{"succ", false}, {"additional_data", "Invalid timeout"}};
+    res.set_content(j.dump(), "application/json");
+    return {};
+  }
+  if (timeout <= 0) {
+    LOG_ERROR(logger, "Invalid timeout " << timeout);
+    json j = {{"succ", false}, {"additional_data", "Invalid timeout"}};
+    res.set_content(j.dump(), "application/json");
+    return {};
+  }
+  return {std::chrono::seconds(timeout)};
+}
+
 void startServer(concord::op::Operations& ops) {
   auto logger = logging::getLogger("concord.operator.server");
   Server svr;
@@ -43,7 +71,9 @@ void startServer(concord::op::Operations& ops) {
                                                Response& res) {
     // TODO: Get actual values via BFT Client
     try {
-      auto result = ops.initiateHasSwVersion(1s);
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
+      auto result = ops.initiateHasSwVersion(timeout.value());
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
         j["additional_data"] =
@@ -71,9 +101,11 @@ void startServer(concord::op::Operations& ops) {
   svr.Put("/concord/releases", [&ops, &logger](const Request& req,
                                                Response& res) {
     try {
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
       std::string version = req.params.find("version")->second;
       // TODO: The version string should conform to a pattern (TBD)
-      auto result = ops.initiateSwDownload(1s, version);
+      auto result = ops.initiateSwDownload(timeout.value(), version);
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
         j["additional_data"] =
@@ -95,9 +127,11 @@ void startServer(concord::op::Operations& ops) {
   svr.Put("/concord/releases/install", [&ops, &logger](const Request& req,
                                                        Response& res) {
     try {
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
       std::string version = req.params.find("version")->second;
       // TODO: The version string should conform to a pattern (TBD)
-      auto result = ops.initiateInstallSwVersion(1s, version);
+      auto result = ops.initiateInstallSwVersion(timeout.value(), version);
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
         j["additional_data"] =
@@ -118,19 +152,9 @@ void startServer(concord::op::Operations& ops) {
   svr.Get("/concord/wedge/status", [&ops, &logger](const Request& req,
                                                    Response& res) {
     try {
-      auto timeout = std::stoi(req.params.find("timeout")->second);
-      if (timeout <= 0) {
-        LOG_ERROR(logger,
-                  "received invalid timeout, the request won't be executed"
-                      << KVLOG(timeout));
-        json j = {{"succ", false},
-                  {"additional_data",
-                   "received invalid timeout, the request won't be executed"}};
-        res.set_content(j.dump(), "application/json");
-        return;
-      }
-      concord::op::Response result =
-          ops.WedgeStatus(std::chrono::seconds(timeout));
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
+      concord::op::Response result = ops.WedgeStatus(timeout.value());
       json j;
       for (auto& rsi : result.rsis) {
         concord::messages::WedgeResponse wedge_response;
@@ -155,18 +179,9 @@ void startServer(concord::op::Operations& ops) {
   svr.Put("/concord/wedge/stop", [&ops, &logger](const Request& req,
                                                  Response& res) {
     try {
-      auto timeout = std::stoi(req.params.find("timeout")->second);
-      if (timeout <= 0) {
-        LOG_ERROR(logger,
-                  "received invalid timeout, the request won't be executed"
-                      << KVLOG(timeout));
-        json j = {{"succ", false},
-                  {"additional_data",
-                   "received invalid timeout, the request won't be executed"}};
-        res.set_content(j.dump(), "application/json");
-        return;
-      }
-      auto result = ops.initiateWedge(std::chrono::seconds(timeout));
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
+      auto result = ops.initiateWedge(timeout.value());
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().has_additionaldata()) {
         j["additional_data"] =
@@ -189,19 +204,9 @@ void startServer(concord::op::Operations& ops) {
                                                      const Request& req,
                                                      Response& res) {
     try {
-      auto timeout = std::stoi(req.params.find("timeout")->second);
-      if (timeout <= 0) {
-        LOG_ERROR(logger,
-                  "received invalid timeout, the request won't be executed"
-                      << KVLOG(timeout));
-        json j = {{"succ", false},
-                  {"additional_data",
-                   "received invalid timeout, the request won't be executed"}};
-        res.set_content(j.dump(), "application/json");
-        return;
-      }
-      concord::op::Response result =
-          ops.latestPruneableBlock(std::chrono::milliseconds(timeout * 1000));
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
+      concord::op::Response result = ops.latestPruneableBlock(timeout.value());
       json j;
       for (auto& rsi : result.rsis) {
         concord::messages::LatestPrunableBlock response_;
@@ -229,19 +234,9 @@ void startServer(concord::op::Operations& ops) {
   svr.Put("/concord/prune/execute", [&ops, &logger](const Request& req,
                                                     Response& res) {
     try {
-      auto timeout = std::stoi(req.params.find("timeout")->second);
-      if (timeout <= 0) {
-        LOG_ERROR(logger,
-                  "received invalid timeout, the request won't be executed"
-                      << KVLOG(timeout));
-        json j = {{"succ", false},
-                  {"additional_data",
-                   "received invalid timeout, the request won't be executed"}};
-        res.set_content(j.dump(), "application/json");
-        return;
-      }
-      concord::op::Response result =
-          ops.latestPruneableBlock(std::chrono::seconds(timeout));
+      auto timeout = validateRequestTimeout(logger, req, res);
+      if (!timeout.has_value()) return;
+      concord::op::Response result = ops.latestPruneableBlock(timeout.value());
       std::vector<concord::messages::LatestPrunableBlock>
           latest_pruneable_blocks;
       for (auto& rsi : result.rsis) {
@@ -252,8 +247,7 @@ void startServer(concord::op::Operations& ops) {
         latest_pruneable_blocks.push_back(response_);
       }
 
-      result = ops.initiatePrune(std::chrono::seconds(timeout),
-                                 latest_pruneable_blocks);
+      result = ops.initiatePrune(timeout.value(), latest_pruneable_blocks);
 
       json j = {{"succ", result.res.reconfiguration_sm_response().success()}};
       if (result.res.reconfiguration_sm_response().success()) {
