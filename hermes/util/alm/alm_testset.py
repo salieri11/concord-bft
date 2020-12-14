@@ -4,11 +4,15 @@
 from util.alm.alm_req_base import AlmRequest
 from util.alm.alm_constants import AlmApiResponseFields, AlmApiRequestFields
 
+from util import hermes_logging
+log = hermes_logging.getMainLogger()
+
 class AlmTestSet(AlmRequest):
-    def __init__(self, product_version_folder, suite):
+    def __init__(self, product_version_folder, suite, dir_override):
         super().__init__()
         self._product_version_folder = product_version_folder
         self._suite = suite
+        self._dir_override = dir_override
         self._test_set_id = self._get_test_set()
         self._test_instances = None
 
@@ -20,13 +24,21 @@ class AlmTestSet(AlmRequest):
         :param suite: The test suite
         :return: The test set ID
         '''
-        leaf = self._product_version_folder.split("\\")[-1]
+        # We must get the ID of the folder which contains our test set.  But, we cannot
+        # simply search for a folder path in ALM.
+        # Instead, get only folders which match the name of the leaf folder we want,
+        # and then look at the full path of each item in that result.
+        testset_dir = self._dir_override if self._dir_override else self._product_version_folder
+        if not testset_dir.startswith("\\"):
+            testset_dir = "\\" + testset_dir
+
+        leaf = testset_dir.split("\\")[-1]
         folders = self.do_entity_get("test-set-folders", "{{name[{}]}}".format(leaf))
         folder_id = None
-        for k in folders:
-            if folders[k]["test_lab_path"] == self._product_version_folder:
-                folder_id = k
-        assert folder_id, "Failed to find a folder named {}".format(self._product_version_folder)
+        for key in folders:
+            if folders[key]["test_lab_path"] == testset_dir:
+                folder_id = key
+        assert folder_id, "Failed to find a folder named {}".format(testset_dir)
 
         test_set = self.do_entity_get(
             "test-sets",
@@ -74,6 +86,20 @@ class AlmTestSet(AlmRequest):
         return True
 
 
+    def get_test_instance_for_test_id(self, required_test_id):
+        '''
+        :param required_test_id: The test ID whose instance in this test set we are trying to find.
+        :return: The test instance ID.
+        '''
+        self.get_test_instances()
+        log.info("*** Looking for test instance matching required_test_id: {}".format(required_test_id))
+
+        for test_instance in self._test_instances:
+            log.info("***    Looking at test_instance {}".format(test_instance))
+            if self._test_instances[test_instance][AlmApiResponseFields.TEST_ID_2] == str(required_test_id):
+                return test_instance
+
+
     def update_test_set_status(self, status):
         '''
         Updates the status of the test set.
@@ -84,3 +110,4 @@ class AlmTestSet(AlmRequest):
         }
         sub_path = "test-set/{}".format(self._test_set_id)
         response = self.send_request("put", sub_path, params, api_ver=1)
+
