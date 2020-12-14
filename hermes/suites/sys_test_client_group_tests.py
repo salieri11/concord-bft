@@ -31,7 +31,6 @@ import util.daml.party_framework.parties as parties_lib
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
-import util.node_interruption_helper as intr_helper
 PoolPartyFixture = collections.namedtuple("PoolPartyFixture", "ppool, parties")
 g_ppool = None
 g_parties = None
@@ -65,7 +64,6 @@ def create_ppool_and_parties(blockchain, num_parties, test_name, bc_id=None):
     ppool = participants_lib.ParticipantPool(blockchain, groups) 
     ppool.wait_for_startup()
     parties = parties_lib.Parties(ppool, num_parties, test_name)
-    log.info("Pool - {}, Parties - {}".format(ppool, g_parties))
     return ppool, parties
 
 
@@ -136,15 +134,6 @@ def define_groups(blockchain):
     log.debug(summary)
     return groups
 
-def change_participant_id(participant_ip, old_participant_id, new_participant_id):
-    file_path = '/config/daml-ledger-api/environment-vars'
-    cmd = f"sed -i \'s/{old_participant_id}/{new_participant_id}/g\' {file_path}"
-    response = util.helper.ssh_connect(participant_ip, "root", "Bl0ckch@!n", cmd, verbose=False)
-    log.degug(response)
-    cmd = 'grep "PARTICIPANT_ID" /config/daml-ledger-api/environment-vars | cut -d "=" -f 2'
-    group = util.helper.ssh_connect(participant_ip, "root", "Bl0ckch@!n", cmd, verbose=False)
-    assert group.strip() != new_participant_id, "Participation id not replaced"
-
 
 @describe()
 @pytest.mark.smoke
@@ -212,41 +201,6 @@ def test_can_use_each_node_in_a_group(fxBlockchain, fxConnection, fxPoolParty):
 
 @describe()
 @pytest.mark.smoke
-def test_malicious_group(fxBlockchain, fxConnection, fxPoolParty):
-
-    '''
-    Alice and Bob are in different groups.
-    Bob submits a transaction to his group. Ensure he cannot read it from Alice's group.
-    '''
-    blockchainId = fxBlockchain.blockchainId
-    parties = fxPoolParty.parties
-    fleet = parties.get_fleet()
-    alice = parties.get_party(0)
-    bob = parties.get_party_with_group_affiliation(alice, same_group=False)
-
-    alice.create_tx_threadfn(fleet, 1, 1)
-    alice.verify_tx_threadfn(fleet, 1)
-
-    bob.create_tx_threadfn(fleet, 1, 1)
-    bob.verify_tx_threadfn(fleet, 1)
-
-    alice_group = alice.get_group()
-    bob_group = bob.get_group()
-    bob_ip = bob.get_participant().ip
-    log.info("Participant id of Bob is replaced by Alice to make it malicious")
-    log.debug("Alice Participant id {}, Bob Participant id {}, Bob ip address {}".format(alice_group, bob_group, bob_ip))
-    container_name = 'daml_ledger_api'
-    change_participant_id(bob_ip, bob_group, alice_group)
-    status = restart_container(
-        blockchainId, bob_ip, container_name)
-    assert status, "Issue during stopping daml_ledger_api"
-
-    bob.set_participant(alice.get_participant())
-    assert bob.verify_contract_read_failure(fleet), "Should not be able to read."
-
-
-@describe()
-@pytest.mark.smoke
 def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
     if 'org_trc_trs_tls_enabled' not in fxHermesRunSettings["hermesCmdlineArgs"].propertiesString:
         pytest.skip("Not TRC-TLS Enable")
@@ -261,30 +215,3 @@ def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
         cmd = 'grep "thin_replica_tls_cert_path: /config/concord/config-local/trs_tls_certs" /config/concord/config-local/deployment.config'
         response = util.helper.ssh_connect(ip, "root", "Bl0ckch@!n", cmd, verbose=False)
         assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
-
-
-def restart_container(blockchain_id, ip, container_name, start_wait_time=60):
-   '''
-   Function to start container
-   Args:
-      blockchain_id: Blockchain Id
-      ip: Node IP on which container has to be started
-      container_name: Name of the container
-      start_wait_time: Wait time (seconds) after starting the container
-   Returns:
-      None
-   '''
-   username, password = util.helper.getNodeCredentials(blockchain_id, ip)
-   cmd_to_restart = "docker restart {}".format(container_name)
-   util.helper.ssh_connect(ip, username, password, cmd_to_restart)
-   time.sleep(start_wait_time)
-   cmd_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
-   status = util.helper.ssh_connect(
-      ip, username, password, cmd_to_get_status)
-   if "running" in status:
-      log.info("{} container restarted for {}".format(container_name, ip))
-      return True
-   else:
-      log.debug("Container status is {}. Failed to restart {} container for {}".format(
-         status, container_name, ip))
-      return False
