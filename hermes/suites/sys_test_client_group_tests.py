@@ -205,6 +205,14 @@ def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
     if 'org_trc_trs_tls_enabled' not in fxHermesRunSettings["hermesCmdlineArgs"].propertiesString:
         pytest.skip("Not TRC-TLS Enable")
 
+    properties = fxHermesRunSettings["hermesCmdlineArgs"].propertiesString.split(",")
+
+    for prop in properties:
+      key = prop.split("=")[0]
+      value = prop.split("=")[1]
+      if key == "org_trc_trs_tls_enabled" and value.lower() != "true":
+        pytest.skip("Not TRC-TLS Enable")
+
     participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
     for ip in participants:
         cmd = 'grep "insecure-thin-replica-client=false" /config/daml-ledger-api/environment-vars'
