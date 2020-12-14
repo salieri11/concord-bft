@@ -541,6 +541,9 @@ public class VSphereHttpClient {
             uri = VsphereEndpoints.VSPHERE_VM_POWER_STOP.getPath();
         } else if (VirtualMachinePowerState.POWERED_ON == state) {
             uri = VsphereEndpoints.VSPHERE_VM_POWER_START.getPath();
+        } else {
+            throw new PersephoneException("VM can either be powered on or off. State provided: " + state,
+                    ErrorCode.VM_POWER_STATE_UPDATE_ERROR);
         }
         try {
             uri = uri.replace("{vm}", name);
