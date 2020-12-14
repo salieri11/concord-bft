@@ -2638,7 +2638,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
 
   node.declareParameter("store_time_data_in_non_provable_keys",
                         "Store Time service keys outside of the Merkle Tree",
-                        "false");
+                        "true");
   node.tagParameter("store_time_data_in_non_provable_keys",
                     publicDefaultableTags);
   node.tagParameter("store_time_data_in_non_provable_keys", deploymentTag);
