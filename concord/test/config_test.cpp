@@ -2635,10 +2635,14 @@ TEST(config_test, test_principal_locations_mapping) {
     // for the corresponding client ids.
     for (size_t i = num_nodes; i < num_nodes + num_ro_nodes; ++i) {
       string ro_node_id = to_string(i + 1);
+      uint16_t ro_node_principal_id = i;
       json reported_ids = principals_map[ro_node_id];
-      EXPECT_TRUE(reported_ids.size() == 0)
-          << "JSON principal mapping contains ro node with client ids: "
-          << reported_ids << ".";
+      // Node id start from 1, principal id - from 0
+      EXPECT_TRUE(reported_ids.size() == 1 &&
+                  reported_ids[0].get<uint16_t>() == ro_node_principal_id)
+          << "JSON principal mapping contains for ro node " << ro_node_id
+          << " should contain only itself. Reported IDs: " << reported_ids
+          << " RO node principal ID: " << ro_node_principal_id << ".";
       principals_map.erase(ro_node_id);
     }
 

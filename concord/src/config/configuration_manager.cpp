@@ -4023,6 +4023,8 @@ void outputPrincipalLocationsMappingJSON(ConcordConfiguration& config,
     for (auto i = 0; i < numRoReplicas; ++i) {
       string node_id = to_string(i + 1 + scope_size);
       principal_map[node_id] = json::array();
+      // principal ids start from 0
+      principal_map[node_id].emplace_back(i + scope_size);
     }
   }
   output << principal_map;
