@@ -883,6 +883,7 @@ def get_wavefront_metrics(blockchainId, replica_ip):
    blockchain_id = blockchainId
    metric_name = "vmware.blockchain.concord.command.handler.operation.counters.total.counter"
    metric_query = "ts({}".format(metric_name)
+   log.info("replicaIP to make wavefront query::{}".format(replica_ip))
    if replica_ip is not None:
       metric_query = metric_query + ",vm_ip={}".format(replica_ip)
    metric_query = metric_query + ",{}={})".format("host", blockchain_id)
@@ -894,7 +895,7 @@ def get_wavefront_metrics(blockchainId, replica_ip):
    log.info("Start time is {} and end time is {}".format(
       start_epoch, end_epoch))
    wavefrontMetrics = wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="m")
-   log.info("wavefrontMetrics: {}".format(wavefrontMetrics))
+   #log.info("wavefrontMetrics::::: {}".format(wavefrontMetrics))
    return wavefrontMetrics
 
 
@@ -915,7 +916,10 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
+   log.info("all_replicas_and_type{}".format(all_replicas_and_type))
    blockchainId = getBlockchainId(replica_config)
+   bcid = {"blockchainId":[blockchainId]}
+   all_replicas_and_type.update(bcid)
    log.info("blockchainId:::::::::{}".format(blockchainId))
    BlockchainFixture = collections.namedtuple("BlockchainFixture",
                                               "blockchainId, consortiumId, replicas, clientNodes")
@@ -968,6 +972,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       log.info("Iteration: {}".format(run_count).center(60))
       log.info("************************************************************")
 
+      log.info("all_replicas_and_type::::: {}".format(all_replicas_and_type))
       crashed_committers, crashed_participants, unexpected_crash_results_dir = blockchain_ops.get_all_crashed_nodes(
          all_replicas_and_type, log_dir)
 
@@ -1250,7 +1255,8 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
 
-  log.info("blockchainId from get_replicas_stats::::::{}".format(blockchainId))
+  log.info("all_replicas_and_type.::::::{}".format(all_replicas_and_type))
+  log.info("all_replicas_and_type.items()::::::{}".format(all_replicas_and_type.items()))
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
     if blockchain_type == TYPE_DAML_PARTICIPANT:
@@ -1260,13 +1266,21 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
     for i, replica_ip in enumerate(replica_ips):
       written_blocks = 0
       daml_writes = 0
-      metrics = get_wavefront_metrics(blockchainId, replica_ip)
-      metrics_json = json.loads(metrics)
-      for i in metrics_json['timeseries']:
-         if i["tags"]["operation"] == "written_blocks":
-            written_blocks = i["data"][len(i["data"])-1]
-         elif i["tags"]["operation"] == "daml_writes":
-            daml_writes = i["data"][len(i["data"])-1]
+      if blockchain_type == TYPE_DAML_PARTICIPANT or blockchain_type == "blockchainId":
+         log.info("skipping participant node or bockchainId for wavefront metrics")
+      elif blockchain_type == TYPE_DAML_COMMITTER:
+         metrics = get_wavefront_metrics(blockchainId, replica_ip)
+         metrics_json = json.loads(metrics)
+         if "timeseries" in metrics_json:
+            for result in metrics_json['timeseries']:
+               if result["tags"]["operation"] == "written_blocks":
+                  written_blocks = result["data"][len(result["data"])-1]
+                  log.info("written_blocks:::{}".format(written_blocks[1]))
+               elif result["tags"]["operation"] == "daml_writes":
+                  daml_writes = result["data"][len(result["data"])-1]
+                  log.info("daml_writes:::{}".format(daml_writes[1]))
+         else:
+            log.error("Metrics data not available for replica: {}".format(replica_ip))
       try:
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
@@ -1279,15 +1293,18 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
               all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
             if not concise:
-              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%, written Blocks: {}, "
-                                                   "daml writes: {}".format(
-                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks,
-                 daml_writes
+              log.info("11")
+              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
+                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
               ))
+              #, written_blocks[1],daml_writes[1],,, , written Blocks: {}, ""daml writes: {}
+              log.info("22")
             else:
+              log.info("33")
               all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {} | {}".format(
-                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks, daml_writes
+                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"], written_blocks[1], daml_writes[1]
               ))
+              log.info("44")
         else:
            raise Exception("Failed retrieving stats for replica '{}', file '{}', to "
                            "local file '{}'".format(replica_ip, HEALTHD_RECENT_REPORT_PATH,
@@ -1600,7 +1617,7 @@ def getNodeCredentials(blockchain_id, node_ip):
       e.g. username, password = getNodeCredentials('b2129..','10.78.20.41')
     '''
     try:
-        log.debug("\nBlockchain id is {}".format(blockchain_id))
+        log.info("\nBlockchain id for fetching credentials is {}".format(blockchain_id))
         log_dir = os.path.dirname(CURRENT_SUITE_LOG_FILE)
         log_dir = os.path.join(log_dir, "fxBlockchain")
         log.debug("\nLog directory is {}".format(log_dir))
@@ -1619,8 +1636,10 @@ def getNodeCredentials(blockchain_id, node_ip):
                                                tokenDescriptor=token_descriptor,
                                                service=auth.SERVICE_DEFAULT)
         log.debug("\nAdmin request object created")
-      
+
+        log.info("before getting node id type")
         node_type, node_id = get_node_id_type(con_admin_request, blockchain_id, node_ip)
+        log.info("after getting node id type")
         if not node_type or not node_id:
             raise Exception("Either IP is invalid or does not belong to given Blockchain")
         
@@ -1663,9 +1682,13 @@ def get_node_id_type(req_obj, blockchain_id, node_ip):
     Fetch the Node Id and Type using Blockchain Id and Node IP
     '''
     # First check in list of replicas, if not found, check in participants.
+    log.info("get_node_id_type 1")
     replicas = req_obj.getReplicas(blockchain_id)
+    log.info("get_node_id_type 2...{}".format(replicas))
     node_type, node_id = None, None
+    log.info("get_node_id_type 3")
     node_found = [r["id"] for r in replicas if r["public_ip"] == node_ip or r["private_ip"] == node_ip]
+    log.info("get_node_id_type 4")
     if node_found:
         node_type = TYPE_DAML_COMMITTER
         node_id = node_found[0]
