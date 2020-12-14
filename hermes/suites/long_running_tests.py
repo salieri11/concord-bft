@@ -56,7 +56,8 @@ def test_long_run(fxHermesRunSettings, fxBlockchain):
    result = False
    if status:
       log.info("**** Successfuly instantiated health monitoring daemon on all replicas")
-      if helper.monitor_replicas(replicas_config,
+      if helper.monitor_replicas(fxBlockchain,
+                                 replicas_config,
                                  args.runDuration,
                                  args.loadInterval,
                                  args.resultsDir,
