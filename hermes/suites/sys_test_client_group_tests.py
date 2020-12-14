@@ -236,16 +236,11 @@ def test_malicious_group(fxBlockchain, fxConnection, fxPoolParty):
     log.info("Participant id of Bob is replaced by Alice to make it malicious")
     log.debug("Alice Participant id {}, Bob Participant id {}, Bob ip address {}".format(alice_group, bob_group, bob_ip))
     container_name = 'daml_ledger_api'
-    status = intr_helper.stop_container(
+    change_participant_id(bob_ip, bob_group, alice_group)
+    status = restart_container(
         blockchainId, bob_ip, container_name)
     assert status, "Issue during stopping daml_ledger_api"
 
-    change_participant_id(bob_ip, bob_group, alice_group)
-
-    status = intr_helper.start_container(
-        blockchainId, bob_ip, container_name)
-    assert status, "Issue during starting daml_ledger_api"
-    change_participant_id(bob_ip, bob_group, alice_group)
     bob.set_participant(alice.get_participant())
     assert bob.verify_contract_read_failure(fleet), "Should not be able to read."
 
@@ -266,3 +261,30 @@ def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
         cmd = 'grep "thin_replica_tls_cert_path: /config/concord/config-local/trs_tls_certs" /config/concord/config-local/deployment.config'
         response = util.helper.ssh_connect(ip, "root", "Bl0ckch@!n", cmd, verbose=False)
         assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
+
+
+def restart_container(blockchain_id, ip, container_name, start_wait_time=60):
+   '''
+   Function to start container
+   Args:
+      blockchain_id: Blockchain Id
+      ip: Node IP on which container has to be started
+      container_name: Name of the container
+      start_wait_time: Wait time (seconds) after starting the container
+   Returns:
+      None
+   '''
+   username, password = util.helper.getNodeCredentials(blockchain_id, ip)
+   cmd_to_restart = "docker restart {}".format(container_name)
+   util.helper.ssh_connect(ip, username, password, cmd_to_restart)
+   time.sleep(start_wait_time)
+   cmd_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
+   status = util.helper.ssh_connect(
+      ip, username, password, cmd_to_get_status)
+   if "running" in status:
+      log.info("{} container restarted for {}".format(container_name, ip))
+      return True
+   else:
+      log.debug("Container status is {}. Failed to restart {} container for {}".format(
+         status, container_name, ip))
+      return False
