@@ -170,7 +170,7 @@ def test_groups_isolated_read(fxBlockchain, fxConnection, fxPoolParty):
     fleet = parties.get_fleet()
     alice = parties.get_party(0)
     bob = parties.get_party_with_group_affiliation(alice, same_group=False)
-
+    log.info("Alice  {}   Bob    {}".format(alice, bob))
     alice.create_tx_threadfn(fleet, 1, 1)
     alice.verify_tx_threadfn(fleet, 1)
 
@@ -198,3 +198,26 @@ def test_can_use_each_node_in_a_group(fxBlockchain, fxConnection, fxPoolParty):
         parties.send_txs(count=3, connections=3)
         parties.verify_txs(3)
         rotations -= 1
+
+@describe()
+@pytest.mark.smoke
+def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
+    
+    if 'org_trc_trs_tls_enabled' not in fxHermesRunSettings["hermesCmdlineArgs"].propertiesString:
+        pytest.skip("Not TRC-TLS Enable")
+    
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    for ip in participants:
+        cmd = 'grep "insecure-thin-replica-client=false" /config/daml-ledger-api/environment-vars'
+        response = util.helper.ssh_connect(ip, "root", "Bl0ckch@!n", cmd, verbose=False)
+        assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
+    
+    for ip in committers:
+        cmd = 'grep "thin_replica_tls_cert_path: /config/concord/config-local/trs_tls_certs" /config/concord/config-local/deployment.config'
+        response = util.helper.ssh_connect(ip, "root", "Bl0ckch@!n", cmd, verbose=False)
+        assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
+            
+
+
+
+    
