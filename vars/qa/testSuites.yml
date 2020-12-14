@@ -266,7 +266,7 @@
     runWithGenericTests: false
     setupFunction: '${DELETE_FILES_FUNCTION}'
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '"${python}" -m pytest suites/sys_test_client_group_tests.py --numGroups 3 --numReplicas 7 --numParticipants 6 --blockchainType daml --blockchainLocation onprem'
+    baseCommand: '"${python}" -m pytest suites/sys_test_client_group_tests.py --numGroups 3 --numReplicas 7 --numParticipants 6 --blockchainType daml --blockchainLocation onprem --propertiesString "${properties_string}" --skipDeploymentVerificationTest'
     testModule: 'suites/sys_test_client_group_tests.py'
 - DamlRegressionTests:
     enabled: true

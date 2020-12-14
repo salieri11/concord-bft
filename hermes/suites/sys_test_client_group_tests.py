@@ -64,6 +64,7 @@ def create_ppool_and_parties(blockchain, num_parties, test_name, bc_id=None):
     ppool = participants_lib.ParticipantPool(blockchain, groups) 
     ppool.wait_for_startup()
     parties = parties_lib.Parties(ppool, num_parties, test_name)
+    log.info("Pool - {}, Parties - {}".format(ppool, g_parties))
     return ppool, parties
 
 
