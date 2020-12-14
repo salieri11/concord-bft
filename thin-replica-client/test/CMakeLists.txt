@@ -25,6 +25,16 @@ target_link_libraries(TrcRpcUseTests
 		      ${GMOCK_LIBRARY}
 		      thin_replica_client)
 
+add_test(NAME TrcByzantineTests COMMAND TrcByzantineTests)
+add_executable(TrcByzantineTests
+               trc_byzantine_test.cpp
+	       thin_replica_client_mocks.hpp
+	       thin_replica_client_mocks.cpp)
+target_link_libraries(TrcByzantineTests
+                      ${GTEST_LIBRARY}
+		      ${GMOCK_LIBRARY}
+		      thin_replica_client)
+
 add_test(NAME TrcBasicUpdateQueueTests COMMAND TrcBasicUpdateQueueTests)
 add_executable(TrcBasicUpdateQueueTests
                trc_basic_update_queue_test.cpp)
