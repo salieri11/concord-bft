@@ -144,7 +144,7 @@ services:
       - 3000:3000
 
   db-server:
-    image: postgres:10.6
+    image: athena-docker-local.artifactory.eng.vmware.com/postgres:10.6
     expose:
       - 26257
     ports:

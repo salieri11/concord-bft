@@ -101,7 +101,7 @@ services:
       - 3000:3000
 
   db-server:
-    image: postgres:10.6
+    image: athena-docker-local.artifactory.eng.vmware.com/postgres:10.6
     ports:
       - 26257:26257
     environment:
@@ -113,13 +113,13 @@ services:
       - ./devdata/postgresql:/var/lib/postgresql/data
 
   db-server-init1:
-    image: postgres:10.6
+    image: athena-docker-local.artifactory.eng.vmware.com/postgres:10.6
     command: -p 26257
     depends_on:
       - db-server
 
   db-server-init2:
-    image: postgres:10.6
+    image: athena-docker-local.artifactory.eng.vmware.com/postgres:10.6
     command: -p 26257
     depends_on:
       - db-server-init1
