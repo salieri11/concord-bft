@@ -9,115 +9,96 @@ from pprint import pprint
 base_url = "http://localhost:41444/concord"
 
 
-def release_download(args):
-    url = base_url + "/releases"
-    res = requests.put(url, params={'version': args.version})
+def req_release_download(args):
+    res = requests.put(base_url + "/releases", timeout=args.timeout,
+      params={"timeout": args.timeout - 1, "version": args.version})
     print(res.text)
 
-
-def release_install(args):
-    url = base_url + "/releases/install"
-    res = requests.put(url, params={'version': args.version})
+def req_release_install(args):
+    res = requests.put(base_url + "/releases/install", timeout=args.timeout,
+      params={"timeout": args.timeout - 1, "version": args.version})
     print(res.text)
 
-
-def release_status(args):
-    url = base_url + "/releases"
-    res = requests.get(url, timeout=args.timeout)
+def req_release_status(args):
+    res = requests.get(base_url + "/releases", timeout=args.timeout,
+      params={"timeout": args.timeout - 1})
     print(res.text)
 
-def wedge_status_impl(args):
-    url = base_url + "/wedge/status"
-    res = requests.get(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
+def req_wedge_status(args):
+    res = requests.get(base_url + "/wedge/status", timeout=args.timeout,
+      params={"timeout": args.timeout - 1})
     print(res.text)
 
-def wedge_impl(args):
-    url = base_url + "/wedge/stop"
-    res = requests.put(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
+def req_wedge(args):
+    res = requests.put(base_url + "/wedge/stop", timeout=args.timeout,
+      params={"timeout": args.timeout - 1})
     print(res.text)
 
-def latestPruneableBlockRequest_impl(args):
-    url = base_url + "/prune/latestPruneableBlock"
-    res = requests.get(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
+def req_prune_latestPruneableBlockRequest(args):
+    res = requests.get(base_url + "/prune/latestPruneableBlock", timeout=args.timeout,
+      params={"timeout": args.timeout - 1})
     print(res.text)
 
-def executePrune_impl(args):
-    url = base_url + "/prune/execute"
-    res = requests.put(url, timeout=args.timeout, params={"timeout": args.timeout - 1})
+def req_prune_execute(args):
+    res = requests.put(base_url + "/prune/execute", timeout=args.timeout,
+      params={"timeout": args.timeout - 1})
     print(res.text)
+
 
 def args_parser():
     parser = argparse.ArgumentParser(description="Concord Operator CLI")
+    parser.add_argument("--timeout", type=int, default=5,
+                        help="Optional request timeout in seconds")
+
+    # concop release
     subparsers = parser.add_subparsers()
     release = subparsers.add_parser("release",
-                                    help="Manage releases and upgrades")
-
+      help="Manage releases and upgrades")
     release_subparsers = release.add_subparsers()
-    download = release_subparsers.add_parser(
-        "download", help="Download images for a release on all replicas")
-    download.add_argument("version",
-                          help="The release version to download")
-    download.set_defaults(func=release_download)
 
-    status = release_subparsers.add_parser(
-        "status", help="Get status of releases at all replicas")
-    status.add_argument("--timeout",
-                        type=int,
-                        help="Optional request timeout in seconds",
-                        default=5)
+    download = release_subparsers.add_parser("download",
+      help="Download images for a release on all replicas")
+    download.add_argument("version", help="The release version to download")
+    download.set_defaults(func=req_release_download)
 
-    status.set_defaults(func=release_status)
+    status = release_subparsers.add_parser("status",
+      help="Get status of releases at all replicas")
+    status.set_defaults(func=req_release_status)
 
-    install = release_subparsers.add_parser(
-        "install", help="Install the downloaded release on all replicas")
+    install = release_subparsers.add_parser("install",
+      help="Install the downloaded release on all replicas")
     install.add_argument("version",
-                         help="The release version to install")
-    install.set_defaults(func=release_install)
+      help="The release version to install")
+    install.set_defaults(func=req_release_install)
 
+    # concop wedge
     wedge = subparsers.add_parser("wedge",
-                                 help="Send wedge request which is used for maintenance.")
-
+      help="Send wedge request which is used for maintenance.")
     wedge_subparsers = wedge.add_subparsers()
-    wedge_status = wedge_subparsers.add_parser("status", help="Send a status query for all replicas. "
-                                                               "Returns the replicas' status")
-    wedge_status.add_argument("--timeout",
-                        type=int,
-                        help="Optional request timeout in seconds. The timeout for the bft layer is smaller in 1 second"
-                             " than this value",
-                        default=5)
 
-    wedge_status.set_defaults(func=wedge_status_impl)
+    wedge_status = wedge_subparsers.add_parser("status",
+      help="Send a status query for all replicas. Returns the replicas' status")
+    wedge_status.set_defaults(func=req_wedge_status)
 
-    init_wedge = wedge_subparsers.add_parser("stop", help="Send a bft wedge command to the cluster. Returns {\"succ\": \"true\"} "
-                                                          "if the request has been received by the replicas successfully")
-    init_wedge.add_argument("--timeout",
-                                  type=int,
-                                  help="Optional request timeout in seconds.The timeout for the bft layer is smaller in 1 second"
-                                        " than this value",
-                                  default=5)
+    init_wedge = wedge_subparsers.add_parser("stop",
+      help="Send a bft wedge command to the cluster. Returns {\"succ\": \"true\"} "
+           " if the request has been received by the replicas successfully")
+    init_wedge.set_defaults(func=req_wedge)
 
-    init_wedge.set_defaults(func=wedge_impl)
-
-    prune = subparsers.add_parser("prune",
-                                    help="Send prune commands")
+    # concop prune
+    prune = subparsers.add_parser("prune", help="Send prune commands")
     prune_subparsers = prune.add_subparsers()
-    lastPruneableBlockRequest = prune_subparsers.add_parser("latestPruneableBlock", help="Send a latestPruneableBlockRequest to all replicas."
-                                                                                      "returns a list of {replica, latestPruneableBlock}")
-    lastPruneableBlockRequest.add_argument("--timeout",
-                                        type=int,
-                                        help="Optional request timeout in seconds. The timeout for the bft layer is smaller in 1 second"
-                                             " than this value",
-                                        default=5)
-    lastPruneableBlockRequest.set_defaults(func=latestPruneableBlockRequest_impl)
 
-    executePrune = prune_subparsers.add_parser("execute", help="Initiate a full prune request, this command gets the "
-                                                             "latest pruneable blocks from the replicas and then initiates a prune reuqest")
-    executePrune.add_argument("--timeout",
-                                           type=int,
-                                           help="Optional request timeout in seconds. The timeout for the bft layer is smaller in 1 second"
-                                                " than this value",
-                                           default=5)
-    executePrune.set_defaults(func=executePrune_impl)
+    lastPruneableBlockRequest = prune_subparsers.add_parser("latestPruneableBlock",
+      help="Send a latestPruneableBlockRequest to all replicas."
+           "returns a list of {replica, latestPruneableBlock}")
+    lastPruneableBlockRequest.set_defaults(func=req_prune_latestPruneableBlockRequest)
+
+    executePrune = prune_subparsers.add_parser("execute",
+      help="Initiate a full prune request, this command gets the "
+           "latest pruneable blocks from the replicas and then initiates a prune reuqest")
+    executePrune.set_defaults(func=req_prune_execute)
+
     return parser
 
 
