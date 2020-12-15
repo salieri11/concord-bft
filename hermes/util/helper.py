@@ -933,6 +933,7 @@ def monitor_replicas(fxBlockchain, replica_config, run_duration, load_interval, 
    slack.reportMonitoringIfTarget(
      target=notify_target, msgType="kickOff",
      replicasPath=replica_config, jobNameShort=notify_job)
+   log.info("fxblockchain::{}".format(fxBlockchain))
    initialStats = get_replicas_stats(all_replicas_and_type, fxBlockchain.blockchainId)
    # first message that will be the main thread
    if notify_job:
