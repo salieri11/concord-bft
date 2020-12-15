@@ -3,16 +3,12 @@
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential #
 ############################################################################
 #
-# utility file to run blockbench on supplied participant node IP
+# Utility file to run blockbench on supplied participant node IPs
 # This file is useful for automating the launch of blockbench in LRT(Long Running Test)
 """
 Steps:
  Check if loadgen is running
  cd to docker folder in block_bench
- Save .env file
- execute make-prebuilt-env.sh, collect output and replace .env file.
-  Save .env prior to change
-     ./make-prebuilt-env.sh
  execute ./influxdb-setup.s
  Docker has to be running. 
  execute docker compose - 'docker-compose up -d' if blockbench is not running
@@ -25,6 +21,7 @@ Steps:
     Use REST API to check progress
     If no progress - leave the loop
     else wait and continue
+Bring down the app in case of successful execution
  Output the result
 """
 import os
@@ -36,6 +33,7 @@ import re
 import requests
 import json
 from time import sleep
+import copy
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
@@ -86,14 +84,15 @@ class BlockbenchRestAPIs:
             log.info('Return Status from progress API - {}\nResponse - {}'.format(return_status, response))
             return False, 0.0
 
-    def start_loadgeneration(self, start_data):
+    def submit_payload(self, start_data):
         """
         Start the test
         """
         start_api = '/orch/test/start'
         url = self.url + start_api
         log.info('Blockbench URL - {}'.format(url))
-        log.info('Data for Blockbench start API - \n{}'.format(start_data))
+        spec_prettyprint = json.dumps(start_data, indent=2)
+        log.info('Data for Blockbench start API - \n{}'.format(spec_prettyprint))
         ret = requests.post(url, data=json.dumps(start_data),
                             headers={'accept': '*/*',
                                      'Content-Type': 'application/json'}
@@ -109,37 +108,6 @@ class BlockbenchRestAPIs:
             response = ret.text
             log.info('Return Status from start API - {}\nResponse - {}'.format(return_status, response))
             return False
-
-
-def update_dot_env_file(repopath):
-    """
-    Update loadgen version number in .env file
-    This is not called in pipeline. Useful for local testing
-    :param repopath:
-    :return: Path to the docker folder
-    """
-    currdir = os.getcwd()
-    docker_path = repopath + os.sep + 'docker/'
-    os.chdir(docker_path)
-    dot_env_file = docker_path + '.env'
-    dot_env_file_saved = docker_path + '.env.{}'.format(str(uuid.uuid4()))
-    copyfile(dot_env_file, dot_env_file_saved)
-    log.info('Blockbench .env file saved in {}'.format(dot_env_file_saved))
-    command = './make-prebuilt-env.sh'
-    proc = Popen(command.encode(), stdout=PIPE, stderr=PIPE, shell=True)
-    std_out, std_err = proc.communicate()
-    exit_code = proc.returncode
-    log.info('blockbench prebuild-env: rc = {}\n, stdout = \n{}\n, stderr = {}'.
-             format(exit_code, std_out.decode("utf-8"), std_err.decode("utf-8")))
-    if exit_code != 0:
-        raise Exception('Could not get the new .env file at  {}, strout - {}\n stderr - {}'.
-                        format(dot_env_file, std_out, std_err))
-    else:
-        # Copy stdout to .env
-        with open(dot_env_file, 'wb') as envfd:
-            envfd.write(std_out)
-        log.info('Created new .env file for blockbench at  {}'.format(dot_env_file))
-    os.chdir(currdir)
 
 
 def start_influxdb(repopath):
@@ -218,8 +186,8 @@ def start_loadgen(repopath):
 
 def stop_loadgen(repopath):
     """
-    Start the app.
-    This is not called in pipeline. Useful for local testing
+    Stop the app.
+    This is called at the end of suuccessful execution
     :param repopath: Path to blockbench repo
     """
     docker_path = repopath + os.sep + 'docker/'
@@ -258,7 +226,7 @@ def start_blockbench(bc_obj, spec):
     :return: result
     """
     try:
-        return_value = bc_obj.start_loadgeneration(spec)
+        return_value = bc_obj.submit_payload(spec)
         result = return_value
     except Exception as e:
         log.error('Exception - {}'.format(e))
@@ -269,7 +237,7 @@ def start_blockbench(bc_obj, spec):
 
 def run_blockbench(bc_obj, spec):
     """
-    Execute blockbench load generator
+    Execute blockbench load generator and wait for finish
     :param bc_obj: Blockbench REST APIs
     :param spec: .json file that specifies loadgen payload
     :return: True - Successful False - unsuccessful
@@ -303,20 +271,28 @@ def prepare_for_blockbench_test(repo_path):
     log.info('Loadgen Not running, Starting')
     # blockbench_repo_folder = get_blockbench_repo_path()
     log.info('Blockbench repo folder - {}'.format(repo_path))
-    update_dot_env_file(repo_path)
-    # start_influxdb(repo_path)
+    # Need to be done once initially, but ok to do subsequently
+    # This is failing intermittently. Won't stop the test.
+    try:
+        start_influxdb(repo_path)
+    except Exception as e:
+        log.info('Influxdb did not start, Exception - {}'.format(e))
     start_loadgen(repo_path)
     port = get_loadgen_port()
     service_url = 'http://localhost:{}'.format(port)
     return service_url
 
 
-def blockbench_main(args):
+def blockbench_main(args, ledger_api_hosts):
     """
-    Main logic of loadgen
-    :return:
+    Main logic of Blockbench load generation
+    :return: True if success, False otherwise
     """
-    spec = args.blockbench_spec
+    if args.blockbench_repo_path:
+        spec = args.blockbench_spec
+    elif args.blockbench_operation != 'getprogress':
+        log.error('Blockbench spec json file  is not specified. Use --blockbenchSpec. Exiting.')
+        return False
     if args.blockbench_repo_path:
         repo_path = args.blockbench_repo_path
     else:
@@ -325,17 +301,22 @@ def blockbench_main(args):
     # Payload for start rest API
     with open(spec, 'r') as payload_fd:
         start_data = json.load(payload_fd)
-    if args.damlParticipantIP:
-        start_data['participants'][0]['ledger']['host'] = args.damlParticipantIP
-        log.info('Getting client IP from --damlParticipantIP - {}'.format(args.damlParticipantIP))
-    else:
-        log.info('Getting client IP from {} - '.format(spec, start_data['participants'][0]['ledger']['host']))
+    # Add hosts to payload
+    if ledger_api_hosts:
+        # We are assuming that there is at least one sample element
+        participant_element = start_data['participants'][0]
+        # host's will be added to this list
+        start_data['participants'] = []
+        for host in ledger_api_hosts:
+            log.info('Adding client IP {} to the spec'.format(host))
+            new_host_element = copy.deepcopy(participant_element)
+            new_host_element['ledger']['host'] = host
+            start_data['participants'].append(new_host_element)
     # getprogress does not need client ip
     if args.blockbench_operation != 'getprogress' and not start_data['participants'][0]['ledger']['host']:
         log.error('Blockbench: Participant is not specified. Exiting')
         return False
     service_url = prepare_for_blockbench_test(repo_path)
-    sleep(10)
     bc_obj = BlockbenchRestAPIs(service_url)
     if args.blockbench_operation == 'getprogress':
         result, completion_percentage = get_blockbench_progress(bc_obj)

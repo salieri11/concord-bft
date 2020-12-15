@@ -33,8 +33,20 @@ def test_blockbench(fxProduct, fxHermesRunSettings):
     :return: result
     """
     args = fxHermesRunSettings["hermesCmdlineArgs"]
+    if args.replicasConfig:
+        all_replicas = helper.parseReplicasConfig(
+            args.replicasConfig)
+        ledger_api_hosts = all_replicas["daml_participant"]
+        log.info("Getting client IPs from --replicasConfig")
+    elif args.damlParticipantIP:
+        ledger_api_hosts = fxHermesRunSettings[
+            "hermesCmdlineArgs"].damlParticipantIP.split(",")
+        log.info("Getting client IPs from --damlParticipantIP")
+    else:
+        ledger_api_hosts = []
+
     over_all_status = None
-    status = blockbench.blockbench_main(args)
+    status = blockbench.blockbench_main(args, ledger_api_hosts)
     if status:
         log.info("**** Test passed on {}".format(args.blockbench_spec))
         if over_all_status is None:
