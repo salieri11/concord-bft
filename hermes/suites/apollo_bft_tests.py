@@ -40,9 +40,7 @@ from test_skvbc_checkpoints import SkvbcCheckpointTest
 
 from suites.case import describe
 import hermes_util.helper as helper
-from hermes_util.apollo_helper import with_timeout
-from hermes_util.apollo_helper import start_replica_cmd
-from hermes_util.apollo_helper import stop_replica_cmd
+from hermes_util.apollo_helper import with_timeout, bft_network
 from hermes_util.apollo_helper import create_bft_network
 import hermes_util.hermes_logging as logging
 
@@ -50,13 +48,6 @@ log = logging.getMainLogger()
 
 # Read by the fxProduct fixture.
 productType = helper.TYPE_TEE
-
-
-@pytest.fixture(scope="module")
-@describe("fixture; bft network")
-@with_trio
-async def bft_network():
-    return await create_bft_network()
 
 
 @describe()

@@ -1,18 +1,27 @@
 #########################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
-import sys
 import subprocess
 import trio
+import pytest
+from suites.case import describe
 
 from functools import wraps
-from bft import BftTestNetwork, TestConfig
+from bft import BftTestNetwork, TestConfig, with_trio
 from bft_config import Replica
 from hermes_util.skvbc.concord_external_client import ExternalBftClient
 
 import hermes_util.hermes_logging as hermes_logging_util
 
 log = hermes_logging_util.getMainLogger()
+
+
+@pytest.fixture(scope="module")
+@describe("fixture; bft_network")
+@with_trio
+async def bft_network():
+    return await create_bft_network()
+
 
 async def create_bft_network(num_ro_replicas=0):
     config = TestConfig(n=4,
@@ -23,11 +32,16 @@ async def create_bft_network(num_ro_replicas=0):
                         start_replica_cmd=start_replica_cmd,
                         stop_replica_cmd=stop_replica_cmd,
                         num_ro_replicas=num_ro_replicas)
-    replicas = [Replica(id=i, ip="127.0.0.1", port=3501 + i, metrics_port=4501 + i)
+    replicas = [
+                Replica(id=i, ip="127.0.0.1",
+                        port=3501 + i, metrics_port=4501 + i)
                 for i in range(config.num_clients + config.num_ro_replicas)]
     clients = [ExternalBftClient(i) for i in range(config.num_clients)]
-    bft_network = BftTestNetwork.existing(config, replicas, clients, lambda client_id: ExternalBftClient(client_id))
+    bft_network = BftTestNetwork.existing(
+                            config, replicas, clients,
+                            lambda client_id: ExternalBftClient(client_id))
     return bft_network
+
 
 def start_replica_cmd(builddir, replica_id):
     log.info(f"Starting replica #{replica_id}")
@@ -42,10 +56,11 @@ def stop_replica_cmd(replica_id):
 def with_timeout(async_fn):
     """
     Decorator that makes sure an async test case doesn't run indefinitely.
-    This could happen sometimes due to a co-routine waiting indefinitely for something to happen
-    (f.e. a view change).
+    This could happen sometimes due to a co-routine waiting indefinitely
+    for something to happen (f.e. a view change).
 
-    In case the timeout is reached, we print the list of live Concord containers, to help debug such cases.
+    In case the timeout is reached, we print the list of
+    live Concord containers, to help debug such cases.
     """
 
     @wraps(async_fn)
@@ -54,9 +69,11 @@ def with_timeout(async_fn):
             with trio.fail_after(seconds=5 * 60):
                 return await async_fn(*args, **kwargs)
         except trio.TooSlowError:
-            raw_output = subprocess.check_output(["docker", "ps", "--format", "{{ .Names }}"])
+            raw_output = subprocess.check_output(
+                ["docker", "ps", "--format", "{{ .Names }}"])
             live_containers = [c.decode('utf-8') for c in raw_output.split()]
-            log.info(f"Live containers at the time of failure: {live_containers}")
+            log.info(
+                f"Live containers at the time of failure: {live_containers}")
             raise
 
     return timeout_wrapper
