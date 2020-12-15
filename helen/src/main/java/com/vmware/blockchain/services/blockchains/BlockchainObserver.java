@@ -234,18 +234,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
             e -> transformDeployedResourceToString(e.getValue())
         )));
 
-        // Backward compatible workflow for ETH.
-        try {
-            if (blockchain.type == Blockchain.BlockchainType.ETHEREUM) {
-                var ips = replicaService.getReplicas(blockchain.getId()).stream().map(r -> r.getPublicIp())
-                        .collect(Collectors.toList());
-                connectionPoolManager.createPool(blockchain.getId(), ips);
-            }
-        } catch (IOException e) {
-            // Not sure what to do here.  Probably need to throw an error.
-            logger.warn("Connection pool creation failed for blockchain {}", blockchain.getId());
-        }
-
         blockchainService.update(blockchain);
 
         // Persist the finality of the task, success or failure.
@@ -263,6 +251,9 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
         logger.info("Updated task {}", task);
         SecurityContextHolder.getContext().setAuthentication(null);
         operationContext.removeId();
+
+        //Connection pool for Blockchain.
+        createConnectionPoolForBlockchain(blockchain);
     }
 
     private void createBlockchainNodeInfo() {
@@ -408,5 +399,28 @@ public class BlockchainObserver implements StreamObserver<DeploymentExecutionEve
                 return e.toString();
             }
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * Create Connection pool for a Blockchain.
+     * @param blockchain Blockchain
+     */
+    private void createConnectionPoolForBlockchain(Blockchain blockchain) {
+        // Backward compatible workflow for ETH.
+        try {
+            if (blockchain.getType() == Blockchain.BlockchainType.ETHEREUM) {
+                var ips = replicaService.getReplicas(blockchain.getId()).stream()
+                        .filter(replica -> (replica.getPublicIp() != null && !replica.getPublicIp().isEmpty()))
+                        .map(replica -> replica.getPublicIp())
+                        .collect(Collectors.toList());
+                // Create connections only when IPs are available.
+                if (!ips.isEmpty()) {
+                    connectionPoolManager.createPool(blockchain.getId(), ips);
+                }
+            }
+        } catch (IOException e) {
+            // Not sure what to do here.  Probably need to throw an error.
+            logger.warn("Connection pool creation failed for blockchain {}", blockchain.getId());
+        }
     }
 }

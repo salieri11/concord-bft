@@ -10,6 +10,7 @@ import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.ON_PREM
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.VMC_AWS;
 import static com.vmware.blockchain.services.blockchains.zones.Zone.Type.values;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.services.profiles.Organization;
 import com.vmware.blockchain.services.profiles.OrganizationService;
@@ -233,6 +235,19 @@ public class ZoneService {
     List<OnPremZone> getOnpremZones(UUID orgId) {
         String json = JSONObject.toJSONString(Collections.singletonMap("type", ON_PREM.toString()));
         return genericDao.getJsonByParentQuery(orgId, json, OnPremZone.class);
+    }
+
+    /**
+     * Get a list of zone Ids based on zone type.
+     * @return List
+     */
+    public List<UUID> getZoneIdsByType(Zone.Type zoneType) {
+        // Get the zones by type.
+        List<Zone> zones = getAllZonesByType(zoneType);
+        if (zones == null) {
+            return new ArrayList<>();
+        }
+        return zones.stream().map(AbstractEntity::getId).collect(Collectors.toList());
     }
 
 }

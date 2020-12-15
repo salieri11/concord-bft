@@ -13,6 +13,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -26,6 +28,9 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.dao.GenericDao;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 
 /**
  * Test the blockchain manager.
@@ -48,19 +53,23 @@ public class BlockchainServiceTest {
     @Captor
     private ArgumentCaptor<BlockchainManagerEvent> eventCaptor;
 
+    @MockBean
+    private ReplicaService replicaService;
+
+    @MockBean
+    private ZoneService zoneService;
+
     /**
      * Initialize mocks.
      */
     @BeforeEach
     void init() {
         // Trying to autowire pulls in too many things
-        manager = new BlockchainService(genericDao, publisher);
-
+        manager = new BlockchainService(genericDao, publisher, replicaService, zoneService);
     }
 
     @Test
     void testCreateNode() {
-
         when(genericDao.put(any(Blockchain.class), any())).thenAnswer(invocation -> {
             Blockchain b = invocation.getArgument(0);
             if (b.getId() == null) {
@@ -100,6 +109,13 @@ public class BlockchainServiceTest {
 
         assertEquals(result.blockchainVersion, blockchainVersion);
         assertEquals(result.executionEngineVersion, execEngineVersion);
+    }
+
+    @Test
+    public void testGetBlockchainByTypeWithReplicas() {
+        final Map<UUID, List<Replica>> blockchainIdAndReplicas =
+                manager.getCloudBlockchainsWithReplicas(Blockchain.BlockchainType.ETHEREUM);
+        Assertions.assertNotNull(blockchainIdAndReplicas);
     }
 
 }

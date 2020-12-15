@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ServiceUnavailableException;
 import com.vmware.concord.ConcordTcpConnection;
 import com.vmware.concord.IConcordConnection;
@@ -85,6 +86,9 @@ public class ConcordConnectionPool {
      * Create a connection to the request IP.
      */
     public IConcordConnection create(String nodeIp) throws IOException, UnsupportedOperationException {
+        if (nodeIp == null || nodeIp.isEmpty()) {
+            throw new BadRequestException(ErrorCodeType.INVALID_PARAMETER);
+        }
         IpAddr ip = new IpAddr(nodeIp);
         switch (connectionType) {
             case TCP:
@@ -108,11 +112,16 @@ public class ConcordConnectionPool {
      */
     private IConcordConnection createConnection() {
         log.trace("createConnection enter");
+        if (ips == null || ips.isEmpty()) {
+            log.info("No IPs available to process.");
+            return null;
+        }
         try {
             // increment first, so that all errors can decrement
             int c = connectionCount.incrementAndGet();
             if (c <= maxPoolSize) {
                 int i = nextConnection.incrementAndGet() % ips.size();
+                log.debug("ips get({}) {}", i, ips.get(i));
                 IConcordConnection res = create(ips.get(i));
                 log.info("new connection created, active connections: " + c);
                 return res;
@@ -289,12 +298,14 @@ public class ConcordConnectionPool {
         private int port = 5458;
 
         public IpAddr(String ipAddr) {
+            log.debug("ipAddr string {}", ipAddr);
             try {
                 // Try with standard url syntax
                 URL url = new URL(ipAddr);
                 host = url.getHost();
                 port = url.getPort();
             } catch (MalformedURLException u) {
+                log.warn("Failed to extract Host and Port using URL from {}. Try String split.", ipAddr, u);
                 // Assume it's in the form of host:port
                 String[] parts = ipAddr.split(":");
                 // zero length means a string like ":123"
@@ -305,6 +316,7 @@ public class ConcordConnectionPool {
                     try {
                         this.port = Integer.parseInt(parts[1]);
                     } catch (NumberFormatException e) {
+                        log.warn("Failed to parse port from {}", parts[1], e);
                         // do nothing, return default port
                     }
                 }
