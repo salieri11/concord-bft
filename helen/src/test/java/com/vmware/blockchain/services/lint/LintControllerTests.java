@@ -23,6 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
@@ -52,7 +53,8 @@ import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
  */
 @ExtendWith(SpringExtension.class)
 @TestPropertySource(locations = "classpath:lint-test.properties")
-@WebMvcTest(secure = false, controllers = LintProxyController.class)
+@WebMvcTest(controllers = LintProxyController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(classes = MvcConfig.class)
 @ComponentScan(basePackageClasses = { LintControllerTests.class })
 public class LintControllerTests {

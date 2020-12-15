@@ -300,7 +300,7 @@ class ZoneControllerTest {
         Assertions.assertEquals("https://wavefront.com", r.getWavefront().getUrl());
         Assertions.assertEquals(1, r.logManagements.size());
         Assertions.assertEquals(Zone.LogDestination.LOG_INSIGHT, r.logManagements.get(0).destination);
-        Assertions.assertEquals(new Integer(9000), r.getLogManagements().get(0).port);
+        Assertions.assertEquals(Integer.valueOf(9000), r.getLogManagements().get(0).port);
     }
 
     @Test

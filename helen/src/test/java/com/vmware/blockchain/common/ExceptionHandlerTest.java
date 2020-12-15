@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -33,7 +34,8 @@ import lombok.Value;
  * Test various controller exceptions to be sure we get proper error messages.
  */
 @ExtendWith(SpringExtension.class)
-@WebMvcTest(secure = false, controllers = ExceptionHandlerTestController.class)
+@WebMvcTest(controllers = ExceptionHandlerTestController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(classes = { MvcConfig.class, ControllerTestConfig.class })
 @ComponentScan(basePackageClasses = { ExceptionHandlerTest.class, HelenExceptionHandler.class })
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")

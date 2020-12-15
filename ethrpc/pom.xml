@@ -16,8 +16,7 @@
     <name>concord-ethrpc</name>
 
     <properties>
-        <springframework.boot.version>2.1.13.RELEASE</springframework.boot.version>
-        <com.fasterxml.jackson.core.version>2.9.10</com.fasterxml.jackson.core.version>
+        <springframework.boot.version>2.3.7.RELEASE</springframework.boot.version>
     </properties>
 
     <profiles>
@@ -109,21 +108,6 @@
         ~ Third-party test dependencies. (Lexicographical order)    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
 
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${com.fasterxml.jackson.core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${com.fasterxml.jackson.core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>${com.fasterxml.jackson.core.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

@@ -18,12 +18,12 @@
     <properties>
         <commons.lang3.version>3.9</commons.lang3.version>
         <concord.communication.version>1.0-SNAPSHOT</concord.communication.version>
-        <io.zonky.test.version>1.4.1</io.zonky.test.version>
+        <io.zonky.test.version>1.6.1</io.zonky.test.version>
         <io.zonky.test.postgres.version>10.6.0</io.zonky.test.postgres.version>
         <mockito.inline.version>2.28.2</mockito.inline.version>
         <org.mybatis.version>3.5.5</org.mybatis.version>
         <org.mybatis.spring.version>2.0.5</org.mybatis.spring.version>
-        <springframework.boot.version>2.1.15.RELEASE</springframework.boot.version>
+        <springframework.boot.version>2.3.7.RELEASE</springframework.boot.version>
     </properties>
 
     <dependencies>

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
@@ -47,7 +48,8 @@ import com.vmware.blockchain.utils.ControllerTestConfig;
  * Tests for the ContractsController.
  */
 @ExtendWith(SpringExtension.class)
-@WebMvcTest(secure = false, controllers = {ContractsController.class})
+@WebMvcTest(controllers = {ContractsController.class})
+@AutoConfigureMockMvc(addFilters = false)
 @ContextConfiguration(classes = {ControllerTestConfig.class, MvcConfig.class })
 @ComponentScan(basePackageClasses = {ContractsControllerTest.class, HelenExceptionHandler.class })
 @TestPropertySource(properties = "spring.main.allow-bean-definition-overriding=true")
