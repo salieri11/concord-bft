@@ -24,10 +24,10 @@
                 <p>{{ 'blockchainWizard.engine.damlInfo' | translate }}</p>
               </div>
             </div>
-            <div class="clr-row disabled">
+            <div class="clr-row" [ngClass]="{'disabled': !ethEnabled}">
               <div class="clr-col-12">
                 <div id="ethEngine" class="card sideways"
-                  [ngClass]="{'active': selectedEngine === engines.ETH}">
+                  [ngClass]="{'active': selectedEngine === engines.ETH && ethEnabled}" (click)="selectEngine(engines.ETH)">
                   <div class="card-icon">
                     <img src="static/images/contract-types/eth.svg"
                       [attr.alt]="'blockchainWizard.engine.ethTitle' | translate">
@@ -135,7 +135,7 @@
       </clr-step-content>
     </clr-stepper-panel>
 
-    <clr-stepper-panel #clientsPage formGroupName="clients">
+    <clr-stepper-panel #clientsPage formGroupName="clients" *ngIf="!ethFlow">
       <clr-step-title>{{'blockchainWizard.clients.pageTitle' | translate}}</clr-step-title>
       <clr-step-description>{{ 'blockchainWizard.clients.pageDesc' | translate }}</clr-step-description>
       <clr-step-content>
@@ -147,7 +147,6 @@
               <label class="short-label clr-control-label">{{ 'blockchainWizard.clients.clientGrouping' | translate }}</label>
               <div class="clr-row columned no-height">
                 <div class="clr-col-md-6">
-                  <!-- <div class="column-label-container"><label class="column-label">{{ 'common.name' | translate }}</label></div> -->
                 </div>
                 <div class="clr-col-md-2">
                   <div class="column-label-container"><label class="column-label">{{ 'common.countNoun' | translate }}</label></div>
@@ -318,7 +317,7 @@
       </clr-step-content>
     </clr-stepper-panel>
 
-    <clr-stepper-panel #replicaSizing formGroupName="nodeSizingTemplate">
+    <clr-stepper-panel #replicaSizing formGroupName="nodeSizingTemplate" *ngIf="!ethFlow">
       <clr-step-title>{{'blockchainWizard.sizing.title' | translate}}</clr-step-title>
       <clr-step-description>{{'blockchainWizard.sizing.pageDesc' | translate}}</clr-step-description>
       <clr-step-content *clrIfExpanded>

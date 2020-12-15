@@ -13,7 +13,7 @@ import * as VERSION from './../../static/data/version.json';
   providedIn: 'root'
 })
 export class FeatureFlagService {
-  private featureFlags: {}; // Key-value map from JSON file
+  featureFlags: {}; // Key-value map from JSON file
   private routeFeatureMapping = FeatureFlagRouteMapping;
 
   constructor(private http: HttpClient) {}

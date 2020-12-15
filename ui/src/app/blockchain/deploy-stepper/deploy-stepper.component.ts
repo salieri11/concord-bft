@@ -27,6 +27,7 @@ import { RouteService } from '../../shared/route.service';
 import { ContextualHelpService } from './../../shared/contextual-help.service';
 import { TranslateService } from '@ngx-translate/core';
 import { validateCert, validatePEM } from '../../shared/custom-validators';
+import { FeatureFlagService } from '../../shared/feature-flag.service';
 
 const urlValidateRegex = /^(?:http(s)?:\/\/)[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
 
@@ -80,6 +81,8 @@ export class DeployStepperComponent implements AfterViewInit {
 
   showOnPrem: boolean;
   loadingFlag: boolean;
+  ethFlow: boolean;
+  ethEnabled: boolean;
 
   onPremActive: boolean;
   cloudActive: boolean;
@@ -109,11 +112,12 @@ export class DeployStepperComponent implements AfterViewInit {
     private router: Router,
     private helpService: ContextualHelpService,
     private translate: TranslateService,
+    private featureFlagService: FeatureFlagService,
   ) {
     if (!this.isAuthorized()) { this.router.navigate([mainRoutes.forbidden]); }
     this.form = this.initForm();
     this.onPremActive = this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-
+    this.ethEnabled = this.featureFlagService.featureFlags['ethereum'];
   }
 
   ngAfterViewInit() {
@@ -125,9 +129,22 @@ export class DeployStepperComponent implements AfterViewInit {
   selectEngine(type: string) {
     this.selectedEngine = type;
     this.form.controls['engine']['controls']['type'].patchValue(type);
-    if (this.selectedEngine !== 'DAML') {
-      (this.form.get('clients') as FormArray).clear();
+
+    switch (this.selectedEngine) {
+      case this.engines.DAML:
+        this.ethFlow = false;
+
+        (this.form.get('clients') as FormArray).clear();
+
+        break;
+
+      case this.engines.ETH:
+        this.ethFlow = this.ethEnabled;
+
+        break;
+
     }
+
   }
 
   onClickNext() {
