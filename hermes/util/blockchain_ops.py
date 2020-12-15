@@ -704,14 +704,13 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   log.info("fxBlockchain:::{}".format(fxBlockchain))
   log.info("** Verifying health of all nodes...")
   all_committers_other_than_interrupted = [ip for ip in
-                                           committers_of(fxBlockchain) if
+                                           committers_of(fxBlockchain.replicas) if
                                            ip not in interrupted_nodes]
   log.info("** committers **")
   unexpected_interrupted_committers = []
   for ip in all_committers_other_than_interrupted:
     log.info("  {}...".format(ip))
-    log.info("bcid to fetch node credentials{}".format(fxBlockchain["blockchainId"][0]))
-    username, password = helper.getNodeCredentials(fxBlockchain["blockchainId"][0], ip)
+    username, password = helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
     if not helper.check_docker_health(ip, username, password,
                                       helper.TYPE_DAML_COMMITTER,
                                       max_timeout=5, verbose=False):
