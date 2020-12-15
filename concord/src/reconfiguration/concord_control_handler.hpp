@@ -15,6 +15,7 @@ class ConcordControlHandler : public bftEngine::ControlHandlers {
   void onSuperStableCheckpoint() override { onNoutOfNCheckpoint = true; };
 
   void onStableCheckpoint() override { onNMinusFOutOfNCheckpoint = true; }
+  bool onPruningProcess() override { return false; }
   virtual ~ConcordControlHandler() {}
 
   bool isOnNOutOfNCheckpoint() { return onNoutOfNCheckpoint; }
