@@ -1246,8 +1246,6 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
   all_committers_mem = []
   metric_dict = {}
   metric_list = ["written_blocks", "daml_writes", "daml_reads"]
-  for metric in metric_list:
-     metric_dict.setdefault(metric, 0)
 
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
@@ -1256,6 +1254,8 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
 
     log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
+      for metric in metric_list:
+         metric_dict.update({metric:0})
       username, password = getNodeCredentials(blockchainId, replica_ip)
       if blockchain_type == TYPE_DAML_PARTICIPANT:
          log.info("skipping participant node for wavefront metrics")
