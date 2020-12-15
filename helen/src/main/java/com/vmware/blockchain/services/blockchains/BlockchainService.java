@@ -6,6 +6,8 @@ package com.vmware.blockchain.services.blockchains;
 
 import static com.vmware.blockchain.services.blockchains.BlockchainApiObjects.BlockchainPatch;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +21,10 @@ import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.services.blockchains.Blockchain.BlockchainType;
+import com.vmware.blockchain.services.blockchains.replicas.Replica;
+import com.vmware.blockchain.services.blockchains.replicas.ReplicaService;
+import com.vmware.blockchain.services.blockchains.zones.Zone;
+import com.vmware.blockchain.services.blockchains.zones.ZoneService;
 import com.vmware.blockchain.services.profiles.Consortium;
 
 
@@ -27,25 +33,31 @@ import com.vmware.blockchain.services.profiles.Consortium;
  */
 @Service
 public class BlockchainService {
+
     private static final Logger logger = LogManager.getLogger(Blockchain.class);
 
     private GenericDao genericDao;
     private ApplicationEventPublisher publisher;
+    private ReplicaService replicaService;
+    private ZoneService zoneService;
 
     @Autowired
-    public BlockchainService(GenericDao genericDao, ApplicationEventPublisher publisher) {
+    public BlockchainService(GenericDao genericDao, ApplicationEventPublisher publisher,
+                             ReplicaService replicaService, ZoneService zoneService) {
         this.genericDao = genericDao;
         this.publisher = publisher;
+        this.replicaService = replicaService;
+        this.zoneService = zoneService;
     }
 
     /**
-     * Create a new blockchain with the parameters and a specified UUID.
-     * Use this call when all we know about the consortium is its Id.
+     * Create a new blockchain with the parameters and a specified UUID. Use this call when all we know about the
+     * consortium is its Id.
      *
-     * @param id            Preset UUID for this blockchain
-     * @param consortiumId  ID of consortium owning this blockchain
-     * @param type          Type of blockchain
-     * @param metadata      Blockchain component versions
+     * @param id           Preset UUID for this blockchain
+     * @param consortiumId ID of consortium owning this blockchain
+     * @param type         Type of blockchain
+     * @param metadata     Blockchain component versions
      * @return Blockchain   Blockchain entity
      */
     public Blockchain create(UUID id, UUID consortiumId, BlockchainType type,
@@ -98,6 +110,20 @@ public class BlockchainService {
         return ids.stream().map(this::get).collect(Collectors.toList());
     }
 
+    /**
+     * Get a list of Blockchains of requested type.
+     *
+     * @param type Blockchain type
+     * @return A list of Blockchains.
+     */
+    public List<Blockchain> listByType(BlockchainType type) {
+        List<Blockchain> blockchains = genericDao.getAllByType(Blockchain.class);
+        if (blockchains == null) {
+            return new ArrayList<>();
+        }
+        return blockchains.stream().filter(bc -> (bc != null && bc.type == type)).collect(Collectors.toList());
+    }
+
     public Blockchain get(UUID id) {
         return genericDao.get(id, Blockchain.class);
     }
@@ -106,4 +132,31 @@ public class BlockchainService {
         return genericDao.get(id, Consortium.class);
     }
 
+    /**
+     * Get Key value pairs of Cloud based BlockchainIds along with a list of Replicas, for the given Blockchain type.
+     *
+     * @return A map of BlockchainId and its replicas.
+     */
+    public Map<UUID, List<Replica>> getCloudBlockchainsWithReplicas(BlockchainType blockchainType) {
+        List<Blockchain> blockchains = listByType(blockchainType);
+        if (blockchains == null) {
+            logger.info("No Blockchain of type {} is available.", blockchainType);
+            return new HashMap<>();
+        }
+        List<Replica> replicas = replicaService.getReplicasByZoneType(Zone.Type.VMC_AWS);
+        if (replicas == null || replicas.isEmpty()) {
+            logger.info("No replica of type {} is available.", Zone.Type.VMC_AWS);
+            return new HashMap<>();
+        }
+        Map<UUID, List<Replica>> blockchainIdAndReplicas = new HashMap<>();
+        replicas.forEach(replica -> {
+            if (replica != null) {
+                List<Replica> replicaList = blockchainIdAndReplicas.getOrDefault(replica.getBlockchainId(),
+                                                                                 new ArrayList<>());
+                replicaList.add(replica);
+                blockchainIdAndReplicas.put(replica.getBlockchainId(), replicaList);
+            }
+        });
+        return blockchainIdAndReplicas;
+    }
 }

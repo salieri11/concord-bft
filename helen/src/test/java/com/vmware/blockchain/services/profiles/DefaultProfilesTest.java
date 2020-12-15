@@ -140,6 +140,7 @@ class DefaultProfilesTest {
         when(blockchainService.list()).thenReturn(Arrays.asList(blockchain));
 
         when(replicaService.getReplicas(blockchain.getId())).thenReturn(replicas);
+        when(blockchainService.list()).thenReturn(Arrays.asList(blockchain));
 
         profiles.initialize();
     }
