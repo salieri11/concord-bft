@@ -1252,7 +1252,7 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
 
     log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
-      written_blocks = daml_writes = daml_reads = 0
+      metric_dict = {}
       username, password = getNodeCredentials(blockchainId, replica_ip)
       if blockchain_type == TYPE_DAML_PARTICIPANT:
          log.info("skipping participant node for wavefront metrics")
@@ -1262,11 +1262,11 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
          if "timeseries" in metrics_json:
             for result in metrics_json['timeseries']:
                if result["tags"]["operation"] == "written_blocks":
-                  written_blocks = result["data"][len(result["data"])-1]
+                  metric_dict.update({"written_blocks": result["data"][len(result["data"]) - 1][1]})
                elif result["tags"]["operation"] == "daml_writes":
-                  daml_writes = result["data"][len(result["data"])-1]
+                  metric_dict.update({"daml_writes": result["data"][len(result["data"]) - 1][1]})
                elif result["tags"]["operation"] == "daml_reads":
-                  daml_reads = result["data"][len(result["data"])-1]
+                  metric_dict.update({"daml_reads": result["data"][len(result["data"]) - 1][1]})
          else:
             log.error("Metrics data not available for replica: {}".format(replica_ip))
       try:
@@ -1282,15 +1282,16 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
             if not concise:
               all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%, blocks: {} "
-                                                   "per second, daml writes: {} per second, daml read: {} per second".format(
-                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"], round(written_blocks[1], 3),
-                 round(daml_writes[1], 3), round(daml_reads[1], 3)
+                                                   "/s, daml writes: {} /s, daml read: {} /s".format(
+                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"],
+                 round(metric_dict["written_blocks"], 3), round(metric_dict["daml_writes"], 3),
+                 round(metric_dict["daml_reads"], 3)
               ))
             else:
-              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {} per second | {} per second | {} per"
-                                                   " second".format(
-                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"], round(written_blocks[1], 3),
-                 round(daml_writes[1], 3), round(daml_reads[1], 3)
+              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {} /s | {} /s | {} /s".format(
+                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"],
+                 round(metric_dict["written_blocks"], 3), round(metric_dict["daml_writes"], 3),
+                 round(metric_dict["daml_reads"], 3)
               ))
         else:
            raise Exception("Failed retrieving stats for replica '{}', file '{}', to "
@@ -2044,10 +2045,15 @@ def parseReplicasConfig(replicas):
     with open(replicas, 'r') as f:
       replicasObject = json.loads(f.read())
   else: # fxBlockchain dict or replicas dict directly.
+    log.info("here 11")
     if hasattr(replicas, "replicas"):
+      log.info("here 22")
       replicasObject = replicas
+      log.info("here 33::{}".format(replicasObject))
       return getattr(replicasObject, "replicas")
-    else: replicasObject = replicas
+    else:
+       log.info("here 44::{}".format(replicas))
+       replicasObject = replicas
  
   nodeTypes = [
     TYPE_ETHEREUM, TYPE_DAML, TYPE_DAML_COMMITTER,
@@ -2057,7 +2063,7 @@ def parseReplicasConfig(replicas):
   result = {} # clean up and enforce replicas structure
 #   if isinstance(replicasObject, dict):
 #     replicasObject = json.loads(json.dumps(replicasObject)) 
-  
+  log.info("replicasObject::::::{}".format(replicasObject))
   for nodeType in replicasObject:
     nodeWithThisType = replicasObject[nodeType]
     if nodeType == "others":
