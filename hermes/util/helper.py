@@ -1244,6 +1244,10 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
   temp_json_path = "/tmp/healthd_recent.json"
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
+  metric_dict = {}
+  metric_list = ["written_blocks", "daml_writes", "daml_reads"]
+  for metric in metric_list:
+     metric_dict.setdefault(metric, 0)
 
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
@@ -1252,7 +1256,6 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
 
     log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
-      metric_dict = {}
       username, password = getNodeCredentials(blockchainId, replica_ip)
       if blockchain_type == TYPE_DAML_PARTICIPANT:
          log.info("skipping participant node for wavefront metrics")
@@ -1261,12 +1264,9 @@ def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
          metrics_json = json.loads(metrics)
          if "timeseries" in metrics_json:
             for result in metrics_json['timeseries']:
-               if result["tags"]["operation"] == "written_blocks":
-                  metric_dict.update({"written_blocks": result["data"][len(result["data"]) - 1][1]})
-               elif result["tags"]["operation"] == "daml_writes":
-                  metric_dict.update({"daml_writes": result["data"][len(result["data"]) - 1][1]})
-               elif result["tags"]["operation"] == "daml_reads":
-                  metric_dict.update({"daml_reads": result["data"][len(result["data"]) - 1][1]})
+               for operation_name in metric_list:
+                  if result["tags"]["operation"] == operation_name:
+                     metric_dict.update({operation_name: result["data"][len(result["data"]) - 1][1]})
          else:
             log.error("Metrics data not available for replica: {}".format(replica_ip))
       try:
