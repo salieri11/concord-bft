@@ -6,6 +6,7 @@
 #ifndef CONCORD_CONSENSUS_BFT_CONFIGURATION_HPP_
 #define CONCORD_CONSENSUS_BFT_CONFIGURATION_HPP_
 
+#include <optional>
 #include <set>
 #include <string>
 
@@ -83,21 +84,55 @@ inline bool initializeSBFTPrincipals(
   return true;
 }
 
+// Load BFT dynamic configuration if exists.
+// Populates bftEngine::ReplicaConfig with key-value pairs of the form:
+// concord.bft.st.maxBlockSize: 31457280
+// This function bypasses the configuration_manager mechanism.
+void loadDynamicBftConfig() {
+  logging::Logger logger =
+      logging::Logger::getInstance("concord.configuration");
+  const std::string bftConfigFile("config-local/bft_config.yaml");
+  std::ifstream bftConfigInput(bftConfigFile);
+  if (!bftConfigInput.is_open()) {
+    LOG_INFO(logger, bftConfigFile << " file not found");
+    return;
+  }
+  LOG_INFO(logger, "Loading dynamic BFT configuration from " << bftConfigFile);
+  YAML::Node yamlBftConfiguration = YAML::Load(bftConfigInput);
+  std::function<void(const YAML::Node&, const std::string&)> traverse =
+      [&traverse, &logger](const YAML::Node& node, const std::string& ypath) {
+        if (node.IsMap())
+          for (auto it = node.begin(); it != node.end(); ++it)
+            traverse(it->second, ypath + "." + it->first.as<std::string>());
+        else if (node.IsSequence())
+          for (auto it = node.begin(); it != node.end(); ++it)
+            traverse(*it, ypath);
+        else if (node.IsScalar()) {
+          std::string value = node.as<std::string>();
+          if (YAML::as_if<bool, std::optional<bool>>(node)())
+            value = node.as<bool>() ? "1" : "0";
+          LOG_INFO(logger, ypath.substr(1) << ": " << value);
+          bftEngine::ReplicaConfig::instance().set(ypath.substr(1), value);
+        }
+      };
+  traverse(yamlBftConfiguration, "");
+}
+
 inline bool InitializeSbftConfiguration(
     concord::config::ConcordConfiguration& config,
     concord::config::ConcordConfiguration& nodeConfig,
     concord::config::CommConfig* commConfig,
-    concord::kvbc::ClientConfig* clConf, uint16_t clientIndex,
-    bftEngine::ReplicaConfig* repConf, bool isReadOnly,
+    concord::kvbc::ClientConfig* clConf, uint16_t clientIndex, bool isReadOnly,
     Cryptosystem* cryptosystem = nullptr) {
-  assert(!clConf != !repConf);
-
   // Initialize random number generator
   srand48(getpid());
 
   concord::config::ConcordConfiguration& replicaConfig =
       isReadOnly ? nodeConfig : nodeConfig.subscope("replica", 0);
-  uint16_t selfNumber = (repConf)
+
+  bftEngine::ReplicaConfig& repConf = bftEngine::ReplicaConfig::instance();
+
+  uint16_t selfNumber = (!clConf)
                             ? (replicaConfig.getValue<uint16_t>("principal_id"))
                             : (nodeConfig.subscope("client_proxy", clientIndex)
                                    .getValue<uint16_t>("principal_id"));
@@ -114,89 +149,91 @@ inline bool InitializeSbftConfiguration(
     if (!res) return false;
   }
 
-  if (repConf) {
-    repConf->replicaPrivateKey =
+  if (!clConf) {
+    loadDynamicBftConfig();
+
+    repConf.replicaPrivateKey =
         replicaConfig.getValue<std::string>("private_key");
 
-    repConf->publicKeysOfReplicas = publicKeysOfReplicas;
-    repConf->viewChangeTimerMillisec =
+    repConf.publicKeysOfReplicas = publicKeysOfReplicas;
+    repConf.viewChangeTimerMillisec =
         config.getValue<uint16_t>("view_change_timeout");
-    repConf->statusReportTimerMillisec =
+    repConf.statusReportTimerMillisec =
         config.getValue<uint16_t>("status_time_interval");
-    repConf->concurrencyLevel = config.getValue<uint16_t>("concurrency_level");
+    repConf.concurrencyLevel = config.getValue<uint16_t>("concurrency_level");
 
-    repConf->numReplicas = numOfReplicas;
-    repConf->numRoReplicas = numRoReplicas;
-    repConf->replicaId = selfNumber;
-    repConf->fVal = maxFaulty;
-    repConf->cVal = maxSlow;
-    repConf->numOfClientProxies = numOfPrincipals - numOfReplicas;
-    repConf->numOfExternalClients =
+    repConf.numReplicas = numOfReplicas;
+    repConf.numRoReplicas = numRoReplicas;
+    repConf.replicaId = selfNumber;
+    repConf.fVal = maxFaulty;
+    repConf.cVal = maxSlow;
+    repConf.numOfClientProxies = numOfPrincipals - numOfReplicas;
+    repConf.numOfExternalClients =
         config.getValue<uint16_t>("num_of_external_clients");
-    auto totalNodes = numOfPrincipals + repConf->numOfExternalClients;
+    auto totalNodes = numOfPrincipals + repConf.numOfExternalClients;
     for (uint16_t j = numOfPrincipals; j < totalNodes; ++j) {
       commConfig->nodes.insert({j, bft::communication::NodeInfo{"", 0, false}});
     }
 
-    repConf->isReadOnly = isReadOnly;
+    repConf.isReadOnly = isReadOnly;
 
     // committers only
     if (selfNumber < numOfReplicas) {
-      repConf->debugStatisticsEnabled =
+      repConf.debugStatisticsEnabled =
           config.getValue<bool>("concord-bft_enable_debug_statistics");
 
-      repConf->keyExchangeOnStart =
+      repConf.keyExchangeOnStart =
           config.getValue<bool>("key_exchange_on_start");
 
-      repConf->blockAccumulation =
+      repConf.blockAccumulation =
           config.getValue<bool>("block_accumulation_on_post_execution");
 
-      repConf->keyViewFilePath = config.getValue<std::string>("key_view_path");
+      repConf.keyViewFilePath = config.getValue<std::string>("key_view_path");
 
-      repConf->preExecutionFeatureEnabled =
+      repConf.preExecutionFeatureEnabled =
           config.getValue<bool>("preexecution_enabled");
 
-      repConf->preExecReqStatusCheckTimerMillisec = config.getValue<uint64_t>(
+      repConf.preExecReqStatusCheckTimerMillisec = config.getValue<uint64_t>(
           "preexec_requests_status_check_period_millisec");
 
-      repConf->preExecConcurrencyLevel =
+      repConf.preExecConcurrencyLevel =
           config.getValue<uint16_t>("preexec_concurrency_level");
 
-      repConf->batchingPolicy =
+      repConf.batchingPolicy =
           config.getValue<uint32_t>("consensus_batching_policy");
 
-      repConf->batchFlushPeriod =
+      repConf.batchFlushPeriod =
           config.getValue<uint32_t>("consensus_batch_flush_period");
 
-      repConf->maxNumOfRequestsInBatch =
+      repConf.maxNumOfRequestsInBatch =
           config.getValue<uint32_t>("max_num_of_requests_in_consensus_batch");
 
-      repConf->maxBatchSizeInBytes =
+      repConf.maxBatchSizeInBytes =
           config.getValue<uint32_t>("max_consensus_batch_size_in_bytes");
 
-      repConf->maxInitialBatchSize =
+      repConf.maxInitialBatchSize =
           config.getValue<uint32_t>("max_initial_batch_size");
 
-      repConf->batchingFactorCoefficient =
+      repConf.batchingFactorCoefficient =
           config.getValue<uint32_t>("batching_factor_coefficient");
 
       // TODO(IG): add to config file
-      repConf->viewChangeProtocolEnabled = true;
+      repConf.viewChangeProtocolEnabled = true;
 
       // Cryptosystem
-      repConf->thresholdSystemType_ = cryptosystem->getType();
-      repConf->thresholdSystemSubType_ = cryptosystem->getSubtype();
-      repConf->thresholdPrivateKey_ =
-          cryptosystem->getPrivateKey(repConf->replicaId + 1);
-      repConf->thresholdPublicKey_ = cryptosystem->getSystemPublicKey();
-      repConf->thresholdVerificationKeys_ =
+      repConf.thresholdSystemType_ = cryptosystem->getType();
+      repConf.thresholdSystemSubType_ = cryptosystem->getSubtype();
+      repConf.thresholdPrivateKey_ =
+          cryptosystem->getPrivateKey(repConf.replicaId + 1);
+      repConf.thresholdPublicKey_ = cryptosystem->getSystemPublicKey();
+      repConf.thresholdVerificationKeys_ =
           cryptosystem->getSystemVerificationKeys();
     }
-#define DEFAULT(field, userCfg)                            \
-  {                                                        \
-    if (config.hasValue<uint32_t>(userCfg)) {              \
-      repConf->field = config.getValue<uint32_t>(userCfg); \
-    }                                                      \
+#define DEFAULT(field, userCfg)                           \
+  {                                                       \
+    if (config.hasValue<uint32_t>(userCfg)) {             \
+      repConf.field = config.getValue<uint32_t>(userCfg); \
+    }                                                     \
   }
     DEFAULT(maxExternalMessageSize, "concord-bft_max_external_message_size");
     DEFAULT(maxReplyMessageSize, "concord-bft_max_reply_message_size");
@@ -209,7 +246,7 @@ inline bool InitializeSbftConfiguration(
     clConf->cVal = maxSlow;
   }
 
-  if (cryptosystem) bftEngine::CryptoManager::instance(repConf, cryptosystem);
+  if (cryptosystem) bftEngine::CryptoManager::instance(&repConf, cryptosystem);
 
   return true;
 }

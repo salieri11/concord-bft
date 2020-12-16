@@ -812,9 +812,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     commConfig.statusCallback = sag.get_update_connectivity_fn();
     ReplicaConfig &replicaConfig = ReplicaConfig::instance();
 
-    bool success = InitializeSbftConfiguration(
-        config, nodeConfig, &commConfig, nullptr, 0, &replicaConfig,
-        false /*isReadOnly*/, cryptosys.release());
+    bool success =
+        InitializeSbftConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
+                                    false /*isReadOnly*/, cryptosys.release());
     assert(success);
 
     LOG_INFO(logger,
@@ -946,9 +946,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
       ClientConfig clientConfig;
       CommConfig clientCommConfig;
-      bool success =
-          InitializeSbftConfiguration(config, nodeConfig, &clientCommConfig,
-                                      &clientConfig, i, nullptr, false);
+      bool success = InitializeSbftConfiguration(
+          config, nodeConfig, &clientCommConfig, &clientConfig, i, false);
       assert(success);
 
       bft::communication::ICommunication *comm = nullptr;
@@ -1071,9 +1070,8 @@ int run_ro_service(ConcordConfiguration &config,
     commConfig.statusCallback = sag.get_update_connectivity_fn();
     ReplicaConfig &replicaConfig = ReplicaConfig::instance();
 
-    bool success =
-        InitializeSbftConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
-                                    &replicaConfig, true /*isReadOnly*/);
+    bool success = InitializeSbftConfiguration(config, nodeConfig, &commConfig,
+                                               nullptr, 0, true /*isReadOnly*/);
     assert(success);
 
     LOG_INFO(logger,
