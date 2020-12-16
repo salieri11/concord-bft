@@ -1677,3 +1677,25 @@ class ClientNumReplicasCalculator
     return ConcordConfiguration::ParameterStatus::VALID;
   }
 };
+
+class S3ProtocolValidator : public ConcordConfiguration::ParameterValidator {
+ public:
+  ~S3ProtocolValidator() override {}
+
+  ConcordConfiguration::ParameterStatus validate(
+      const std::string& value, const ConcordConfiguration& config,
+      const ConfigurationPath& path, std::string& failureMessage) override {
+    // convert the value to lowercase - s3 client in concord-bft doesn't care
+    // about the case
+    std::string s3_proto;
+    for (auto& v : value) s3_proto.push_back(std::tolower(v));
+
+    if (s3_proto != "http" && s3_proto != "https") {
+      failureMessage =
+          "Invalid S3 protocol. Supported values are http and https.";
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+};

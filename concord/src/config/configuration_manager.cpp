@@ -2662,6 +2662,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
                            "Protocol used to access the S3 service.");
   ro_node.tagParameter("s3-protocol", publicInputTags);
   ro_node.tagParameter("s3-protocol", deploymentTag);
+  ro_node.addValidator("s3-protocol", make_shared<S3ProtocolValidator>());
 
   ro_node.declareParameter("s3-url", "URL for the S3 service.");
   ro_node.tagParameter("s3-url", publicInputTags);
