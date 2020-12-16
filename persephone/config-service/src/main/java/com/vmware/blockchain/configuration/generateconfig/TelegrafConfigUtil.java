@@ -22,8 +22,10 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.server.exceptions.ConfigServiceException;
@@ -37,6 +39,8 @@ public class TelegrafConfigUtil {
     // These get created on the VM under /config/telegraf/certs/prometheus_client/*
     public static final String TELEGRAF_PROMETHEUS_CLIENT_KEY_PATH = "/telegraf/certs/prometheus_client/telegraf.key";
     public static final String TELEGRAF_PROMETHEUS_CLIENT_CERT_PATH = "/telegraf/certs/prometheus_client/telegraf.crt";
+    public static final String DAML_DB_DEFAULT_USERNAME = "indexdb";
+    public static final String DAML_DB_DEFAULT_PASSWORD = "indexdb";
 
     private static final Logger log = LoggerFactory.getLogger(TelegrafConfigUtil.class);
 
@@ -129,14 +133,20 @@ public class TelegrafConfigUtil {
             // /config/telegraf/certs by ConfigurationServiceHelper::nodeIndependentConfigs() for case TELEGRAF.
         }
 
+        String prometeusUser = "";
+        String prometeusPass = "";
+
         String postgressPluginStr = "#[[inputs.postgresql]]";
-        String password = nodeInfo.getProperties().getValuesMap().get(NodeProperty.Name.DAML_DB_PASSWORD.name());
-        String indexDbInput;
-        if (password != null) {
-            indexDbInput = "address = \"postgres://indexdb:" + password + "@daml_index_db/daml_ledger_api\"";
-        } else {
-            indexDbInput = "address = \"postgres://indexdb@daml_index_db/daml_ledger_api\"";
+        String passwordFromNodeInfo =
+                nodeInfo.getProperties().getValuesMap().get(NodeProperty.Name.DAML_DB_PASSWORD.name());
+        String tag = nodeInfo.getProperties().getValuesMap().get(DeploymentAttributes.IMAGE_TAG.name());
+        String password = buildDamlDbPasswordForTelegraf(passwordFromNodeInfo, tag);
+        if (!password.equals("")) {
+            prometeusUser = DAML_DB_DEFAULT_USERNAME;
+            prometeusPass = password;
+            password = ":" + password;
         }
+        String indexDbInput = "address = \"postgres://indexdb" + password + "@daml_index_db/daml_ledger_api\"";
 
         String hostConfigCopy = content.replace("$REPLICA", nodeInfo.getNodeIp());
 
@@ -145,6 +155,15 @@ public class TelegrafConfigUtil {
             hostConfigCopy = hostConfigCopy
                     .replace("#$DBINPUT", indexDbInput)
                     .replace(postgressPluginStr, postgressPlugin);
+        }
+
+        String prometeusUsernameLine = "# username = \"$PROMETEUS_USER\"";
+        String prometeusPassLine =     "# password = \"$PROMETEUS_PASS\"";
+        if (!prometeusUser.equals("")) {
+            hostConfigCopy = hostConfigCopy.replace(prometeusUsernameLine, "username = \"$PROMETEUS_USER\"")
+                             .replace("$PROMETEUS_USER", prometeusUser)
+                             .replace(prometeusPassLine, "password = \"$PROMETEUS_PASS\"")
+                             .replace("$PROMETEUS_PASS", prometeusPass);
         }
 
         // Just use the node type name.
@@ -160,6 +179,23 @@ public class TelegrafConfigUtil {
         }
 
         return hostConfigCopy;
+    }
+
+    private String buildDamlDbPasswordForTelegraf(String passwordFromNodeInfo, String tag) {
+        if (StringUtils.hasText(passwordFromNodeInfo)) {
+            return passwordFromNodeInfo;
+        }
+        if (!StringUtils.hasText(tag)) {
+            return "";
+        }
+        String fourth = tag.split("\\.")[3];
+        if (tag.startsWith("0.0.0") && Integer.parseInt(fourth) < 2466) {
+            return "";
+        }
+        if (tag.startsWith("1.0.0") && Integer.parseInt(fourth) <= 67) {
+            return "";
+        }
+        return DAML_DB_DEFAULT_PASSWORD;
     }
 
     private String getElasticsearchConfig(String urls, String username, String password, String blockchain) {
