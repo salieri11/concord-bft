@@ -58,8 +58,9 @@ def retrieve_version_dir():
    build_numbers = data['build_numbers']
    major_version = build_numbers["major"]
    minor_version = build_numbers["minor"]
+   update_version = build_numbers["update"]
    patch_version = build_numbers["patch"]
-   version_dir = "{}.{}.{}".format(major_version, minor_version, patch_version)
+   version_dir = "{}.{}.{}.{}".format(major_version, minor_version, update_version, patch_version)
    return version_dir
 
 def retrieve_build_data(cmdlineArgs, version_dir):

@@ -2,6 +2,7 @@
   "build_numbers": {
     "major": 0,
     "minor": 0,
+    "update":0,
     "patch": 0
   },
   "tot_branch": "master"
