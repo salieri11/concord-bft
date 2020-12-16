@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 
 /**
  * A very, very simple sql parser using regular expressions.
@@ -39,7 +39,7 @@ public class SimpleSqlParser {
     public SimpleSqlParser(String query) {
         Matcher m = sqlPattern.matcher(query);
         if (!m.matches()) {
-            throw new BadRequestException(ErrorCode.UNMATCHED_QUERY, query);
+            throw new BadRequestException(ErrorCodeType.UNMATCHED_QUERY, query);
         }
         // The groups in the match are 1) select 2) from 3) where (might be null) 4) keyword 5) rest of query
         select = m.group(1);

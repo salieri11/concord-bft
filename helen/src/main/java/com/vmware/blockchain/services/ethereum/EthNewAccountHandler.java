@@ -13,7 +13,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.EthRequest;
 import com.vmware.concord.Concord.EthRequest.EthMethod;
@@ -49,7 +49,12 @@ public class EthNewAccountHandler extends AbstractEthRpcHandler {
             } catch (UnsupportedEncodingException e) {
                 logger.error("Invalid passphrase");
                 throw new EthRpcHandlerException(
-                        EthDispatcher.errorMessage(ErrorCode.PASSPHRASE_INVALID, b.getId(), jsonRpc).toJSONString());
+                        EthDispatcher.errorMessage(
+                                ErrorCodeType.PASSPHRASE_INVALID.getErrorCodeTypeValue(),
+                                b.getId(),
+                                jsonRpc
+                        ).toJSONString()
+                );
             }
             ethRequest = b.build();
         } catch (Exception e) {

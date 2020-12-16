@@ -22,7 +22,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.csp.CspConstants;
 
 /**
@@ -52,12 +52,12 @@ public class InvitationController {
 
         // We shouldn't be here with a null session
         if (session == null) {
-            throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+            throw new BadRequestException(ErrorCodeType.INVALID_INVITATION);
         }
         // See if there is a service invitation
         String serviceInvitation = (String) httpRequest.getSession().getAttribute(Constants.CSP_INVITATION_LINK);
         if (serviceInvitation == null) {
-            throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+            throw new BadRequestException(ErrorCodeType.INVALID_INVITATION);
         }
         // remove the property, just to be safe
         session.removeAttribute(Constants.CSP_INVITATION_LINK);

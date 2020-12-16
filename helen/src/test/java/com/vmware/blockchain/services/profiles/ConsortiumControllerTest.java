@@ -47,7 +47,6 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.MvcTestSecurityConfig;
@@ -185,7 +184,11 @@ public class ConsortiumControllerTest {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, MISSING_CONSORTIUM.toString()), message);
+                MessageFormat.format(
+                        "Consortium with ID {0} not found.", MISSING_CONSORTIUM.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -197,7 +200,11 @@ public class ConsortiumControllerTest {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, NOT_FOUND_CONSORTIUM.toString()), message);
+                MessageFormat.format(
+                        "Consortium with ID {0} not found.", NOT_FOUND_CONSORTIUM.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -292,7 +299,11 @@ public class ConsortiumControllerTest {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, MISSING_CONSORTIUM.toString()), message);
+                MessageFormat.format(
+                        "Consortium with ID {0} not found.", MISSING_CONSORTIUM.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -308,7 +319,11 @@ public class ConsortiumControllerTest {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, NOT_FOUND_CONSORTIUM.toString()), message);
+                MessageFormat.format(
+                        "Consortium with ID {0} not found.", NOT_FOUND_CONSORTIUM.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -396,7 +411,11 @@ public class ConsortiumControllerTest {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, MISSING_CONSORTIUM.toString()), message);
+                MessageFormat.format(
+                        "Consortium with ID {0} not found.", MISSING_CONSORTIUM.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -408,7 +427,12 @@ public class ConsortiumControllerTest {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CONSORTIUM_NOT_FOUND, NOT_FOUND_CONSORTIUM.toString()), message);
+                MessageFormat.format(
+                        "Consortium with ID {0} not found.",
+                        NOT_FOUND_CONSORTIUM.toString()
+                ),
+                message
+        );
     }
 
     @Test

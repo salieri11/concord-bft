@@ -69,7 +69,7 @@ public class DatabaseService {
         }
 
         if (initDone && db == null) {
-            throw new ServiceUnavailableException(ErrorCode.DATABASE_UNAVAILABLE);
+            throw new ServiceUnavailableException(ErrorCodeType.DATABASE_UNAVAILABLE);
         }
 
         return db;

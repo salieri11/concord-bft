@@ -42,7 +42,7 @@ public class HelenException extends VmbcException {
         this(HttpStatus.valueOf(500), message, args);
     }
 
-    /** Create Helen Exception with new ErrorCode type introduced.
+    /** Create Helen Exception with new ErrorCodeType introduced.
      */
     public HelenException(ErrorCodeType codeType, Object... args) {
         super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
@@ -59,7 +59,7 @@ public class HelenException extends VmbcException {
         this.httpStatus = HttpStatus.valueOf(500);
     }
 
-    /** Create Helen Exception with new ErrorCode type introduced.
+    /** Create Helen Exception with new ErrorCodeType introduced.
      */
 
     public HelenException(Throwable cause, ErrorCodeType codeType, Object... args) {
@@ -77,7 +77,7 @@ public class HelenException extends VmbcException {
         this.httpStatus = httpStatus;
     }
 
-    /** Create Helen Exception with new ErrorCode type introduced.
+    /** Create Helen Exception with new ErrorCodeType introduced.
      */
     public HelenException(HttpStatus httpStatus, Throwable cause, ErrorCodeType codeType, Object... args) {
         super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args, cause));

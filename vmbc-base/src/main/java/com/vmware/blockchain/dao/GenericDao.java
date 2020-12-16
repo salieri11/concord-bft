@@ -17,7 +17,7 @@ import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.vmware.blockchain.base.auth.BaseAuthHelper;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.InternalFailureException;
 
 
@@ -80,7 +80,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
-                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, "putUnderParent");
+                    throw new InternalFailureException(ErrorCodeType.RETRY_FAILURE, e, "putUnderParent");
                 }
                 ++retries;
                 logger.info("Retrying putUnderParent");
@@ -105,7 +105,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
-                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, "putUnderTenant");
+                    throw new InternalFailureException(ErrorCodeType.RETRY_FAILURE, e, "putUnderTenant");
                 }
                 ++retries;
                 logger.info("Retrying putUnderParent");
@@ -348,7 +348,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for {}. Max retries exceeded.", methodName, e);
-                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, methodName);
+                    throw new InternalFailureException(ErrorCodeType.RETRY_FAILURE, e, methodName);
                 }
                 ++retries;
                 logger.info("Retrying {}", methodName);
@@ -370,7 +370,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for {}. Max retries exceeded.", methodName, e);
-                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, methodName);
+                    throw new InternalFailureException(ErrorCodeType.RETRY_FAILURE, e, methodName);
                 }
                 ++retries;
                 logger.info("Retrying {}", methodName);

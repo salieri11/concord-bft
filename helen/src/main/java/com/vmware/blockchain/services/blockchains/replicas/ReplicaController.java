@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.base.Strings;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.operation.OperationContext;
 import com.vmware.blockchain.services.blockchains.Blockchain;
@@ -145,7 +145,7 @@ public class ReplicaController {
         List<Replica> replicas = replicaService.getReplicas(bid);
         if (replicas.isEmpty()) {
             // empty replica map is either old Blockchain instance, or blockchain not found.
-            throw new NotFoundException(ErrorCode.NO_REPLICAS_FOUND, bid.toString());
+            throw new NotFoundException(ErrorCodeType.NO_REPLICAS_FOUND, bid.toString());
         } else {
             // Temporary work around.
             replicas = replicas.stream()
@@ -226,7 +226,7 @@ public class ReplicaController {
 
         // make sure we can access this node.
         if (blockchain.getNodeList().stream().noneMatch(n -> n.getNodeId().equals(nodeId))) {
-            throw new BadRequestException(ErrorCode.INVALID_NODE, nodeId);
+            throw new BadRequestException(ErrorCodeType.INVALID_NODE, nodeId);
         }
         Task task = startStopNode(bid, nodeId, action);
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
@@ -252,11 +252,11 @@ public class ReplicaController {
         // check that all the nodes are part of this blockchain
         List<UUID> uuidList = nodeList.getReplicaIds() != null ? nodeList.getReplicaIds() : nodeList.getNodeIds();
         if (uuidList == null) {
-            throw new BadRequestException((ErrorCode.BAD_REQUEST));
+            throw new BadRequestException((ErrorCodeType.BAD_REQUEST));
         }
         List<UUID> bcNodeList = blockchain.getNodeList().stream().map(n -> n.getNodeId()).collect(Collectors.toList());
         if (!bcNodeList.containsAll(uuidList)) {
-            throw new BadRequestException(ErrorCode.INVALID_NODE, nodeList.nodeIds);
+            throw new BadRequestException(ErrorCodeType.INVALID_NODE, nodeList.nodeIds);
         }
         List<UUID> taskIds =
                 uuidList.stream().map(n -> startStopNode(bid, n, action)).map(t -> t.getId()).collect(
@@ -280,7 +280,7 @@ public class ReplicaController {
         Optional<Replica> replicaOpt = replicaService.getReplicas(bid).stream()
                                                         .filter(r -> r.getId().equals(replicaId)).findFirst();
         if (replicaOpt.isEmpty()) {
-            throw new NotFoundException(ErrorCode.REPLICA_NOT_FOUND,
+            throw new NotFoundException(ErrorCodeType.REPLICA_NOT_FOUND,
                     replicaId, bid);
         }
         Replica replica = replicaOpt.get();
@@ -309,10 +309,10 @@ public class ReplicaController {
         try {
             blockchain = blockchainService.get(bid);
             if (blockchain == null) {
-                throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+                throw new NotFoundException(ErrorCodeType.BLOCKCHAIN_NOT_FOUND, bid.toString());
             }
         } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+            throw new NotFoundException(ErrorCodeType.BLOCKCHAIN_NOT_FOUND, bid.toString());
         }
 
         return blockchain;

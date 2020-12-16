@@ -41,7 +41,7 @@ public class ExceptionHandlerTestController {
 
     @RequestMapping(path = "/api/entitymodification", method = RequestMethod.GET)
     ResponseEntity<String> entityModification() {
-        throw new EntityModificationException(ErrorCode.ENTITY_ISSUES);
+        throw new EntityModificationException(ErrorCodeType.ENTITY_ISSUES);
     }
 
     @RequestMapping(path = "/api/forbidden", method = RequestMethod.GET)

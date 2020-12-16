@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 import com.google.common.base.Strings;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.AbstractEntity;
 import com.vmware.blockchain.dao.GenericDao;
@@ -129,12 +129,12 @@ public class ZoneService {
             // TODO: Need to nail down the real use case for this.
             if (zone.getType().equals(ON_PREM)) {
                 if (!org.getId().equals(zone.getOrgId())) {
-                    throw new NotFoundException(ErrorCode.NOT_FOUND);
+                    throw new NotFoundException(ErrorCodeType.NOT_FOUND);
                 }
             }
             return zone;
         }
-        throw new NotFoundException(ErrorCode.NOT_FOUND);
+        throw new NotFoundException(ErrorCodeType.NOT_FOUND);
     }
 
     /**

@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.common.csp.api.client.CspApiClient;
 
@@ -56,7 +56,9 @@ public class CspJwksSigningKeyResolver implements SigningKeyResolver {
             return defaultKey;
         }
         return getSigningKey(header.getKeyId())
-                .orElseThrow(() -> new InternalFailureException(ErrorCode.CSP_INVALID_JWT_KEY_ID, header.getKeyId()));
+                .orElseThrow(() -> new InternalFailureException(
+                        ErrorCodeType.CSP_INVALID_JWT_KEY_ID, header.getKeyId()
+                ));
     }
 
     @Override

@@ -22,7 +22,8 @@ public final class ErrorCodeType {
      */
 
     public static final ErrorCodeType AGREEMENT_NOT_FOUND = new ErrorCodeType("helen.no.agreement.exists", 0);
-    public static final ErrorCodeType BAD_LOGIN_REQUEST = new ErrorCodeType("helen.invalid.email/password", 0);
+    public static final ErrorCodeType BAD_GRPCS_CONFIGURATION = new ErrorCodeType("helen.bad.grpcs.configuration", 1);
+    public static final ErrorCodeType BAD_LOGIN_REQUEST = new ErrorCodeType("helen.invalid.email.or.password", 0);
     public static final ErrorCodeType BAD_NUMBER_FORMAT = new ErrorCodeType("helen.bad.number.format", 1);
     public static final ErrorCodeType BAD_ORG_REMOVE =
             new ErrorCodeType("helen.cannot.remove.the.consortium.owner.org", 0);
@@ -59,6 +60,8 @@ public final class ErrorCodeType {
     public static final ErrorCodeType CANNOT_EXCHANGE_TOKEN = new ErrorCodeType("helen.cannot.exchange.access.code", 0);
     public static final ErrorCodeType CANNOT_REDIRECT_TO_TARGET =
             new ErrorCodeType("helen.cannot.redirect.to.target", 1);
+    public static final ErrorCodeType CLIENT_NOT_FOUND =
+            new ErrorCodeType("helen.client.not.found", 2);
     public static final ErrorCodeType CONCORD_CONNECTION =
             new ErrorCodeType("helen.unable.to.get.concord.connection", 0);
     public static final ErrorCodeType CONCORD_INTERNAL_ERROR = new ErrorCodeType("helen.concord.internal.error", 0);
@@ -68,6 +71,10 @@ public final class ErrorCodeType {
     public static final ErrorCodeType CONCURRENT_UPDATE = new ErrorCodeType("helen.concurrent.update.on.column", 2);
     public static final ErrorCodeType CONCURRENT_UPDATE_FAILED =
             new ErrorCodeType("helen.concurrent.update.failedpool.uninitialized", 0);
+    public static final ErrorCodeType CONSORTIUM_NOT_FOUND =
+            new ErrorCodeType("helen.consortium.not.found", 1);
+    public static final ErrorCodeType CONTAINER_BAD_CERTIFICATE =
+            new ErrorCodeType("helen.container.bad.certificate", 0);
     public static final ErrorCodeType CONTRACT_COMPILE_FAILED = new ErrorCodeType("helen.compilation.failure", 1);
     public static final ErrorCodeType CONTRACT_DEPLOY_FAILED = new ErrorCodeType("helen.could.not.deploy.contract", 1);
     public static final ErrorCodeType CONTRACT_NOT_FOUND = new ErrorCodeType("helen.contract.not.found", 1);
@@ -130,14 +137,21 @@ public final class ErrorCodeType {
             new ErrorCodeType("helen.parseToJSON.method.is.not.supported", 0);
     public static final ErrorCodeType METHOD_UNSPECIFIED = new ErrorCodeType("helen.request.must.contain.a.method", 0);
     public static final ErrorCodeType NO_AUTHORIZATION = new ErrorCodeType("helen.no.authorization", 0);
+    public static final ErrorCodeType NO_REPLICAS_FOUND = new ErrorCodeType("helen.no.replicas.found", 1);
     public static final ErrorCodeType NOT_ALLOWED = new ErrorCodeType("helen.not.allowed", 0);
     public static final ErrorCodeType NOT_FOUND = new ErrorCodeType("helen.not.found", 0);
-    public static final ErrorCodeType NULL_TENANT_ID = new ErrorCodeType("helen.null.tenantId.for.column.%s", 0);
-    public static final ErrorCodeType ORG_NOT_FOUND = new ErrorCodeType("helen.Organization with ID {0} not found.", 1);
-    public static final ErrorCodeType PASSPHRASE_INVALID = new ErrorCodeType("helen.invalid.passphrase.", 0);
+    public static final ErrorCodeType NOTARY_BAD_CERTIFICATE = new ErrorCodeType("helen.notary.bad.certificate", 0);
+    public static final ErrorCodeType NOTARY_PROVIDED_BUT_CONTAINER_REPO_EMPTY =
+            new ErrorCodeType("helen.notary.provided.container.repo.empty", 0);
+    public static final ErrorCodeType NOTARY_URL_EMPTY_BUT_CERT_PROVIDED =
+            new ErrorCodeType("helen.notary.url.empty.cert.provided", 0);
+    public static final ErrorCodeType NULL_TENANT_ID = new ErrorCodeType("helen.null.tenantId.for.column", 1);
+    public static final ErrorCodeType ORG_NOT_FOUND = new ErrorCodeType("helen.organization.with.id.not.found", 1);
+    public static final ErrorCodeType PASSPHRASE_INVALID = new ErrorCodeType("helen.invalid.passphrase", 0);
     public static final ErrorCodeType RAW_TRANSCATION_UNPARSED =
             new ErrorCodeType("helen.unable.to.parse.raw.transaction", 0);
-    public static final ErrorCodeType REQUEST_UNPARSED = new ErrorCodeType("helen.unable.to.parse.request.", 0);
+    public static final ErrorCodeType REPLICA_NOT_FOUND = new ErrorCodeType("helen.replica.not.found", 2);
+    public static final ErrorCodeType REQUEST_UNPARSED = new ErrorCodeType("helen.unable.to.parse.request", 0);
     public static final ErrorCodeType RETRY_FAILURE = new ErrorCodeType("helen.failed.to.retry", 1);
     public static final ErrorCodeType TO_UNSPECIFIED = new ErrorCodeType("helen.to.must.be.specified", 0);
     public static final ErrorCodeType UNALLOWED = new ErrorCodeType("helen.not.allowed.or.forbidden", 0);
@@ -152,6 +166,7 @@ public final class ErrorCodeType {
     public static final ErrorCodeType USER_NOT_FOUND = new ErrorCodeType("helen.no.user.with.email", 1);
     public static final ErrorCodeType UUID_BINDING_UNSUCCESSFUL =
             new ErrorCodeType("helen.failed.to.cast.linked.entity.field.to.UUID.", 0);
+    public static final ErrorCodeType ZONE_NOT_FOUND = new ErrorCodeType("helen.zone.not.found", 1);
 
     private final String errorCodeTypeValue;
 

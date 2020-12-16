@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.auth.AuthHelper;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.dao.GenericDao;
 
 /**
@@ -61,7 +61,7 @@ public class ConsortiumService {
      */
     public void removeOrganization(Consortium c, UUID org) {
         if (c.getOrganization().equals(org)) {
-            throw new IllegalArgumentException(ErrorCode.BAD_ORG_REMOVE);
+            throw new IllegalArgumentException(ErrorCodeType.BAD_ORG_REMOVE.getErrorCodeTypeValue());
         }
         genericDao.deleteRelation(c.getId(), org);
         genericDao.deleteRelation(org, c.getId());

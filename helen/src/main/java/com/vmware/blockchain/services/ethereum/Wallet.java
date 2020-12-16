@@ -31,7 +31,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Hex;
 import org.json.simple.JSONObject;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.WalletException;
 
 
@@ -156,7 +156,7 @@ public class Wallet {
         }
 
         if (bytesLength > length) {
-            throw new WalletException(ErrorCode.INVALID_INPUT_SIZE + length);
+            throw new WalletException(ErrorCodeType.INVALID_INPUT_SIZE.getErrorCodeTypeValue() + length);
         }
 
         int destOffset = length - bytesLength;

@@ -48,7 +48,6 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.HelenExceptionHandler;
@@ -325,7 +324,10 @@ public class ClientControllerTest extends RuntimeException {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_MISSING.toString()),
+                message
+        );
     }
 
     @Test
@@ -338,7 +340,10 @@ public class ClientControllerTest extends RuntimeException {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_NOT_FOUND.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_NOT_FOUND.toString()),
+                message
+        );
     }
 
     @Test
@@ -370,7 +375,10 @@ public class ClientControllerTest extends RuntimeException {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_MISSING.toString()),
+                message
+        );
     }
 
     @Test
@@ -384,7 +392,10 @@ public class ClientControllerTest extends RuntimeException {
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_NOT_FOUND.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_NOT_FOUND.toString()),
+                message
+        );
     }
 
     @Test
@@ -403,7 +414,11 @@ public class ClientControllerTest extends RuntimeException {
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
         Assertions.assertEquals(
-                MessageFormat.format(ErrorCode.CLIENT_NOT_FOUND, C2_ID.toString(), BC_CLIENT_MISSING.toString()),
+                MessageFormat.format(
+                        "Client with ID {0} not found on blockchain with ID {1}.",
+                        C2_ID.toString(),
+                        BC_CLIENT_MISSING.toString()
+                ),
                 message
         );
     }
@@ -623,7 +638,7 @@ public class ClientControllerTest extends RuntimeException {
                              + "    \"daml_db_password\": \"\"\n"
                              + "}";
         when(clientService.updateClient(any(), any())).thenThrow(new HelenException(HttpStatus.BAD_REQUEST,
-                                                                             ErrorCodeType.EMPTY_PASSWORD_NOT_ALLOWED));
+                ErrorCodeType.EMPTY_PASSWORD_NOT_ALLOWED));
         mockMvc.perform(
                 patch("/api/blockchains/" + BC_DAML.toString() + "/clients/" + CLIENT_NODE_ID)
                         .with(authentication(adminAuth))

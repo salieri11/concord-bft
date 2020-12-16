@@ -19,7 +19,7 @@ import org.springframework.retry.backoff.BackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.restclient.RestClientException;
 
 
@@ -66,7 +66,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                 response = execution.execute(request, body);
             } catch (Exception ex) {
                 logger.info("failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
-                throw new RestClientException(ErrorCode.INTERNAL_ERROR);
+                throw new RestClientException(ErrorCodeType.INTERNAL_ERROR);
             }
             if (isSuccessful(response)) {
                 // Log only if the call succeeded after retries.
@@ -81,7 +81,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                         cleanQueryParams(request.getURI()), response.getStatusCode(), context.getRetryCount());
                 // closing response releases connection back to pool
                 response.close();
-                throw new RestClientException(ErrorCode.INTERNAL_ERROR);
+                throw new RestClientException(ErrorCodeType.INTERNAL_ERROR);
             }
             logger.warn("{} on endpoint {} failed permanently after {} retries with status {}, returning last response",
                     request.getMethod(), cleanQueryParams(request.getURI()), context.getRetryCount(),

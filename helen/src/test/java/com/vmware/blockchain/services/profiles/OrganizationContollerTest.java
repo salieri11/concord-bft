@@ -44,7 +44,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthenticationContext;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.GenericDao;
@@ -188,7 +188,11 @@ public class OrganizationContollerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ORG_NOT_FOUND, MISSING_ORG.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format(ErrorCodeType.ORG_NOT_FOUND.getErrorCodeTypeValue(), MISSING_ORG.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -202,7 +206,11 @@ public class OrganizationContollerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ORG_NOT_FOUND, NOT_FOUND_ORG.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format(ErrorCodeType.ORG_NOT_FOUND.getErrorCodeTypeValue(), NOT_FOUND_ORG.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -421,7 +429,11 @@ public class OrganizationContollerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ORG_NOT_FOUND, MISSING_ORG.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format(ErrorCodeType.ORG_NOT_FOUND.getErrorCodeTypeValue(), MISSING_ORG.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -444,6 +456,11 @@ public class OrganizationContollerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ORG_NOT_FOUND, NOT_FOUND_ORG.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format(
+                        ErrorCodeType.ORG_NOT_FOUND.getErrorCodeTypeValue(), NOT_FOUND_ORG.toString()
+                ),
+                message
+        );
     }
 }

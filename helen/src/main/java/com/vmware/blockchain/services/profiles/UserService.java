@@ -14,7 +14,7 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.GenericDao;
 
@@ -75,7 +75,7 @@ public class UserService {
         String json = JSONObject.toJSONString(Collections.singletonMap("email", email));
         List<User> l = genericDao.getByJsonQuery(json, User.class);
         if (l.isEmpty()) {
-            throw new NotFoundException(ErrorCode.USER_NOT_FOUND, email);
+            throw new NotFoundException(ErrorCodeType.USER_NOT_FOUND, email);
         }
         return fixupRoles(l.get(0));
 
