@@ -165,6 +165,7 @@ enum DeploymentAttributes {
     OBJECT_STORE_ENABLED = 20;
     GENERATE_DAML_DB_PASSWORD = 21;
     TRC_TRS_TLS_ENABLED = 22;
+    SKIP_CONFIG_SERVICE = 23;
 }
 
 /* [END messages] */
