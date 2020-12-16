@@ -430,12 +430,23 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
 void ConcordCommandsHandler::execute(ExecutionRequestsQueue &requests,
                                      const std::string &batchCid,
                                      concordUtils::SpanWrapper &parent_span) {
-  auto accumulated_block_resetter = AccumulatedBlockResetter{accumulatedBlock_};
+  auto accumulated_block_resetter =
+      AccumulatedBlockResetter{accumulatedBlock_, accumulatedBlockClientIds_};
   for (auto &req : requests) {
     req.outExecutionStatus = execute(
         req.clientId, req.executionSequenceNum, req.flags, req.request.size(),
         req.request.c_str(), req.outReply.size(), req.outReply.data(),
         req.outActualReplySize, req.outReplicaSpecificInfoSize, parent_span);
+  }
+  if (!accumulatedBlock_.empty()) {
+    auto copied_correlation_id = batchCid;
+    const auto cid_val = kvbc::Value(std::move(copied_correlation_id));
+    accumulatedBlock_.insert({cid_key_, std::move(cid_val)});
+    BlockId new_block_id = 0;
+    const auto current_block_id = storage_.getLastBlock();
+    const auto status = addBlock(accumulatedBlock_, new_block_id, parent_span);
+    ConcordAssert(status.isOK());
+    ConcordAssertEQ(new_block_id, current_block_id + 1);
   }
 }
 
@@ -596,6 +607,10 @@ void ConcordCommandsHandler::setControlStateManager(
 std::shared_ptr<bftEngine::ControlHandlers>
 ConcordCommandsHandler::getControlHandlers() {
   return concord_control_handlers_;
+}
+
+kvbc::SetOfKeyValuePairs ConcordCommandsHandler::getAccumulatedBlock() const {
+  return accumulatedBlock_;
 }
 
 }  // namespace consensus

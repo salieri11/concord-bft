@@ -544,20 +544,17 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecuteCreatesNewBlockSuccessfulCase) {
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
   SetOfKeyValuePairs actual_raw_write_set;
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
-      .Times(1)
-      .WillOnce(DoAll(WithArg<0>(CopyKeyValuePairs(&actual_raw_write_set)),
-                      SetArgReferee<1>(kLastBlockId + 1),
-                      Return(Status::OK())));
+
   auto instance = CreateInstance();
   ConcordResponse actual_response;
 
   ASSERT_TRUE(instance->PostExecute(pre_execution_result,
                                     mock_time_contract_.get(), *kTestSpan,
                                     actual_response));
-
-  // 2 key-value pairs added by ConcordCommandsHandler + the time update.
-  EXPECT_EQ(expected_key_value_pairs.size() + 2 + 1,
+  actual_raw_write_set = instance->getAccumulatedBlock();
+  // 2 key-value pairs added by ConcordCommandsHandler + request cid key-value +
+  // the time update.
+  EXPECT_EQ(expected_key_value_pairs.size() + 1 + 1,
             actual_raw_write_set.size());
   // Check contents of write-set.
   for (const auto& entry : expected_write_set.writes()) {
@@ -592,20 +589,17 @@ TEST_F(DamlKvbCommandsHandlerTest,
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
   SetOfKeyValuePairs actual_raw_write_set;
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
-      .Times(1)
-      .WillOnce(DoAll(WithArg<0>(CopyKeyValuePairs(&actual_raw_write_set)),
-                      SetArgReferee<1>(kLastBlockId + 1),
-                      Return(Status::OK())));
+
   auto instance = CreateInstance();
   ConcordResponse actual_response;
 
   ASSERT_TRUE(instance->PostExecute(pre_execution_result,
                                     mock_time_contract_.get(), *kTestSpan,
                                     actual_response));
-
-  // 2 key-value pairs added by ConcordCommandsHandler + the time update.
-  EXPECT_EQ(expected_key_value_pairs.size() + 2 + 1,
+  actual_raw_write_set = instance->getAccumulatedBlock();
+  // 2 key-value pairs added by ConcordCommandsHandler + request cid key-value +
+  // the time update.
+  EXPECT_EQ(expected_key_value_pairs.size() + 1 + 1,
             actual_raw_write_set.size());
   // Check contents of write-set.
   for (const auto& entry : expected_write_set.writes()) {
@@ -628,10 +622,6 @@ TEST_F(DamlKvbCommandsHandlerTest, PostExecutePopulatesResponse) {
   PreExecutionResult pre_execution_result;
   pre_execution_result.set_output(pre_execution_output.SerializeAsString());
 
-  EXPECT_CALL(*mock_block_appender_, addBlock(_, _, _))
-      .Times(1)
-      .WillOnce(
-          DoAll(SetArgReferee<1>(kLastBlockId + 1), Return(Status::OK())));
   auto instance = CreateInstance();
   ConcordResponse actual_response;
 

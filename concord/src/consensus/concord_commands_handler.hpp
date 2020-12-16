@@ -54,8 +54,9 @@ class TimeContractResetter {
 // Resets the accumulated writes on construction and destruction
 class AccumulatedBlockResetter {
  public:
-  AccumulatedBlockResetter(kvbc::SetOfKeyValuePairs &kv_set) noexcept
-      : kv_set_{kv_set} {
+  AccumulatedBlockResetter(kvbc::SetOfKeyValuePairs &kv_set,
+                           std::set<std::string> &client_ids_set) noexcept
+      : kv_set_{kv_set}, client_ids_set_{client_ids_set} {
     Reset();
   }
 
@@ -68,9 +69,11 @@ class AccumulatedBlockResetter {
  private:
   void Reset() noexcept {
     if (!kv_set_.empty()) kv_set_.clear();
+    if (!client_ids_set_.empty()) client_ids_set_.clear();
   }
 
-  kvbc::SetOfKeyValuePairs kv_set_;
+  kvbc::SetOfKeyValuePairs &kv_set_;
+  std::set<std::string> &client_ids_set_;
 };
 
 class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
@@ -104,7 +107,6 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::shared_ptr<reconfiguration::ConcordControlHandler>
       concord_control_handlers_;
   uint16_t replica_id_;
-  kvbc::SetOfKeyValuePairs accumulatedBlock_;
 
  protected:
   const concord::kvbc::ILocalKeyValueStorageReadOnly &storage_;
@@ -135,6 +137,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::shared_ptr<bftEngine::ControlStateManager> controlStateManager_;
   concord::kvbc::IBlocksAppender &appender_;
   std::unique_ptr<concord::time::TimeContract> time_;
+  kvbc::SetOfKeyValuePairs accumulatedBlock_;
+  std::set<std::string> accumulatedBlockClientIds_;
 
  public:
   ConcordCommandsHandler(
@@ -182,6 +186,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   // Add the writeSet to the set of KV pairs which accumulates all the writes
   // that will be written to the database as a single block.
   void addWritesToBlock(kvbc::SetOfKeyValuePairs writeSet);
+
+  kvbc::SetOfKeyValuePairs getAccumulatedBlock() const;
 
   // Functions the subclass must implement are below here.
 

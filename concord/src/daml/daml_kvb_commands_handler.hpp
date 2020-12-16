@@ -144,7 +144,10 @@ class DamlKvbCommandsHandler
   bool GenerateWriteSetForPreExecution(
       const com::digitalasset::kvbc::PreExecutionOutput& pre_execution_output,
       const google::protobuf::Timestamp& record_time,
-      kvbc::SetOfKeyValuePairs& write_set) const;
+      kvbc::SetOfKeyValuePairs& write_set);
+
+  void AddTimeUpdate(const google::protobuf::Timestamp& record_time,
+                     const std::vector<std::string>& thin_replica_ids);
 
   void WriteSetToRawUpdates(
       const com::digitalasset::kvbc::WriteSet& input_write_set,
@@ -174,7 +177,7 @@ class DamlKvbCommandsHandler
       const kvbc::BlockId current_block_id, const string& correlation_id,
       const opentracing::Span& parent_span,
       com::vmware::concord::ConcordResponse& concord_response,
-      const bool accumulate_writes = false);
+      bool accumulate_writes = false);
 
   google::protobuf::Timestamp RecordTimeForTimeContract(
       concord::time::TimeContract* time_contract);
