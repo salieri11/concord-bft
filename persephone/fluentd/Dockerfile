@@ -1,5 +1,5 @@
 # Fluentd Debian image
-FROM athena-docker-local.artifactory.eng.vmware.com/fluent/fluentd:v1.7-debian-1
+FROM athena-docker-local.artifactory.eng.vmware.com/fluent/fluentd:v1.11-debian-1
 LABEL Description="Logging agent for Log Intelligence/Log Insight integration"
 
 # Change user to root for installations & to access docker container logs
@@ -9,10 +9,12 @@ RUN buildDeps="sudo make gcc g++ libc-dev" \
  && apt-get update && apt-get install -y --no-install-recommends $buildDeps \
  && sudo gem install fluent-plugin-multi-format-parser \
  && sudo gem install fluent-plugin-concat \
- && sudo gem install fluent-plugin-vmware-loginsight \
+ # Disable public repo  Log Insight plugin - BC-5431
+ # && sudo gem install fluent-plugin-vmware-loginsight \
  && sudo gem install fluent-plugin-record-modifier --no-document \
  && sudo gem install fluent-plugin-rewrite-tag-filter \
  && sudo gem sources --clear-all \
+ && mkdir -p etc/fluent/plugin \
  && SUDO_FORCE_REMOVE=yes \
     apt-get purge -y --auto-remove \
                   -o APT::AutoRemove::RecommendsImportant=false \
@@ -24,6 +26,8 @@ RUN buildDeps="sudo make gcc g++ libc-dev" \
 COPY fluent-*.conf /fluentd/etc/
 # Copy entrypoint file
 COPY entrypoint.sh /bin/
+# Copy custom Log Insight plugin - BC-5431
+COPY plugins/out_vmware_loginsight.rb /etc/fluent/plugin
 
 # Set environment variables
 ENV LOG_DESTINATION=LOG_INTELLIGENCE
