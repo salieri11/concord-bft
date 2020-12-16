@@ -30,6 +30,7 @@ import util.daml.party_framework.parties as parties_lib
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
+import util.node_interruption_helper as intr_helper
 
 PoolPartyFixture = collections.namedtuple("PoolPartyFixture", "ppool, parties")
 g_ppool = None
@@ -118,6 +119,17 @@ def define_groups(blockchain):
     summary += pprint.pformat(groups, indent=4)
     log.debug(summary)
     return groups
+
+
+def change_participant_id(participant_ip , old_participant_id, new_participant_id, blockchainId):
+    file_path='/config/daml-ledger-api/environment-vars'
+    cmd = f"sed -i \'s/{old_participant_id}/{new_participant_id}/g\' {file_path}" 
+    username, password = util.helper.getNodeCredentials(blockchainId, participant_ip)
+    response = util.helper.ssh_connect(participant_ip, username, password, cmd, verbose=False)
+    log.debug(response)
+    cmd = 'grep "PARTICIPANT_ID" /config/daml-ledger-api/environment-vars | cut -d "=" -f 2'
+    group = util.helper.ssh_connect(participant_ip, username, password, cmd, verbose=False)
+    assert new_participant_id in group, "Participation id not replaced"
 
 
 @describe()
@@ -210,3 +222,42 @@ def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
         username, password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
         response = util.helper.ssh_connect(ip, username, password, cmd, verbose=False)
         assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
+
+
+@describe()
+@pytest.mark.smoke
+def test_malicious_group(fxBlockchain, fxConnection, fxPoolParty):
+
+    '''
+    Alice and Bob are in different groups.
+    Bob submits a transaction to his group. Ensure he cannot read it from Alice's group.
+    '''
+    parties = fxPoolParty.parties
+    fleet = parties.get_fleet()
+    alice = parties.get_party(0)
+    bob = parties.get_party_with_group_affiliation(alice, same_group=False)
+
+    log.info("Alice:  {}   Bob:   {}".format(alice,bob))
+
+    alice.create_tx_threadfn(fleet, 1, 1)
+    alice.verify_tx_threadfn(fleet, 1)
+    log.debug("Alice done transactions") 
+
+    bob.create_tx_threadfn(fleet, 1, 1)
+    bob.verify_tx_threadfn(fleet, 1)
+    log.debug("Bob done transactions")
+
+    log.info("Participant id of Bob is replaced by Alice to make it malicious")
+    log.debug("Alice Participant id {}, Bob Participant id {}, Bob ip address {}".format(alice.get_group(), bob.get_group(), bob.get_participant().ip))
+    
+    container_name = 'daml_ledger_api'
+
+    status = intr_helper.stop_container(
+        fxBlockchain.blockchainId, bob.get_participant().ip, container_name)
+    assert status, "Issue during stopping daml_ledger_api"
+    change_participant_id(bob.get_participant().ip, bob.get_group(), alice.get_group(), fxBlockchain.blockchainId)
+    status = intr_helper.start_container(
+        fxBlockchain.blockchainId, bob.get_participant().ip, container_name)
+    assert status, "Issue during stopping daml_ledger_api"
+    bob.set_participant(alice.get_participant())
+    assert bob.verify_contract_read_failure(fleet), "Should not be able to read."
