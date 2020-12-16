@@ -107,8 +107,10 @@ target_link_libraries(TimeContractTests
 add_executable(DamlTest
         daml_test.cpp
         daml_validator_client_test.cpp
+        daml_commands_recorder_test.cpp
         mocks.hpp
         mocks.cpp
+        ../src/daml/daml_commands_recorder.cpp
         ../src/daml/daml_kvb_commands_handler.cpp
         ../src/daml/daml_validator_client.cpp
         )
