@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Flow;
 
 import org.apache.http.conn.HttpHostConnectException;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -72,6 +73,7 @@ public class VSphereOrchestrator implements Orchestrator {
     @Override
     public void populate() {
 
+        Map<String, String> mdc = MDC.getCopyOfContextMap();
         // First ensure that the server is functional, otherwise there is no point in checking further.
         try {
             HttpStatus healthStatus = vSphereHttpClient.getHealth();
@@ -98,10 +100,22 @@ public class VSphereOrchestrator implements Orchestrator {
         val storage = datacenterInfo.getDatastore();
         val network = datacenterInfo.getNetwork();
 
-        val getFolder = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getFolder(datacenterInfo.getFolder()));
-        val getDatastore = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getDatastore(storage));
-        val getResourcePool = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getResourcePool(compute));
-        val getControlNetwork = CompletableFuture.supplyAsync(() -> vSphereHttpClient.getNetwork(network.getName()));
+        val getFolder = CompletableFuture.supplyAsync(() -> {
+            MDC.setContextMap(mdc);
+            return vSphereHttpClient.getFolder(datacenterInfo.getFolder());
+        });
+        val getDatastore = CompletableFuture.supplyAsync(() -> {
+            MDC.setContextMap(mdc);
+            return vSphereHttpClient.getDatastore(storage);
+        });
+        val getResourcePool = CompletableFuture.supplyAsync(() -> {
+            MDC.setContextMap(mdc);
+            return vSphereHttpClient.getResourcePool(compute);
+        });
+        val getControlNetwork = CompletableFuture.supplyAsync(() -> {
+            MDC.setContextMap(mdc);
+            return vSphereHttpClient.getNetwork(network.getName());
+        });
 
 
         orchestratorSiteInformation = new OrchestratorSiteInformation();
@@ -136,11 +150,14 @@ public class VSphereOrchestrator implements Orchestrator {
             OrchestratorData.CreateComputeResourceRequestV2 request) {
 
         try {
-
+            Map<String, String> mdc = MDC.getCopyOfContextMap();
             val getLibraryItem =
                     CompletableFuture
-                            .supplyAsync(() -> vSphereHttpClient.getLibraryItem(request.getCloudInitData()
-                                                                                        .getModel().getTemplate()));
+                            .supplyAsync(() -> {
+                                MDC.setContextMap(mdc);
+                                return vSphereHttpClient.getLibraryItem(request.getCloudInitData()
+                                        .getModel().getTemplate());
+                            });
 
             var vmPassword = request.getProperties().containsKey(DeploymentAttributes.GENERATE_PASSWORD.name())
                              ? PasswordGeneratorUtil.generateCommonTextPassword() : "Bl0ckch@!n";

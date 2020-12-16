@@ -22,10 +22,12 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.lognet.springboot.grpc.GRpcService;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.vmware.blockchain.deployment.common.Constants;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
 import com.vmware.blockchain.deployment.services.configuration.NodeConfiguration;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
@@ -96,6 +98,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
 
         /// ---- Validation and input manipulation/extraction ----
         final val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
+        MDC.put(Constants.OPID, sessionId.toString());
+
         final val consortiumId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getConsortiumId());
         final val blockchainId = ProvisioningServiceUtil.extractOrGenerateId(request.getSpec().getBlockchainId());
         final var genericProperties = request.getSpec().getProperties();
@@ -158,7 +162,15 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         if (!deploymentLogCache.asMap().containsKey(sessionId)) {
             deploymentLogCache.put(sessionId, new CompletableFuture<>());
             // Start the async workflow to carry out the deployment plan.
-            CompletableFuture.runAsync(() -> deployBlockchain(deploymentSession, genericProperties));
+            Map<String, String> mdc = MDC.getCopyOfContextMap();
+            CompletableFuture.runAsync(() -> {
+                try {
+                    MDC.setContextMap(mdc);
+                    deployBlockchain(deploymentSession, genericProperties);
+                } finally {
+                    MDC.clear();
+                }
+            });
 
             // Emit the acknowledgement and signal completion of the request.
             responseObserver
@@ -167,6 +179,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         } else {
             responseObserver.onError(new IllegalStateException("Cannot record deployment session due to duplication"));
         }
+        MDC.remove(Constants.OPID);
     }
 
     private NodeAssignment addDamlDbPassword(Map<UUID, List<ConcordComponent>> componentsByNode,
@@ -239,6 +252,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         var request = Objects.requireNonNull(message);
         var response = Objects.requireNonNull(observer);
 
+        MDC.put(Constants.OPID, request.getSessionId());
         log.info("Received deprovision request for : " + request.getSessionId());
         try {
             deprovision(request);
@@ -246,6 +260,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
             response.onCompleted();
         } catch (Throwable error) {
             response.onError(error);
+        } finally {
+            MDC.remove(Constants.OPID);
         }
     }
 
@@ -257,6 +273,7 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
         var response = Objects.requireNonNull(observer);
 
         final val sessionId = ProvisioningServiceUtil.extractOrGenerateId(request.getHeader().getId());
+        MDC.put(Constants.OPID, sessionId.toString());
         final val consortiumId = UUID.fromString(request.getSpec().getConsortiumId());
         final val blockchainId = UUID.fromString(request.getSpec().getBlockchainId());
         final var genericProperties = request.getSpec().getProperties();
@@ -312,6 +329,8 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
             response.onCompleted();
         } catch (Throwable error) {
             response.onError(error);
+        } finally {
+            MDC.remove(Constants.OPID);
         }
     }
 
@@ -346,7 +365,6 @@ public class ProvisioningServiceV2 extends ProvisioningServiceV2Grpc.Provisionin
     //////////////////// Private methods ///////////////////////////////////
 
     void deployBlockchain(DeploymentExecutionContext session, Properties genericProperties) {
-
         DeploymentExecutionEvent.Status status = DeploymentExecutionEvent.Status.FAILURE;
         try {
             // This is important to pre-populate information. Can be done as part of constructor

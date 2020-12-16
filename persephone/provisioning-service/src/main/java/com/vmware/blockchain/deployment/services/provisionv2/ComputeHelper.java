@@ -10,6 +10,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.slf4j.MDC;
+
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.deployment.server.BootstrapComponent;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
@@ -102,9 +104,11 @@ public class ComputeHelper {
 
     List<Map.Entry<String, CompletableFuture<DeployedResource>>> getComputeNodes(
             DeploymentExecutionContext session, ConfigurationSessionIdentifier configGenerated, NodeType nodeType) {
+        Map<String, String> mdc = MDC.getCopyOfContextMap();
         return session.nodeAssignment.getEntriesList().stream()
                 .filter(k -> k.getType() == nodeType)
                 .map(placement -> Map.entry(placement.getNodeId(), CompletableFuture.supplyAsync(() -> {
+                    MDC.setContextMap(mdc);
                     var nodeId = UUID.fromString(placement.getNodeId());
                     var siteInfo = session.getSitesById().get(placement.getSite());
 
@@ -134,7 +138,6 @@ public class ComputeHelper {
                                                                   computeEvent.getNodePassword()))
                             .setName(computeEvent.getResource().toString());
                     applyEndpointDetails(session.blockchainType, resource, nodeType);
-
                     return resource.build();
                 })))
                 .collect(Collectors.toUnmodifiableList());

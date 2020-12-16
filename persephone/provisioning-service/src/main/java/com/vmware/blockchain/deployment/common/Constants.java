@@ -12,4 +12,5 @@ public final class Constants {
     public static final String DEFAULT_VM_CPU_COUNT = "2";
     public static final String DEFAULT_VM_MEMORY_GB = "16";
     public static final String DEFAULT_VM_STORAGE_GB = "64";
+    public static final String OPID = "OpId";
 }
