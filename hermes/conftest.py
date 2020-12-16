@@ -27,12 +27,14 @@ for path in local_modules:
 log = hermes_logging.getMainLogger()
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/eth_core_vm_tests_to_skip.json"
 
+HERMES_TESTS = "hermes_tests.json"  # hermes tests dictionary
 TEST_LOGDIR = "test_logs"
 REPORT = "execution_results.json"
 TESTSTATUS = "test_status.pass"
 
 # Started and terminated by pytest hooks.
 stats_gatherer = None
+
 
 def pytest_generate_tests(metafunc):
     '''
@@ -156,13 +158,13 @@ def pytest_runtest_makereport(item, call):
         # Mark outcome xfailed if when.call executed and  outcome is skipped
         # and test is marked as xfailed
         if call.when == 'call' and report.outcome == 'skipped' \
-            and 'xfail' in list(report.keywords.keys()):
+                and 'xfail' in list(report.keywords.keys()):
             report.outcome = 'xfailed'
 
         # Mark outcome xpassed if when.call executed and  outcome is passed
         # and test is marked as xfailed
         if call.when == 'call' and report.outcome == 'passed' \
-            and 'xfail' in list(report.keywords.keys()):
+                and 'xfail' in list(report.keywords.keys()):
             report.outcome = 'xpassed'
 
         setattr(item, "result", {report.nodeid: {
@@ -182,7 +184,7 @@ def hermes_info(request):
     log_dir = cmdline_args.resultsDir
     helper.CURRENT_SUITE_NAME = "HermesSetup"
     generate_grpc_bindings.generate_bindings(helper.PERSEPHONE_GRPC_BINDINGS_SRC_PATH,
-                                                helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
+                                             helper.PERSEPHONE_GRPC_BINDINGS_DEST_PATH)
 
     if cmdline_args.su:
         helper.WITH_JENKINS_INJECTED_CREDENTIALS = True
@@ -283,8 +285,8 @@ def set_hermes_info(request, hermes_info):
     # Set some helpers - update for each module
     short_name = _get_suite_short_name(request.module.__name__)
     helper.map_run_id_to_this_run(cmdLineArguments.runID,
-                                    cmdLineArguments.resultsDir,
-                                    resultsDir)
+                                  cmdLineArguments.resultsDir,
+                                  resultsDir)
     # Set Real Name same as Current Name
     helper.CURRENT_SUITE_NAME = cmdLineArguments.suitesRealname if cmdLineArguments.suitesRealname else short_name
     helper.CURRENT_SUITE_LOG_FILE = os.path.join(
@@ -502,13 +504,13 @@ def pytest_addoption(parser):
     parser.addoption("--noOfRequests", default=chessplus_helper.DEFAULT_NO_OF_REQUESTS,
                      help="No. of requests from chess+")
     parser.addoption("--chessplusTradesArrivalRate", default=chessplus_helper.DEFAULT_ARRIVAL_RATE,
-                        help="Number of fixed trades per second")
+                     help="Number of fixed trades per second")
     parser.addoption("--chessplusRunDuration", default=chessplus_helper.DEFAULT_DURATION,
-                        help="Duration for running simulation")
+                     help="Duration for running simulation")
     parser.addoption("--chessplusTimeUnits", default=chessplus_helper.DEFAULT_UNIT,
-                        help="Time unit for running simulations")
+                     help="Time unit for running simulations")
     parser.addoption("--chessplusOperation", default=chessplus_helper.DEFAULT_OPERATION,
-                        help="Simulation to generate stream of trades")
+                     help="Simulation to generate stream of trades")
     parser.addoption("--dockerHubUser", default="blockchainrepositoryreader",
                      help="DockerHub user which has read access to the digitalasset private repos. "
                      "Only needed if the DAML SDK version is not one of {}.".format(list(chessplus_helper.KNOWN_SDK_SPIDER_VERSION_MAPPINGS.keys())))
@@ -663,17 +665,17 @@ def pytest_addoption(parser):
                         default=False,
                         action="store_true")
     almConfig.addoption("--almApiKey",
-                        help="The ALM API key to use.  Defaults to the team API key for Jenkins runs. Can be " \
+                        help="The ALM API key to use.  Defaults to the team API key for Jenkins runs. Can be "
                         "passed in for local runs.",
                         default="")
     almConfig.addoption("--almDirOverride",
-                        help="When this is not set, the ALM test set path is /<branch_param>/<suitesRealName_param>. " \
-                        "If the directory needs to be overridden for unforeseen reasons, use this parameter to set " \
+                        help="When this is not set, the ALM test set path is /<branch_param>/<suitesRealName_param>. "
+                        "If the directory needs to be overridden for unforeseen reasons, use this parameter to set "
                         "the folder to something else.",
-                        #type=unescaped_str,
+                        # type=unescaped_str,
                         default=None)
     almConfig.addoption("--branch",
-                        help="The product branch being tested, typically 'master' or the first three digits of the" \
+                        help="The product branch being tested, typically 'master' or the first three digits of the"
                         "the build. e.g. 1.1.  Must match a folder in ALM ",
                         default="")
     almConfig.addoption("--build",
@@ -688,66 +690,8 @@ def _get_suite_short_name(module_name):
     '''
     This function returns short name of the Test Suite from it's module name
     '''
-
-    suite_list = {
-        "CastorDeploymentTests": "hermes.suites.castor_deployment_tests",
-        "CastorDeploymentSystemTests": "hermes.suites.sys_test_castor_deployment_tests",
-        "CastorDeploymentOnDemand": "hermes.suites.sys_test_castor_deployment_tests",
-        "ChessPlusTests": "hermes.suites.chess_plus_tests",
-        "ClientGroupTests": "hermes.suites.sys_test_client_group_tests",
-        "EthCoreVmTests": "hermes.suites.eth_core_vm_tests",
-        "DamlTests": "hermes.suites.daml_tests",
-        "DamlRegressionTests": "hermes.suites.daml_regression_tests",
-        "ClientPoolDamlTests": "hermes.suites.daml_tests",
-        "HelenAPITests": "api_test",
-        "HelenBlockTests": "block_test",
-        "HelenBlockchainTests": "blockchain_test",
-        "HelenClientTests": "client_test",
-        "HelenConsortiumTests": "consortium_test",
-        "HelenContractTests": "contract_test",
-        "HelenMemberTests": "members_test",
-        "HelenOrganizationTests": "organization_test",
-        "HelenReplicaTests": "replica_test",
-        "HelenZoneTests": "zone_test",
-        "HelenRoleTests": "roles",
-        "NodeInterruptionTests": "hermes.suites.node_interruption_tests",
-        "LongRunningTests": "hermes.suites.long_running_tests",
-        "LoggingTests": "hermes.suites.logging_tests",
-        "LogInsightTests": "hermes.suites.log_insight_tests",
-        "PersephoneTestsNew": "hermes.suites.persephone_tests_new",
-        "SampleSuite": "hermes.suites.sample_suite",
-        "ThinReplicaServerTests": "hermes.suites.thin_replica_server_tests",
-        "TimeTests": "hermes.suites.time_service.basic_test",
-        "EvilTimeTests": "hermes.suites.time_service.evil_test",
-        "PrivacyTeeTests": "hermes.suites.privacy_tee_tests",
-        "ApolloBftTests": "hermes.suites.apollo_bft_tests",
-        "SkvbcViewchangeTests": "hermes.suites.skvbc_viewchange_tests",
-        "RoReplicaTests": "hermes.suites.ro_replica_tests",
-        "SkvbcLinearizabilityTests": "hermes.suites.skvbc_linearizability_tests",
-        "SkvbcLinearizabilityWithCrashesTests": "hermes.suites.skvbc_linearizability_with_crashes_tests",
-        "SkvbcStateTransferTests": "hermes.suites.skvbc_state_transfer_tests",
-        "SkvbcPreexecutionTests": "hermes.suites.skvbc_preexecution_tests",
-        "DamlPreexecutionTests": "hermes.suites.daml_tests",
-        "SimpleStateTransferTest": "hermes.suites.simple_st_test",
-        "ContractCompilerTests": "hermes.suites.contract_compiler_tests",
-        "SampleDAppTests": "hermes.suites.sample_dapp_tests",
-        "EthJsonRpcTests": "hermes.suites.eth_json_rpc_tests",
-        "EthRegressionTests": "hermes.suites.eth_regression_tests",
-        "PerformanceTests": "hermes.suites.performance_tests",
-        "UiTests": "hermes.suites.ui_tests",
-        "DeployDamlTests": "hermes.suites.ui_e2e_deploy_daml",
-        "MetadataPersistencyTests": "hermes.suites.persistency_tests",
-        "HelenNodeSizeTemplateTests": "nodesize_test",
-        "ReconfigurationTests": "hermes.suites.reconfiguration_tests",
-        "PruningTests": "hermes.suites.pruning_tests",
-        "PreExecutionTests": "hermes.suites.sys_test_preexecution_tests",
-        "WavefrontTests": "hermes.suites.wavefront_tests",
-        "HelenVMSizeTests": "vmsize_test",
-        "TlsDamlTests": "hermes.suites.tls_daml_tests",
-        "BackupRestoreTests": "hermes.suites.backup_restore_tests",
-        "DlrTest": "hermes.suites.dlr_test"
-    }
-
+    # Add new tests to hermes_tests.json
+    suite_list = json_helper.readJsonFile(HERMES_TESTS)
     short_name = list(suite_list.keys())[list(
         suite_list.values()).index(module_name)]
 
