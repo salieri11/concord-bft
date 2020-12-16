@@ -47,7 +47,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
 import com.vmware.blockchain.base.auth.Role;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.common.csp.CspAuthenticationInterceptor;
@@ -355,7 +355,7 @@ public class CspApiClient {
                                                           CspCommon.CspLoginResponse.class);
             return loginResponse.getBody();
         } catch (HttpClientErrorException e) {
-            throw new ForbiddenException(ErrorCode.USER_NOT_AUTHENTICATED, "service client");
+            throw new ForbiddenException(ErrorCodeType.USER_NOT_AUTHENTICATED, "service client");
         }
     }
 

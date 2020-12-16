@@ -54,7 +54,6 @@ import com.google.common.collect.Lists;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthenticationContext;
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.v1.OrchestrationSiteInfo;
@@ -86,7 +85,6 @@ import io.grpc.stub.StreamObserver;
 @ContextConfiguration(classes = {MvcTestSecurityConfig.class, MvcConfig.class, ZoneConfig.class})
 @ComponentScan(basePackageClasses =
         {ZoneController.class, HelenExceptionHandler.class})
-
 
 class ZoneControllerTest {
 
@@ -313,7 +311,10 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, MISSING_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Zone with ID {0} not found.", MISSING_ZONE.toString()),
+                message
+        );
     }
 
     @Test
@@ -326,7 +327,10 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Zone with ID {0} not found.", NOT_FOUND_ZONE.toString()),
+                message
+        );
     }
 
     @Test
@@ -353,7 +357,10 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Zone with ID {0} not found.", NOT_FOUND_ZONE.toString()),
+                message
+        );
     }
 
 
@@ -866,7 +873,10 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, MISSING_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Zone with ID {0} not found.", MISSING_ZONE.toString()),
+                message
+        );
     }
 
     @Test
@@ -881,7 +891,10 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Zone with ID {0} not found.", NOT_FOUND_ZONE.toString()),
+                message
+        );
     }
 
     @Test
@@ -914,7 +927,12 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, MISSING_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format(
+                        "Zone with ID {0} not found.", MISSING_ZONE.toString()
+                ),
+                message
+        );
     }
 
     @Test
@@ -927,7 +945,10 @@ class ZoneControllerTest {
 
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
 
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.ZONE_NOT_FOUND, NOT_FOUND_ZONE.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Zone with ID {0} not found.", NOT_FOUND_ZONE.toString()),
+                message
+        );
     }
 
     @Test

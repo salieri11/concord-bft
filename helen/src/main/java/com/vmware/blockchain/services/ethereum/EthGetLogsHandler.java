@@ -10,7 +10,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.concord.Concord;
 
 /**
@@ -32,7 +32,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
             JSONArray params = extractRequestParams(requestJson);
 
             if (params.size() > 1) {
-                throw new EthRpcHandlerException(ErrorCode.UNSUITABLE_PARAMETER_NUMBERS);
+                throw new EthRpcHandlerException(ErrorCodeType.UNSUITABLE_PARAMETER_NUMBERS);
             }
 
             Concord.LogsRequest.Builder logsReq = Concord.LogsRequest.newBuilder();
@@ -48,7 +48,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
                 // Block hash or block numbers
                 if (filter.containsKey("blockHash")
                         && (filter.containsKey("fromBlock") || filter.containsKey("toBlock"))) {
-                    throw new EthRpcHandlerException(ErrorCode.INVALID_BLOCK_REQUEST);
+                    throw new EthRpcHandlerException(ErrorCodeType.INVALID_BLOCK_REQUEST);
                 }
 
                 if (filter.containsKey("fromBlock")) {
@@ -64,7 +64,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
 
                 // Let's make sure we have a valid range
                 if (logsReq.getToBlock() >= 0 && logsReq.getToBlock() < logsReq.getFromBlock()) {
-                    throw new EthRpcHandlerException(ErrorCode.INVALID_BLOCK_REQUEST);
+                    throw new EthRpcHandlerException(ErrorCodeType.INVALID_BLOCK_REQUEST);
                 }
 
                 if (filter.containsKey("address")) {

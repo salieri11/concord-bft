@@ -19,7 +19,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ConcordProperties;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ServiceUnavailableException;
 import com.vmware.concord.ConcordTcpConnection;
@@ -99,7 +98,7 @@ public class ConcordConnectionPool {
             case Mock:
                 return new MockConnection(ip.getHost(), ip.getPort());
             default:
-                throw new BadRequestException(ErrorCode.UNSUPPORTED_TYPE, connectionType);
+                throw new BadRequestException(ErrorCodeType.UNSUPPORTED_TYPE, connectionType);
         }
     }
 
@@ -168,7 +167,7 @@ public class ConcordConnectionPool {
         log.trace("getConnection enter");
 
         if (!initialized.get()) {
-            throw new ServiceUnavailableException(ErrorCode.CONNECTION_POOL_UNSUPPORTED);
+            throw new ServiceUnavailableException(ErrorCodeType.UNINITIALIZED_POOL);
         }
 
         boolean first = true;
@@ -227,7 +226,7 @@ public class ConcordConnectionPool {
         log.trace("putConnection enter");
 
         if (!initialized.get()) {
-            throw new ServiceUnavailableException(ErrorCode.UNINITIALIZED_POOL);
+            throw new ServiceUnavailableException(ErrorCodeType.UNINITIALIZED_POOL);
         }
 
         // cannot be null in normal flow
@@ -286,7 +285,7 @@ public class ConcordConnectionPool {
      */
     public int getTotalConnections() {
         if (!initialized.get()) {
-            throw new ServiceUnavailableException(ErrorCode.UNINITIALIZED_POOL);
+            throw new ServiceUnavailableException(ErrorCodeType.UNINITIALIZED_POOL);
         }
         return connectionCount.get();
     }

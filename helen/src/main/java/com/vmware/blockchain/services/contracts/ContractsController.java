@@ -39,7 +39,7 @@ import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ConflictException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.common.NotFoundException;
@@ -122,7 +122,7 @@ public class ContractsController extends ConcordServlet {
             try {
                 runs = Integer.parseInt(runParam);
             } catch (NumberFormatException e) {
-                throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, runParam);
+                throw new BadRequestException(ErrorCodeType.BAD_NUMBER_FORMAT, runParam);
             }
         }
         return runs;
@@ -164,7 +164,7 @@ public class ContractsController extends ConcordServlet {
 
         List<Contract> contracts = contractService.listByName(contractId, getBlockchainId(id));
         if (contracts.isEmpty()) {
-            throw new NotFoundException(ErrorCode.CONTRACT_NOT_FOUND, contractId);
+            throw new NotFoundException(ErrorCodeType.CONTRACT_NOT_FOUND, contractId);
         }
         // get the version list
         List<BriefVersionInfo> versions = contracts.stream().map(BriefVersionInfo::new).collect(Collectors.toList());
@@ -192,7 +192,7 @@ public class ContractsController extends ConcordServlet {
         List<Contract> contracts = contractService.getContractVersion(contractId, contractVersion, getBlockchainId(id));
 
         if (contracts.isEmpty()) {
-            throw new NotFoundException(ErrorCode.CONTRACT_VERSION_NOT_FOUND, contractId, contractVersion);
+            throw new NotFoundException(ErrorCodeType.CONTRACT_VERSION_NOT_FOUND, contractId, contractVersion);
         }
 
         return new ResponseEntity<>(new FullVersionInfo(contracts.get(0)), HttpStatus.OK);
@@ -293,7 +293,7 @@ public class ContractsController extends ConcordServlet {
         // verify parameters that need to be non-null
         if (Stream.of(contractId, solidityCode, selectedContract, compilerVersion)
                 .anyMatch(s -> s == null)) {
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
         }
 
 
@@ -301,7 +301,7 @@ public class ContractsController extends ConcordServlet {
                 existingContractId,
                 existingVersionName, getBlockchainId(id));
         if (contracts.isEmpty()) {
-            throw new NotFoundException(ErrorCode.CONTRACT_VERSION_NOT_FOUND,
+            throw new NotFoundException(ErrorCodeType.CONTRACT_VERSION_NOT_FOUND,
                     existingContractId, existingVersionName);
         }
         String existingBytecode = contracts.get(0).getBytecode();
@@ -411,7 +411,7 @@ public class ContractsController extends ConcordServlet {
                 deploymentResult.setError("Selected contract not found.");
             }
         } catch (Exception e) {
-            throw new InternalFailureException(e, ErrorCode.INTERNAL_ERROR);
+            throw new InternalFailureException(ErrorCodeType.INTERNAL_ERROR, e);
         }
 
         return deploymentResult;
@@ -512,18 +512,18 @@ public class ContractsController extends ConcordServlet {
         // verify parameters that need to be non-null
         if (Stream.of(from, contractId, contractVersion, solidityCode, selectedContract, compilerVersion)
                 .anyMatch(s -> s == null)) {
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
         }
 
         // Get all contracts with this name
         List<Contract> contracts = contractService.listByName(contractId, getBlockchainId(id));
         // If there are any, the version name must be different
         if (contracts.stream().anyMatch(c -> c.getVersionName().equals(contractVersion))) {
-            throw new ConflictException(ErrorCode.DUPLICATE_CONTRACT_ID, contractId, contractVersion);
+            throw new ConflictException(ErrorCodeType.DUPLICATE_CONTRACT_ID, contractId, contractVersion);
         }
         // If there are contracts, make sure the own is the same
         if (!contracts.isEmpty() && !isSameAddress(contracts.get(0).getOwner(), from)) {
-            throw new ForbiddenException(ErrorCode.CONTRACT_NOT_OWNER);
+            throw new ForbiddenException(ErrorCodeType.CONTRACT_NOT_OWNER);
         }
 
         // Compile the given solidity code
@@ -532,13 +532,13 @@ public class ContractsController extends ConcordServlet {
 
         // Bad request error if unsuccessful
         if (!result.isSuccess()) {
-            throw new BadRequestException(ErrorCode.CONTRACT_COMPILE_FAILED, result.getStderr());
+            throw new BadRequestException(ErrorCodeType.CONTRACT_COMPILE_FAILED, result.getStderr());
         }
 
         PostResult r = deployContracts(helper.getBlockchain(), contractId, contractVersion, from,
                 result, solidityCode, selectedContract, constructorParams);
         if (r.getError() != null) {
-            throw new BadRequestException(ErrorCode.CONTRACT_DEPLOY_FAILED, r.getContractId());
+            throw new BadRequestException(ErrorCodeType.CONTRACT_DEPLOY_FAILED, r.getContractId());
         }
         return new ResponseEntity<>(r, HttpStatus.OK);
     }
@@ -546,7 +546,7 @@ public class ContractsController extends ConcordServlet {
 
     @Override
     public JSONAware parseToJson(ConcordResponse concordResponse) {
-        throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
     }
 
     /**

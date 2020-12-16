@@ -13,7 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.services.profiles.ApplicationContextHolder;
 import com.vmware.blockchain.services.profiles.KeystoreService;
 import com.vmware.concord.Concord;
@@ -111,8 +111,14 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             // Request should contain just one param value
             if (params.size() != 1) {
                 logger.error("Invalid request parameter : params");
-                throw new EthRpcHandlerException(EthDispatcher
-                        .errorMessage(ErrorCode.ELEMENTS_SPECIFIED_MORE, id, jsonRpc).toJSONString());
+                // TODO: Handle JSON
+                throw new EthRpcHandlerException(
+                        EthDispatcher.errorMessage(
+                                ErrorCodeType.ELEMENTS_SPECIFIED_MORE.getErrorCodeTypeValue(),
+                                id,
+                                jsonRpc
+                        ).toJSONString()
+                );
             }
 
             try {
@@ -121,7 +127,12 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             } catch (Exception e) {
                 logger.error("Error in calculating Keccak hash", e);
                 throw new EthRpcHandlerException(
-                        EthDispatcher.errorMessage(ErrorCode.INVALID_PARAMETER, id, jsonRpc).toJSONString());
+                        EthDispatcher.errorMessage(
+                                ErrorCodeType.INVALID_PARAMETER.getErrorCodeTypeValue(),
+                                id,
+                                jsonRpc
+                        ).toJSONString()
+                );
             }
         } else if (ethMethodName.equals(Constants.RPC_MODULES_NAME)) {
             JSONParser p = new JSONParser();
@@ -146,8 +157,12 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             if (params.size() != 1) {
                 logger.error("Invalid request parameter : params");
                 throw new EthRpcHandlerException(
-                        EthDispatcher.errorMessage(ErrorCode.ELEMENTS_SPECIFIED_MORE, id, jsonRpc)
-                                .toJSONString());
+                        EthDispatcher.errorMessage(
+                                ErrorCodeType.ELEMENTS_SPECIFIED_MORE.getErrorCodeTypeValue(),
+                                id,
+                                jsonRpc
+                        ).toJSONString()
+                );
             }
             String password = (String) params.get(0);
             JSONObject wallet = Wallet.createWallet(password);

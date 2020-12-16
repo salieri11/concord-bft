@@ -29,7 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.deployment.v1.BearerTokenCredential;
 import com.vmware.blockchain.deployment.v1.Credential;
 import com.vmware.blockchain.deployment.v1.ElasticSearch;
@@ -141,7 +141,7 @@ public class BlockchainUtils {
             OnPremZone op = (OnPremZone) zone;
             if (op.getVCenter() == null) {
                 logger.info("Missing required field vcenter");
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
 
             final Endpoint api = Endpoint.newBuilder()
@@ -169,7 +169,7 @@ public class BlockchainUtils {
                         tlsCertificate.checkValidity();
                     } catch (Exception e) {
                         logger.error("Container Repo's certificate data is invalid, error: ", e);
-                        throw new BadRequestException(ErrorCode.CONTAINER_BAD_CERTIFICATE);
+                        throw new BadRequestException(ErrorCodeType.CONTAINER_BAD_CERTIFICATE);
                     }
                     containerBuilder.setTransportSecurity(
                             TransportSecurity.newBuilder().setType(TransportSecurity.Type.TLSv1_2)
@@ -184,7 +184,7 @@ public class BlockchainUtils {
             if (op.getNotaryServer() != null) {
                 if (op.getContainerRepo() == null) {
                     logger.error("Notary Server provided but container repo not provided");
-                    throw new BadRequestException(ErrorCode.NOTARY_PROVIDED_BUT_CONTAINER_REPO_EMPTY);
+                    throw new BadRequestException(ErrorCodeType.NOTARY_PROVIDED_BUT_CONTAINER_REPO_EMPTY);
                 }
                 if (StringUtils.hasText(op.getNotaryServer().getUrl())) {
                     notaryServerBuilder.setAddress(op.getNotaryServer().getUrl());
@@ -199,7 +199,7 @@ public class BlockchainUtils {
                             tlsCertificate.checkValidity();
                         } catch (Exception e) {
                             logger.error("Notary Server's certificate data is invalid, error: ", e);
-                            throw new BadRequestException(ErrorCode.NOTARY_BAD_CERTIFICATE);
+                            throw new BadRequestException(ErrorCodeType.NOTARY_BAD_CERTIFICATE);
                         }
                         notaryServerBuilder.setTransportSecurity(
                                 TransportSecurity.newBuilder().setType(TransportSecurity.Type.TLSv1_2)
@@ -207,14 +207,14 @@ public class BlockchainUtils {
                     }
                 } else if (StringUtils.hasText(op.getNotaryServer().getTlsCertificateData())) {
                     logger.error("Notary Server's certificate data provided but url not provided");
-                    throw new BadRequestException(ErrorCode.NOTARY_URL_EMPTY_BUT_CERT_PROVIDED);
+                    throw new BadRequestException(ErrorCodeType.NOTARY_URL_EMPTY_BUT_CERT_PROVIDED);
                 }
             }
 
             Zone.Network n = op.getNetwork();
             if (n == null) {
                 logger.info("Missing required field network");
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
 
             IPv4Network network = IPv4Network.newBuilder()
@@ -230,7 +230,7 @@ public class BlockchainUtils {
                 || op.getStorage() == null || op.getStorage().isBlank()
                 || op.getFolder() == null || op.getFolder().isBlank()) {
                 logger.info("Null or blank ResourcePool, Storage or Folder");
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
 
             OutboundProxyInfo outboundProxyInfo = OutboundProxyInfo.newBuilder().build();

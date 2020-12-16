@@ -38,7 +38,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthUtil;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspConfig;
@@ -233,7 +233,7 @@ public class Oauth2Controller {
                 helper.handleAuthTokenRequest(request, response, authTokenReqParamsBuilder.build());
 
         if (tokenResponse.getStatusCode() != HttpStatus.OK) {
-            throw new InternalFailureException(ErrorCode.CANNOT_EXCHANGE_TOKEN);
+            throw new InternalFailureException(ErrorCodeType.CANNOT_EXCHANGE_TOKEN);
         }
         HttpSession session = request.getSession();
         Oauth2AuthTokenResponse authResponse = tokenResponse.getBody();
@@ -270,7 +270,7 @@ public class Oauth2Controller {
              */
             response.sendRedirect(redirect);
         } catch (IOException e) {
-            throw new InternalFailureException(ErrorCode.CANNOT_REDIRECT_TO_TARGET, redirect);
+            throw new InternalFailureException(ErrorCodeType.CANNOT_REDIRECT_TO_TARGET, redirect);
         }
     }
 

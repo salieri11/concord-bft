@@ -17,7 +17,6 @@ import org.json.simple.JSONObject;
 import org.springframework.http.HttpStatus;
 
 import com.google.protobuf.ByteString;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.ExceptionMessageHelper;
 import com.vmware.blockchain.common.HelenException;
@@ -41,7 +40,7 @@ public class ApiHelper {
         String curr = param.trim();
 
         if (curr.length() % 2 != 0) {
-            throw new HexParseException(ErrorCode.HEX_COUNT_WRONG);
+            throw new HexParseException(ErrorCodeType.HEX_COUNT_WRONG);
         }
 
         if (curr.equals("0x")) {
@@ -68,7 +67,7 @@ public class ApiHelper {
      */
     public static long bytesToLong(ByteString bytes) throws HexParseException {
         if (bytes.size() > 8) {
-            throw new HexParseException(ErrorCode.INVALID_VALUE_SIZE);
+            throw new HexParseException(ErrorCodeType.INVALID_VALUE_SIZE);
         }
 
         long result = 0;
@@ -90,7 +89,7 @@ public class ApiHelper {
         } else if (c >= 'A' && c <= 'F') {
             return (char) (10 + c - 'A');
         } else {
-            throw new HexParseException(ErrorCode.INVALID_HEXCHAR);
+            throw new HexParseException(ErrorCodeType.INVALID_HEXCHAR);
         }
     }
 

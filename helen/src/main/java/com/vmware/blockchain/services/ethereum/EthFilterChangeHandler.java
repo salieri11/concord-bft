@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.concord.Concord;
 
 /**
@@ -49,7 +49,7 @@ public class EthFilterChangeHandler extends AbstractEthRpcHandler {
                 builder.setBlockListRequest(blockListRequest);
                 return true;
             } else {
-                throw new EthRpcHandlerException(ErrorCode.UNKNOWN_FILTER + filter.type);
+                throw new EthRpcHandlerException(ErrorCodeType.UNKNOWN_FILTER.getErrorCodeTypeValue() + filter.type);
             }
         }
 

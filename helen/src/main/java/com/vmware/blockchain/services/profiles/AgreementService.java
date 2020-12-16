@@ -14,7 +14,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.GenericDao;
 
@@ -66,7 +66,7 @@ public class AgreementService {
             a.setContent(termsOfService);
             return a;
         } catch (IOException e) {
-            throw new NotFoundException(e, ErrorCode.AGREEMENT_NOT_FOUND);
+            throw new NotFoundException(ErrorCodeType.AGREEMENT_NOT_FOUND, e);
         }
     }
 

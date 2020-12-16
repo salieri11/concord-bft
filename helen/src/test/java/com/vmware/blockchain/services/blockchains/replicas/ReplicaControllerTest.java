@@ -45,7 +45,6 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.auth.AuthenticationContext;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.operation.OperationContext;
@@ -258,7 +257,10 @@ class ReplicaControllerTest {
                 .andExpect(status().isNotFound()).andReturn();
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_MISSING.toString()),
+                message
+        );
     }
 
     @Test
@@ -269,7 +271,10 @@ class ReplicaControllerTest {
                 .andExpect(status().isNotFound()).andReturn();
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_NOT_FOUND), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_NOT_FOUND),
+                message
+        );
     }
 
     @Test
@@ -280,7 +285,10 @@ class ReplicaControllerTest {
                 .andExpect(status().isNotFound()).andReturn();
         String body = result.getResponse().getContentAsString();
         String message = objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.NO_REPLICAS_FOUND, BC_NO_REPLICAS), message);
+        Assertions.assertEquals(
+                MessageFormat.format("No replicas found for blockchain with ID {0}.", BC_NO_REPLICAS),
+                message
+        );
     }
 
     @Test
@@ -304,7 +312,10 @@ class ReplicaControllerTest {
         String body = result.getResponse().getContentAsString();
         String message =
                 objectMapper.readValue(body, Map.class).get("error_message").toString();
-        Assertions.assertEquals(MessageFormat.format(ErrorCode.BLOCKCHAIN_NOT_FOUND, BC_MISSING.toString()), message);
+        Assertions.assertEquals(
+                MessageFormat.format("Blockchain with ID {0} not found.", BC_MISSING.toString()),
+                message
+        );
     }
 
     @Test
@@ -319,7 +330,7 @@ class ReplicaControllerTest {
                 objectMapper.readValue(body, Map.class).get("error_message").toString();
         Assertions.assertEquals(
                 MessageFormat.format(
-                        ErrorCode.REPLICA_NOT_FOUND,
+                        "Replica with ID {0} not found on blockchain with ID {1}.",
                         MISSING_REPLICA.toString(),
                         BC_DAML.toString()),
                 message);

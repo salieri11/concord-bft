@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.common.base.Strings;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -268,10 +268,10 @@ public class ClientController {
         try {
             blockchain = blockchainService.get(bid);
             if (blockchain == null) {
-                throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+                throw new NotFoundException(ErrorCodeType.BLOCKCHAIN_NOT_FOUND, bid.toString());
             }
         } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.BLOCKCHAIN_NOT_FOUND, bid.toString());
+            throw new NotFoundException(ErrorCodeType.BLOCKCHAIN_NOT_FOUND, bid.toString());
         }
 
         return blockchain;
@@ -282,7 +282,7 @@ public class ClientController {
         Optional<Client> clientOpt = clientService.getClientsByParentId(blockchainId).stream()
                 .filter(c -> c.getId().equals(clientId)).findFirst();
         if (clientOpt.isEmpty()) {
-            throw new NotFoundException(ErrorCode.CLIENT_NOT_FOUND, clientId.toString(),
+            throw new NotFoundException(ErrorCodeType.CLIENT_NOT_FOUND, clientId.toString(),
                     blockchainId.toString());
         }
 

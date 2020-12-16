@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 
 import lombok.AllArgsConstructor;
@@ -117,10 +117,10 @@ public class OrganizationContoller {
         try {
             org = orgService.get(organizationId);
             if (org == null) {
-                throw new NotFoundException(ErrorCode.ORG_NOT_FOUND, organizationId.toString());
+                throw new NotFoundException(ErrorCodeType.ORG_NOT_FOUND, organizationId.toString());
             }
         } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.ORG_NOT_FOUND, organizationId.toString());
+            throw new NotFoundException(ErrorCodeType.ORG_NOT_FOUND, organizationId.toString());
         }
 
         return org;

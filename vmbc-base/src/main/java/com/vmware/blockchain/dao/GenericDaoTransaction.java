@@ -43,7 +43,7 @@ import com.vmware.blockchain.base.auth.BaseAuthHelper;
 import com.vmware.blockchain.base.auth.BaseRoles;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.DateTimeUtils;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.db.DbEntityPropertyFilter;
@@ -177,7 +177,7 @@ class GenericDaoTransaction  {
                 if (currentEntity != null && currentEntity.getVersion() != newEntity.getVersion()) {
                     logger.info("Concurrent Exception Entity {} column name {}", newEntity.getId(),
                             getColumnName(entityClass));
-                    throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE_FAILED,
+                    throw new ConcurrentUpdateException(ErrorCodeType.CONCURRENT_UPDATE_FAILED,
                                                         newEntity.getId().toString(), getColumnName(entityClass));
                 }
             }
@@ -270,7 +270,7 @@ class GenericDaoTransaction  {
             }
             logger.warn("Failed concurrent update with retries for id {} entity {}", entity.getId(),
                     getColumnName(entityClass));
-            throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE_FAILED,
+            throw new ConcurrentUpdateException(ErrorCodeType.CONCURRENT_UPDATE_FAILED,
                     entity.getId().toString(), getColumnName(entityClass));
         } finally {
             sample.stop(Metrics.globalRegistry
@@ -300,7 +300,7 @@ class GenericDaoTransaction  {
                         return entity;
                     }
                     logger.trace("Entity {}, column name {} is not found.", id, columnName);
-                    throw new NotFoundException(ErrorCode.ENTITY_NOT_FOUND, id.toString(), columnName);
+                    throw new NotFoundException(ErrorCodeType.ENTITY_NOT_FOUND, id.toString(), columnName);
                 });
     }
 
@@ -349,7 +349,11 @@ class GenericDaoTransaction  {
                     }
                     logger.trace("Entity {}, column name {}, tenant {} is not found.", id, getColumnName(entityClass),
                                  tenantId);
-                    throw new NotFoundException(ErrorCode.ENTITY_NOT_FOUND, id.toString(), getColumnName(entityClass));
+                    throw new NotFoundException(
+                            ErrorCodeType.ENTITY_NOT_FOUND,
+                            id.toString(),
+                            getColumnName(entityClass)
+                    );
                 });
     }
 
@@ -395,10 +399,10 @@ class GenericDaoTransaction  {
                                                           Integer endRange) {
 
         if (startRange != null && startRange < 0) {
-            throw new BadRequestException(ErrorCode.INVALID_VERSION_PARAM_VAL, String.valueOf(startRange));
+            throw new BadRequestException(ErrorCodeType.INVALID_VERSION_PARAM_VAL, String.valueOf(startRange));
         }
         if (endRange != null && endRange < 0) {
-            throw new BadRequestException(ErrorCode.INVALID_VERSION_PARAM_VAL, String.valueOf(endRange));
+            throw new BadRequestException(ErrorCodeType.INVALID_VERSION_PARAM_VAL, String.valueOf(endRange));
         }
 
         int start = (startRange == null) ? 0 : startRange;
@@ -418,7 +422,7 @@ class GenericDaoTransaction  {
                         String.format("getHistoryVersions({%s}, {%s}, {%s}, {%s})", id, columnName, start, end));
 
                     if (dbEntities == null || dbEntities.size() == 0) {
-                        throw new NotFoundException(ErrorCode.ENTITY_NOT_FOUND, id.toString(), columnName);
+                        throw new NotFoundException(ErrorCodeType.ENTITY_NOT_FOUND, id.toString(), columnName);
                     }
 
                     for (Entity dbEntity : dbEntities) {
@@ -614,7 +618,9 @@ class GenericDaoTransaction  {
         String columnName = getColumnName(entityClass);
         if (tenantId == null) {
             logger.error("Null tenantId for column {}", columnName);
-            throw new InternalFailureException(String.format(ErrorCode.NULL_TENANT_ID, columnName));
+            throw new InternalFailureException(
+                    String.format(ErrorCodeType.NULL_TENANT_ID.getErrorCodeTypeValue(), columnName)
+            );
         }
         return Timer.builder(METRIC_NAME_READ)
                 .tags(TAG_SERVICE, entityPrefixTag, TAG_ENTITY, getEntityName(entityClass), TAG_METHOD, "getByTenant")
@@ -740,14 +746,14 @@ class GenericDaoTransaction  {
 
                     if (entity == null) {
                         logger.trace("Entity {}, column name {} is not found.", rowId, getColumnName(entityClass));
-                        throw new BadRequestException(ErrorCode.ENTITY_NOT_FOUND, rowId.toString(),
+                        throw new BadRequestException(ErrorCodeType.ENTITY_NOT_FOUND, rowId.toString(),
                                                       getColumnName(entityClass));
                     }
 
                     if (entity.getVersion() < version) {
                         logger.trace("Cannot delete all versions of entity {}, column name {}.", rowId,
                                      getColumnName(entityClass));
-                        throw new BadRequestException(ErrorCode.BAD_REQUEST, rowId.toString(),
+                        throw new BadRequestException(ErrorCodeType.BAD_REQUEST, rowId.toString(),
                                                       getColumnName(entityClass));
                     }
 
@@ -793,7 +799,7 @@ class GenericDaoTransaction  {
                     if (entity == null) {
                         logger.trace("Entity {}, column name {} is not found for deletion.", rowId,
                                      getColumnName(entityClass));
-                        throw new NotFoundException(ErrorCode.ENTITY_NOT_FOUND, rowId.toString(),
+                        throw new NotFoundException(ErrorCodeType.ENTITY_NOT_FOUND, rowId.toString(),
                                                     getColumnName(entityClass));
                     }
 
@@ -801,7 +807,7 @@ class GenericDaoTransaction  {
                         logger.info(
                                 "Can not delete entity {}, column name {}. The entity is referenced by other entities.",
                                 rowId, getColumnName(entityClass));
-                        throw new BadRequestException(ErrorCode.DELETE_INTEGRITY_ERROR,
+                        throw new BadRequestException(ErrorCodeType.DELETE_INTEGRITY_ERROR,
                                                       rowId.toString(), getColumnName(entityClass));
                     }
 
@@ -867,7 +873,7 @@ class GenericDaoTransaction  {
                 uuidLinkedFields.add((UUID) field.get(entity));
             } catch (IllegalAccessException e) {
                 logger.error("Failed to cast linked entity field to UUID.", e);
-                throw new InternalFailureException(e, ErrorCode.UUID_BINDING_UNSUCCESSFUL, e);
+                throw new InternalFailureException(ErrorCodeType.UUID_BINDING_UNSUCCESSFUL, e);
             }
         }
 
@@ -1060,7 +1066,7 @@ class GenericDaoTransaction  {
 
         if (dbEntity == null) {
             logger.trace("Entity {} is not found.", rowKey);
-            throw new NotFoundException(ErrorCode.ENTITY_NOT_FOUND, rowKey.toString());
+            throw new NotFoundException(ErrorCodeType.ENTITY_NOT_FOUND, rowKey.toString());
         }
 
         logger.trace("Retreived entity {} from database.", rowKey);
@@ -1093,7 +1099,7 @@ class GenericDaoTransaction  {
             // DO NOT LOG BODY - that can contain secrets.
             logger.info("Entity {}, column name {} has been updated by another client. New version {}, by {}", rowId,
                     columnName, newVersion, userName);
-            throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE, rowId.toString(),
+            throw new ConcurrentUpdateException(ErrorCodeType.CONCURRENT_UPDATE, rowId.toString(),
                     getColumnName(entityClass));
         }
     }
@@ -1157,7 +1163,7 @@ class GenericDaoTransaction  {
             entity.setUpdatedByUserName(dbEntity.getUserName());
             return entity;
         } catch (Exception e) {
-            throw new InternalFailureException(e, ErrorCode.ENTITY_CONVERSION_UNSUCCESSFUL, entityClass.getName());
+            throw new InternalFailureException(ErrorCodeType.ENTITY_CONVERSION_UNSUCCESSFUL, e, entityClass.getName());
         }
     }
 
@@ -1209,7 +1215,7 @@ class GenericDaoTransaction  {
                 } else {
                     int updated = entityMapper.updateEntity(dbEntity);
                     if (updated != 1) {
-                        throw new DuplicateKeyException(ErrorCode.DUPLICATE_UPDATION);
+                        throw new DuplicateKeyException(ErrorCodeType.DUPLICATE_UPDATION.getErrorCodeTypeValue());
                     }
                 }
                 entityMapper.saveEntityHistory(dbEntity);

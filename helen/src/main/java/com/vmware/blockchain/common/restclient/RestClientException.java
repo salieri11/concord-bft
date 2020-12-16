@@ -4,6 +4,8 @@
 
 package com.vmware.blockchain.common.restclient;
 
+import com.vmware.blockchain.common.ErrorCodeType;
+import com.vmware.blockchain.common.ExceptionMessageHelper;
 import com.vmware.blockchain.common.HelenException;
 
 /**
@@ -32,5 +34,9 @@ public class RestClientException extends HelenException {
      */
     public RestClientException(String errorCodeValue, Throwable cause, Object... args) {
         super(cause, errorCodeValue, args);
+    }
+
+    public RestClientException(ErrorCodeType codeType, Object... args) {
+        super(ExceptionMessageHelper.getMessageOrErrorCode(codeType.getErrorCodeTypeValue(), args));
     }
 }

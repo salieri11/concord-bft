@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.ConcordConnectionException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.concord.Concord;
@@ -43,21 +43,21 @@ public class ConcordService {
         try {
             conn = concordConnectionPool.getConnection();
             if (conn == null) {
-                throw new ConcordConnectionException(ErrorCode.CONCORD_CONNECTION);
+                throw new ConcordConnectionException(ErrorCodeType.CONCORD_CONNECTION);
             }
             boolean res = ConcordHelper.sendToConcord(req, conn);
             if (!res) {
-                throw new ConcordConnectionException(ErrorCode.CONCORD_SEND_FAILED);
+                throw new ConcordConnectionException(ErrorCodeType.CONCORD_SEND_FAILED);
             }
 
             // receive response from Concord
             concordResponse = ConcordHelper.receiveFromConcord(conn);
             if (concordResponse == null) {
-                throw new ConcordConnectionException(ErrorCode.CONCORD_INVALID_RESPONSE);
+                throw new ConcordConnectionException(ErrorCodeType.CONCORD_INVALID_RESPONSE);
             }
             return concordResponse;
         } catch (Exception e) {
-            throw new ConcordConnectionException(ErrorCode.CONCORD_INTERNAL_ERROR + e.getMessage());
+            throw new ConcordConnectionException(ErrorCodeType.CONCORD_INTERNAL_ERROR + e.getMessage());
         } finally {
             concordConnectionPool.putConnection(conn);
         }

@@ -38,7 +38,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.fleetmanagment.FleetUtils;
 import com.vmware.blockchain.deployment.v1.MessageHeader;
@@ -299,7 +299,7 @@ public class ZoneController {
         }
         // everything from here on needs a request body.
         if (request == null) {
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
         }
 
         Zone zone = requestToZone(request);
@@ -344,7 +344,7 @@ public class ZoneController {
 
         // everything from here on needs a request body.
         if (request == null) {
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
         }
 
         if (zone instanceof OnPremZone) {
@@ -413,7 +413,7 @@ public class ZoneController {
         } else {
             // TODO: Add zone patch for other blockchain types
             logger.error("PATCH is only available for On-prem blockchains");
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
         }
     }
 
@@ -454,10 +454,10 @@ public class ZoneController {
         try {
             zone = zoneService.getAuthorized(zid);
             if (zone == null) {
-                throw new NotFoundException(ErrorCode.ZONE_NOT_FOUND, zid.toString());
+                throw new NotFoundException(ErrorCodeType.ZONE_NOT_FOUND, zid.toString());
             }
         } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.ZONE_NOT_FOUND, zid.toString());
+            throw new NotFoundException(ErrorCodeType.ZONE_NOT_FOUND, zid.toString());
         }
 
         return zone;

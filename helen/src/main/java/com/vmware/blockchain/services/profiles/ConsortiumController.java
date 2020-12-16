@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.services.profiles.OrganizationContoller.OrgGetResponse;
 
@@ -142,7 +142,7 @@ public class ConsortiumController {
 
         if (body.consortiumName != null) {
             if (body.consortiumName.isBlank()) {
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
             consortium.setConsortiumName(body.getConsortiumName());
             consortium = consortiumService.put(consortium);
@@ -150,7 +150,7 @@ public class ConsortiumController {
         // check if the remove would blow up, and fail before we do anything else
         if (body.getOrgsToRemove() != null && body.getOrgsToRemove().contains(consortium.getOrganization())) {
             // consortium sesvice will look for this, but we might partially process a list
-            throw new BadRequestException(ErrorCode.BAD_ORG_REMOVE);
+            throw new BadRequestException(ErrorCodeType.BAD_ORG_REMOVE);
         }
 
         // we need this for the lambdas
@@ -192,10 +192,10 @@ public class ConsortiumController {
         try {
             consortium = consortiumService.get(id);
             if (consortium == null) {
-                throw new NotFoundException(ErrorCode.CONSORTIUM_NOT_FOUND, id.toString());
+                throw new NotFoundException(ErrorCodeType.CONSORTIUM_NOT_FOUND, id.toString());
             }
         } catch (NotFoundException e) {
-            throw new NotFoundException(ErrorCode.CONSORTIUM_NOT_FOUND, id.toString());
+            throw new NotFoundException(ErrorCodeType.CONSORTIUM_NOT_FOUND, id.toString());
         }
 
         return consortium;

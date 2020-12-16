@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.csp.CspCommon;
 import com.vmware.blockchain.common.csp.CspCommon.CspPatchServiceRolesRequest;
 import com.vmware.blockchain.common.csp.CspConstants;
@@ -68,13 +68,13 @@ public class InvitationService {
             // Let's be sure this is the right org and right service
             if (!invitation.getOrgLink().equals(orgLink)
                 || !serviceDefinitionLink.equals(invitation.getServiceDefinitionLink())) {
-                throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+                throw new BadRequestException(ErrorCodeType.INVALID_INVITATION);
             }
 
             Organization org = orgService.get(authHelper.getOrganizationId());
 
             if (org == null) {
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
 
             // Check if the context has addtional roles to set
@@ -105,13 +105,13 @@ public class InvitationService {
             // VB-1727: Need to get the user from CSP, so we can reliably get the email.
             CspCommon.CspUser user = cspApiClient.getUser(authHelper.getAuthToken());
             if (user == null) {
-                throw new BadRequestException(ErrorCode.INVALID_INVITATION);
+                throw new BadRequestException(ErrorCodeType.INVALID_INVITATION);
             }
             cspApiClient.patchOrgServiceRoles(authHelper.getAuthToken(), authHelper.getOrganizationId(),
                                               user.getUsername(), body);
         } catch (CspApiException e) {
             // CSP exceptions are likely bad parameters or some such
-            throw new BadRequestException(e, ErrorCode.INVALID_INVITATION);
+            throw new BadRequestException(ErrorCodeType.INVALID_INVITATION, e);
         }
     }
 

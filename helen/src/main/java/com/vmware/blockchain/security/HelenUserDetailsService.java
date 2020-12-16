@@ -17,7 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
@@ -68,7 +68,7 @@ public class HelenUserDetailsService implements UserDetailsService {
             details.setUpdateChains(ids);
             return details;
         } catch (NotFoundException e) {
-            throw new UnauthorizedException(ErrorCode.BAD_LOGIN_REQUEST);
+            throw new UnauthorizedException(ErrorCodeType.BAD_LOGIN_REQUEST);
         }
     }
 

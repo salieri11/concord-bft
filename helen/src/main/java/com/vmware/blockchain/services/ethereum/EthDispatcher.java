@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
@@ -121,10 +121,10 @@ public class EthDispatcher extends ConcordServlet {
             if (ethRequestJson.get("method") instanceof String) {
                 return (String) ethRequestJson.get("method");
             } else {
-                throw new EthRpcHandlerException(ErrorCode.INVALID_METHOD_TYPE);
+                throw new EthRpcHandlerException(ErrorCodeType.INVALID_METHOD_TYPE);
             }
         } else {
-            throw new EthRpcHandlerException(ErrorCode.METHOD_UNSPECIFIED);
+            throw new EthRpcHandlerException(ErrorCodeType.METHOD_UNSPECIFIED);
         }
     }
 
@@ -139,10 +139,10 @@ public class EthDispatcher extends ConcordServlet {
             if (ethRequestJson.get("id") instanceof Number) {
                 return ((Number) ethRequestJson.get("id")).longValue();
             } else {
-                throw new EthRpcHandlerException(ErrorCode.ID_TYPE_WRONG);
+                throw new EthRpcHandlerException(ErrorCodeType.ID_TYPE_WRONG);
             }
         } else {
-            throw new EthRpcHandlerException(ErrorCode.ID_UNSPECIFIED);
+            throw new EthRpcHandlerException(ErrorCodeType.ID_UNSPECIFIED);
         }
     }
 
@@ -203,7 +203,7 @@ public class EthDispatcher extends ConcordServlet {
                 isBatch = true;
                 batchRequest = (JSONArray) parser.parse(paramString);
                 if (batchRequest == null || batchRequest.size() == 0) {
-                    throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                    throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
                 }
             } else {
                 batchRequest = new JSONArray();
@@ -222,7 +222,7 @@ public class EthDispatcher extends ConcordServlet {
                 responseBody = (JSONObject) batchResponse.get(0);
             }
         } catch (ParseException e) {
-            logger.error(ErrorCode.INVALID_REQUEST, e);
+            logger.error(ErrorCodeType.INVALID_REQUEST, e);
             responseBody = errorMessage("Unable to parse request", -1, jsonRpc);
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
@@ -343,7 +343,7 @@ public class EthDispatcher extends ConcordServlet {
                     break;
 
                 default:
-                    throw new BadRequestException(ErrorCode.INVALID_METHOD_NAME);
+                    throw new BadRequestException(ErrorCodeType.INVALID_METHOD_NAME);
             }
 
             if (!isLocal) {
@@ -395,18 +395,18 @@ public class EthDispatcher extends ConcordServlet {
         try {
             conn = concordConnectionPool.getConnection();
             if (conn == null) {
-                throw new BadRequestException(ErrorCode.CONCORD_CONNECTION);
+                throw new BadRequestException(ErrorCodeType.CONCORD_CONNECTION);
             }
 
             boolean res = ConcordHelper.sendToConcord(req, conn);
             if (!res) {
-                throw new BadRequestException(ErrorCode.CONCORD_CONNECTION);
+                throw new BadRequestException(ErrorCodeType.CONCORD_CONNECTION);
             }
 
             // receive response from Concord
             concordResponse = ConcordHelper.receiveFromConcord(conn);
             if (concordResponse == null) {
-                throw new BadRequestException(ErrorCode.CONCORD_CONNECTION);
+                throw new BadRequestException(ErrorCodeType.CONCORD_CONNECTION);
             }
         } catch (Exception e) {
             logger.error("General exception communicating with concord: ", e);
@@ -423,6 +423,6 @@ public class EthDispatcher extends ConcordServlet {
      */
     @Override
     public JSONAware parseToJson(ConcordResponse concordResponse) {
-        throw new BadRequestException(ErrorCode.JSON_METHOD_UNSUPPORTED);
+        throw new BadRequestException(ErrorCodeType.JSON_METHOD_UNSUPPORTED);
     }
 }

@@ -13,7 +13,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 
 
 /**
@@ -46,7 +46,7 @@ public class ProfilesService {
         try {
             return UUID.fromString(strId);
         } catch (IllegalArgumentException e) {
-            throw new BadRequestException(e, ErrorCode.BAD_UUID_FORMAT, strId);
+            throw new BadRequestException(ErrorCodeType.BAD_UUID_FORMAT, e, strId);
         }
     }
 

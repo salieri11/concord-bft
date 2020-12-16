@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.ConflictException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.GenericDao;
 
@@ -93,7 +93,7 @@ public class ContractService {
             UUID blockchain) {
         List<Contract> contracts = getContractVersion(existingContractId, existingVersionName, blockchain);
         if (contracts.isEmpty()) {
-            throw new NotFoundException(ErrorCode.CONTRACT_VERSION_NOT_FOUND,
+            throw new NotFoundException(ErrorCodeType.CONTRACT_VERSION_NOT_FOUND,
                                         existingContractId, existingVersionName);
         }
         return

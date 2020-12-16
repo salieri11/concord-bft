@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.blockchain.auth.AuthHelper;
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.security.ServiceContext;
 
 import lombok.Getter;
@@ -108,7 +108,7 @@ public class AgreementController  {
             if (authHelper.isServiceAdmin() || orgIdOptional.get() == authHelper.getOrganizationId()) {
                 orgId = orgIdOptional.get();
             } else {
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
         } else {
             orgId = authHelper.getOrganizationId();
@@ -136,7 +136,7 @@ public class AgreementController  {
             if (authHelper.isServiceAdmin() || orgIdOptional.get() == authHelper.getOrganizationId()) {
                 orgId = orgIdOptional.get();
             } else {
-                throw new BadRequestException(ErrorCode.BAD_REQUEST);
+                throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
             }
         } else {
             orgId = authHelper.getOrganizationId();
@@ -167,7 +167,7 @@ public class AgreementController  {
 
             return new ResponseEntity<>(HttpStatus.OK);
         } else {
-            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+            throw new BadRequestException(ErrorCodeType.BAD_REQUEST);
         }
 
     }

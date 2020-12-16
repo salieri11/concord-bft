@@ -38,7 +38,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.vmware.blockchain.common.BadRequestException;
-import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.ErrorCodeType;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
 
 /**
@@ -153,7 +153,7 @@ public class Compiler {
         } else if (isMetadataFile(file)) {
             return fileName.substring(0, fileName.lastIndexOf("_meta.json"));
         } else {
-            throw new BadRequestException(ErrorCode.BYTECODE_OR_METADATA_ALLOWED);
+            throw new BadRequestException(ErrorCodeType.BYTECODE_OR_METADATA_ALLOWED);
         }
     }
 
