@@ -357,7 +357,7 @@ bool DamlKvbCommandsHandler::PostExecute(
   }
   auto start = std::chrono::steady_clock::now();
   RecordTransaction(raw_write_set, storage_.getLastBlock(), correlation_id,
-                    parent_span, concord_response);
+                    parent_span, concord_response, true);
   auto record_transaction_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - start);
@@ -391,21 +391,25 @@ bool CheckIfWithinTimeBounds(
   return true;
 }
 
-void AddTimeUpdate(const google::protobuf::Timestamp& record_time,
-                   const std::vector<std::string>& thin_replica_ids,
-                   SetOfKeyValuePairs& write_set) {
+void DamlKvbCommandsHandler::AddTimeUpdate(
+    const google::protobuf::Timestamp& record_time,
+    const std::vector<std::string>& thin_replica_ids) {
   auto key = CreateDamlKvbKey(DamlKvbCommandsHandler::kTimeUpdateKey);
   da_kvbc::TimeUpdateLogEntry time_update_log_entry;
   time_update_log_entry.mutable_record_time()->CopyFrom(record_time);
-  auto value = CreateDamlKvbValue(time_update_log_entry.SerializeAsString(),
-                                  thin_replica_ids);
-  write_set[key] = value;
+  accumulatedBlockClientIds_.insert(thin_replica_ids.begin(),
+                                    thin_replica_ids.end());
+  const auto accumulated_value = CreateDamlKvbValue(
+      time_update_log_entry.SerializeAsString(),
+      std::vector<std::string>(accumulatedBlockClientIds_.begin(),
+                               accumulatedBlockClientIds_.end()));
+  accumulatedBlock_[key] = accumulated_value;
 }
 
 bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
     const com::digitalasset::kvbc::PreExecutionOutput& pre_execution_output,
     const google::protobuf::Timestamp& record_time,
-    SetOfKeyValuePairs& write_set) const {
+    SetOfKeyValuePairs& write_set) {
   bool within_time_bounds =
       CheckIfWithinTimeBounds(pre_execution_output, record_time);
   if (within_time_bounds) {
@@ -416,7 +420,7 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
     auto thin_replica_ids = std::vector<std::string>(
         pre_execution_output.informee_success_thin_replica_ids().begin(),
         pre_execution_output.informee_success_thin_replica_ids().end());
-    AddTimeUpdate(record_time, thin_replica_ids, write_set);
+    AddTimeUpdate(record_time, thin_replica_ids);
     post_execution_success_.Increment();
   } else {
     LOG_DEBUG(logger_,
@@ -427,8 +431,7 @@ bool DamlKvbCommandsHandler::GenerateWriteSetForPreExecution(
     WriteSetToRawUpdates(pre_execution_output.out_of_time_bounds_write_set(),
                          write_set);
     AddTimeUpdate(record_time,
-                  {pre_execution_output.submitting_participant_id()},
-                  write_set);
+                  {pre_execution_output.submitting_participant_id()});
     post_execution_timeout_.Increment();
   }
   return true;
@@ -547,7 +550,7 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
 void DamlKvbCommandsHandler::RecordTransaction(
     const SetOfKeyValuePairs& updates, const BlockId current_block_id,
     const string& correlation_id, const opentracing::Span& parent_span,
-    ConcordResponse& concord_response, const bool accumulate_writes) {
+    ConcordResponse& concord_response, bool accumulate_writes) {
   auto record_transaction = concordUtils::startChildSpanFromContext(
       parent_span.context(), "record_transaction");
   SetOfKeyValuePairs amended_updates(updates);
@@ -559,14 +562,14 @@ void DamlKvbCommandsHandler::RecordTransaction(
   }
   amended_updates.insert({cid_key_, std::move(cid_val)});
   BlockId new_block_id = 0;
-  if (!accumulate_writes) {
+  if (accumulate_writes) {
+    new_block_id = storage_.getLastBlock() + 1;
+    addWritesToBlock(amended_updates);
+  } else {
     auto status = addBlock(amended_updates, new_block_id, record_transaction);
     assert(status.isOK());
     assert(new_block_id == current_block_id + 1);
-  } else {
-    addWritesToBlock(amended_updates);
   }
-
   da_kvbc::CommandReply command_reply;
   da_kvbc::CommitResponse* commit_response = command_reply.mutable_commit();
   commit_response->set_status(da_kvbc::CommitResponse_CommitStatus_OK);
