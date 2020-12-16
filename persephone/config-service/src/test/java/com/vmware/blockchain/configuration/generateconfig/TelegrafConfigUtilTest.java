@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.vmware.blockchain.deployment.v1.ConcordComponent.ServiceType;
+import com.vmware.blockchain.deployment.v1.DeploymentAttributes;
 import com.vmware.blockchain.deployment.v1.NodeProperty;
 import com.vmware.blockchain.deployment.v1.NodesInfo;
 import com.vmware.blockchain.deployment.v1.Properties;
@@ -58,7 +59,7 @@ public class TelegrafConfigUtilTest {
     }
 
     @Test
-    public void testTelegrafConfigHappyPathCommitter() throws IOException {
+    public void testTelegrafConfigHappyPathReplica() throws IOException {
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_EXECUTION_ENGINE,
                 ServiceType.CONCORD,
@@ -70,13 +71,16 @@ public class TelegrafConfigUtilTest {
                                                              nodeInfo, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(classLoader.getResource("SampleTelegrafConfigCommiter.conf").getFile());
+        File file = new File(classLoader.getResource("SampleTelegrafConfigReplica.conf").getFile());
         var expected = new String(Files.readAllBytes(file.toPath()));
         Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
     }
 
     @Test
     public void testTelegrafConfigHappyPathParticipant() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.2466"))
+                .build();
         List<ServiceType> servicesList = List.of(
                 ServiceType.DAML_INDEX_DB,
                 ServiceType.DAML_LEDGER_API,
@@ -84,6 +88,7 @@ public class TelegrafConfigUtilTest {
         NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
                 .setNodeIp("10.0.0.1")
                 .setId("node-0")
+                .setProperties(properties)
                 .addAllServices(servicesList)
                 .build();
         String nodeType = "CLIENT";
@@ -185,6 +190,32 @@ public class TelegrafConfigUtilTest {
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafEnablePullPrometheusClient.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+        Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
+    }
+
+    @Test
+    public void testTelegrafConfigPrometeusInputWithUsernameAndPassword() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.2466"))
+                .build();
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_INDEX_DB,
+                ServiceType.DAML_LEDGER_API,
+                ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties)
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "CLIENT";
+
+        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                             "unitTest", nodeInfo, nodeType);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafConfigParticipant.conf").getFile());
         var expected = new String(Files.readAllBytes(file.toPath()));
         Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
     }
