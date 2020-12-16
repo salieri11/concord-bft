@@ -117,7 +117,7 @@ export class DeployStepperComponent implements AfterViewInit {
     if (!this.isAuthorized()) { this.router.navigate([mainRoutes.forbidden]); }
     this.form = this.initForm();
     this.onPremActive = this.hasOnPrem = this.blockchainService.zones.some(zone => zone.type === ZoneType.ON_PREM);
-    this.ethEnabled = this.featureFlagService.featureFlags['ethereum'];
+    this.ethEnabled = this.featureFlagService.featureFlags ? this.featureFlagService.featureFlags['ethereum'] : false;
   }
 
   ngAfterViewInit() {

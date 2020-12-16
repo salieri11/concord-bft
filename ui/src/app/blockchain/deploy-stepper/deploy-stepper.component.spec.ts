@@ -8,11 +8,15 @@ import { testFor, prepareEach, beforeTesting } from '../../../test.helper.spec';
 import { ZoneType } from '../../zones/shared/zones.model';
 import { MockBlockchainService, BlockchainService } from '../shared/blockchain.service';
 import { MainModule } from '../../main/main.module';
+import { FeatureFlagService } from '../../shared/feature-flag.service';
+
 
 describe('BlockchainWizardComponent', () => {
   let blockchainService: MockBlockchainService;
   const test = testFor(DeployStepperComponent).expedite({
-    imports: [MainModule], provides: [], declarations: [],
+    imports: [MainModule],
+    provides: [FeatureFlagService],
+    declarations: [],
   }, beforeTesting(() => {
     blockchainService = test.getService(BlockchainService);
   }), prepareEach(() => {}));
