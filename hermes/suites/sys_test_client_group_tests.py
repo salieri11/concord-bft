@@ -129,7 +129,7 @@ def change_participant_id(participant_ip , old_participant_id, new_participant_i
     log.debug(response)
     cmd = 'grep "PARTICIPANT_ID" /config/daml-ledger-api/environment-vars | cut -d "=" -f 2'
     group = util.helper.ssh_connect(participant_ip, username, password, cmd, verbose=False)
-    assert new_participant_id in group, "Participation id not replaced"
+    assert new_participant_id in group, "Participant id not replaced"
 
 
 @describe()
@@ -259,5 +259,5 @@ def test_malicious_group(fxBlockchain, fxConnection, fxPoolParty):
     status = intr_helper.start_container(
         fxBlockchain.blockchainId, bob.get_participant().ip, container_name)
     assert status, "Issue during stopping daml_ledger_api"
-    bob.set_participant(alice.get_participant())
+    bob.set_txIds(alice.get_txIds())
     assert bob.verify_contract_read_failure(fleet), "Should not be able to read."

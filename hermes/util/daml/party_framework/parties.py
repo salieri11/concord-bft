@@ -645,3 +645,11 @@ class Party:
                 return True
 
             return False
+
+
+    def get_txIds(self):
+        return self._txIds
+
+
+    def set_txIds(self, txIds):
+        self._txIds = txIds
