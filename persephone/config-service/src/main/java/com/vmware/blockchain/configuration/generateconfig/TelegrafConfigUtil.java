@@ -188,11 +188,11 @@ public class TelegrafConfigUtil {
         if (!StringUtils.hasText(tag)) {
             return "";
         }
+        String second = tag.split("\\.")[1];
         String fourth = tag.split("\\.")[3];
-        if (tag.startsWith("0.0.0") && Integer.parseInt(fourth) < 2466) {
-            return "";
-        }
-        if (tag.startsWith("1.0.0") && Integer.parseInt(fourth) <= 67) {
+        if ((tag.startsWith("0.0.0") && Integer.parseInt(fourth) < 2466)
+            || (tag.startsWith("1.0.0") && Integer.parseInt(fourth) <= 67)
+            || (tag.startsWith("0.") && Integer.parseInt(second) > 0)) {
             return "";
         }
         return DAML_DB_DEFAULT_PASSWORD;
