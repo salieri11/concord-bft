@@ -146,7 +146,7 @@
     enabled: true
     runWithGenericTests: false
     dockerComposeFiles: '${COMPOSE_PREFIX}-orchestrator-prereqs.yml ${COMPOSE_PREFIX}-orchestrator.yml'
-    baseCommand: '${MAIN_PYTEST} suites/sys_test_castor_deployment_tests.py -m "not on_demand_castor_default" --suitesRealname=CastorDeploymentSystemTests'
+    baseCommand: '${MAIN_PYTEST} suites/sys_test_castor_deployment_tests.py -m "not on_demand_castor_default" --suitesRealname=CastorDeploymentSystemTests --deploymentTool "Castor"'
     testModule: 'suites/sys_test_castor_deployment_tests.py'
 - CastorDeploymentOnDemand:
     enabled: true

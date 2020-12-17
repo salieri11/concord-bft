@@ -11,8 +11,7 @@ import tempfile
 import threading
 import traceback
 import time
-
-import fixtures.common_fixtures
+import util.helper
 import util.hermes_logging
 import util.wavefront
 
@@ -73,7 +72,7 @@ class StatsGatherer(threading.Thread):
         self._results_dir = results_dir
         self._results_file = os.path.join(self._results_dir, "stats.json")
         self._deployment_file = os.path.join(self._results_dir,
-                                             fixtures.common_fixtures.DEPLOYED_BLOCKCHAIN_FILE)
+                                             util.helper.DEPLOYED_BLOCKCHAIN_FILE)
         log.info("Stats file: {}".format(self._results_file))
 
 
