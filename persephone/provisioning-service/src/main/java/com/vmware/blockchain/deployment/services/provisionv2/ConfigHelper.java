@@ -110,7 +110,7 @@ public class ConfigHelper {
                 .build();
 
         // This check helps for nodes flow.
-        if (genericProperties.containsValues(DeploymentAttributes.NO_LAUNCH.name())) {
+        if (genericProperties.containsValues(DeploymentAttributes.SKIP_CONFIG_SERVICE.name())) {
             return ConfigurationSessionIdentifier.newBuilder().setId("inactive").build();
         }
 
