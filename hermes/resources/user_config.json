@@ -235,8 +235,15 @@
             "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
             "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
             "vmwblockchain/telegraf:1.14.0": "telegraf"
+          },
+          "read_replica": {
+            "vmwblockchain/agent:latest": "agent",
+            "vmwblockchain/fluentd:latest": "fluentd",
+            "vmwblockchain/concord-core:latest": "concord",
+            "vmwblockchain/wavefront-proxy:6.1": "wavefront-proxy",
+            "vmwblockchain/jaeger-agent:1.17": "jaeger-agent",
+            "vmwblockchain/telegraf:1.14.0": "telegraf"
           }
-
         }
       }
     },
