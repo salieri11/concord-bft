@@ -3063,6 +3063,21 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.declareParameter("comm_to_use", "Default communication module");
   config.tagParameter("comm_to_use", publicInputTags);
   config.tagParameter("comm_to_use", applicationTag);
+
+  config.declareParameter("command_recording_enable",
+                          "Enable recording of executed commands", "false");
+  config.tagParameter("command_recording_enable", publicDefaultableTags);
+  config.tagParameter("command_recording_enable", applicationTag);
+  config.addValidator("command_recording_enable",
+                      make_shared<BooleanValidator>());
+
+  config.declareParameter(
+      "command_recording_output_dir",
+      "Output directory for command recording. Used only when "
+      "'command_recording_enable' is set to 'true'",
+      "/concord/log/recorded_commands");
+  config.tagParameter("command_recording_output_dir", publicDefaultableTags);
+  config.tagParameter("command_recording_output_dir", applicationTag);
 }
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,

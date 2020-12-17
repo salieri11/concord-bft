@@ -28,6 +28,7 @@ endif()
 add_test(NAME ThinReplicaTest COMMAND ThinReplicaTest)
 add_test(NAME TrsSubBufferTest COMMAND TrsSubBufferTest)
 add_test(NAME OpenSSLCryptoWrapperTest COMMAND OpenSSLCryptoWrapperTest)
+add_test(NAME CommandsRecorderTest COMMAND CommandsRecorderTest)
 
 add_executable(agent_test_server
         agent_test_server.cpp)
@@ -107,10 +108,8 @@ target_link_libraries(TimeContractTests
 add_executable(DamlTest
         daml_test.cpp
         daml_validator_client_test.cpp
-        daml_commands_recorder_test.cpp
         mocks.hpp
         mocks.cpp
-        ../src/daml/daml_commands_recorder.cpp
         ../src/daml/daml_kvb_commands_handler.cpp
         ../src/daml/daml_validator_client.cpp
         )
@@ -233,3 +232,13 @@ target_link_libraries(YamlMergeTest
         concord_consensus
         logging
         )
+
+add_executable(CommandsRecorderTest
+        commands_recorder_test.cpp)
+
+target_link_libraries(CommandsRecorderTest
+        ${Boost_LIBRARIES}
+        ${GTEST_LIBRARY}
+        concord_config
+        concord_consensus
+)

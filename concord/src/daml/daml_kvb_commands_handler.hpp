@@ -123,6 +123,7 @@ class DamlKvbCommandsHandler
       const google::protobuf::RepeatedPtrField<string>& keys);
 
   std::map<std::string, ValueFingerprintPair> ReadKeysWithType(
+      const std::string& cid,
       const google::protobuf::RepeatedPtrField<
           com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>& keys);
 
