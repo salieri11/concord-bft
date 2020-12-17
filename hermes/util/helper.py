@@ -61,6 +61,9 @@ CMDLINE_ARGS = {}
 CONFIG_USER_FILE = "resources/user_config.json"
 CONFIG_ZONE_FILE = "resources/zone_config.json"
 
+
+DEPLOYED_BLOCKCHAIN_FILE = "blockchain.json"
+
 # list of all agent-pulled components (in-node containers)
 AGENT_PULLED_COMPONENTS_FILE = '../vars/agent_pulled_components.json'
 
@@ -2604,3 +2607,12 @@ def restore_etc_host(hostName):
          raise Exception("File not found")
    except:
       raise
+
+
+def get_blockchain_summary_path():
+   '''
+   This returns the location into which blockchain details are written. It is a location
+   in the test suite's results directory, so it is included with Jenkins artifacts.
+   '''
+   suite_log_dir = os.path.dirname(CURRENT_SUITE_LOG_FILE)
+   return os.path.join(suite_log_dir, DEPLOYED_BLOCKCHAIN_FILE)

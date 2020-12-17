@@ -1,60 +1,124 @@
 {
   "infra":{
+    "SDDC1":{
+      "num": "1", "type": "vSphere", "active": true,
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.name>", 
+      "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.ip>",
+      "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.az>",
+      "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.location>",
+      "sddcId": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.id>",
+      "username": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.vc_user>",
+      "password": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-1.vc_pwd>",
+      "orgId": "<vault.VMC.ORG_ID>",
+      "vmcToken": "<vault.VMC.CSP_API_TOKEN>",
+      "segments": "+<vault.VMware-Blockchain-SDDC-1-Segments>"
+    },
+    "SDDC2":{
+      "num": "2", "type": "vSphere", "active": true,
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.name>", 
+      "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.ip>",
+      "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.az>",
+      "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.location>",
+      "sddcId": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.id>",
+      "username": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.vc_user>",
+      "password": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-2.vc_pwd>",
+      "orgId": "<vault.VMC.ORG_ID>",
+      "vmcToken": "<vault.VMC.CSP_API_TOKEN>"
+    },
+    "SDDC3":{
+      "num": "3", "type": "vSphere", "active": true,
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.name>", 
+      "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.ip>",
+      "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.az>",
+      "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.location>",
+      "sddcId": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.id>",
+      "username": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.vc_user>",
+      "password": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-3.vc_pwd>",
+      "orgId": "<vault.VMC.ORG_ID>",
+      "vmcToken": "<vault.VMC.CSP_API_TOKEN>"
+    },
+    "SDDC4":{
+      "num": "4", "type": "vSphere", "active": true,
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.name>", 
+      "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.ip>",
+      "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.az>",
+      "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.location>",
+      "sddcId": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.id>",
+      "username": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.vc_user>",
+      "password": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-4.vc_pwd>",
+      "orgId": "<vault.VMC.ORG_ID>",
+      "vmcToken": "<vault.VMC.CSP_API_TOKEN>",
+      "segments": "+<vault.VMware-Blockchain-SDDC-4-Segments>"
+    },
     "SDDC5":{
-      "name": "SDDC5",
-      "type": "vSphere",
-      "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-      "sddcId": "bca771a9-741b-4f2b-8dcd-cabff005e3ff",
-      "publicIP": "3.105.129.8",
-      "username": "<VMC_SDDC5_VC_CREDENTIALS_USERNAME>",
-      "password": "<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>",
-      "vmcToken": "<VMC_API_TOKEN>",
-      "active": true
+      "num": "5", "type": "vSphere", "active": true,
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.name>", 
+      "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.ip>",
+      "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.az>",
+      "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.location>",
+      "sddcId": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.id>",
+      "username": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.vc_user>",
+      "password": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-5.vc_pwd>",
+      "orgId": "<vault.VMC.ORG_ID>",
+      "vmcToken": "<vault.VMC.CSP_API_TOKEN>",
+      "segments": "+<vault.VMware-Blockchain-SDDC-5-Segments>"
     },
     "SDDC6":{
-      "name": "SDDC6",
-      "type": "vSphere",
-      "orgId": "c56e116e-c36f-4f7d-b504-f9a33955b853",
-      "sddcId": "8128e6b3-8a87-430a-85a1-386cefae66e3",
-      "publicIP": "34.236.221.173",
-      "username": "<VMC_SDDC6_VC_CREDENTIALS_USERNAME>",
-      "password": "<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>",
-      "vmcToken": "<VMC_API_TOKEN>",
-      "active": true
+      "num": "6", "type": "vSphere", "active": true,
+      "name": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.name>", 
+      "publicIP": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.ip>",
+      "az": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.az>",
+      "location": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.location>",
+      "sddcId": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.id>",
+      "username": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.vc_user>",
+      "password": "<vault.VMC.SDDCS.VMware-Blockchain-SDDC-6.vc_pwd>",
+      "orgId": "<vault.VMC.ORG_ID>",
+      "vmcToken": "<vault.VMC.CSP_API_TOKEN>",
+      "segments": "+<vault.VMware-Blockchain-SDDC-6-Segments>"
     }
+  },
+  "defaults": {
+    "vmcToken": "<vault.VMC.CSP_API_TOKEN>",
+    "wavefront": "<vault.Wavefront-Main.ci.api_token>",
+    "fluentd": "<vault.Fluentd-Main.ci.authorization_bearer>",
+    "resourcePool": "Compute-ResourcePool",
+    "datastore": "WorkloadDatastore",
+    "folder": "HermesTesting"
   },
   "zones":{
     "sddc":[
-    ],
-    "onprem":[
       {
-        "id":"5ca771a9-741b-4f2b-8dcd-cabff005e3ff",
+        "id":"1890ac97-941d-4479-a90c-98061c1e3639",
         "info":{
-          "type":"VSPHERE",
+          "type":"VMC",
           "labels":{
-            "name":"ONPREM SDDC 5",
-            "geo-latitude":"33.8688 S",
-            "geo-longitude":"151.2093 E"
+            "name":"VMC SDDC 1",
+            "geo-latitude":"43.8041 N",
+            "geo-longitude":"120.5542 W"
+          }
+        },
+        "authentication":{
+          "address":"https://console.cloud.vmware.com",
+          "credential":{
+            "type":"BEARER",
+            "tokenCredential":{
+              "token":"<VMC_API_TOKEN>"
+            }
           }
         },
         "api":{
-          "address":"https://vcenter.sddc-3-105-129-8.vmwarevmc.com",
-          "credential":{
-            "type":"NONE",
-              "passwordCredential":{
-              "username":"<VMC_SDDC5_VC_CREDENTIALS_USERNAME>",
-              "password":"<VMC_SDDC5_VC_CREDENTIALS_PASSWORD>"
-              }
-          }
+          "address":"https://vmc.vmware.com"
         },
+        "organization":"c56e116e-c36f-4f7d-b504-f9a33955b853",
+        "datacenter":"a890ac97-941d-4479-a90c-98061c1e3639",
         "vsphere":{
           "resourcePool":"Compute-ResourcePool",
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc5-vmware-vpn-onprem-4",
+            "name":"sddc1-vmware-vpn-cloud-3",
             "addressAllocation":"STATIC",
-            "gateway": "10.72.228.1",
+            "gateway":"10.72.213.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
@@ -63,7 +127,7 @@
           }
         },
         "wavefront":{
-          "url":"https://vmware.wavefront.com",
+          "url":"https://vmware.wavefront.com/api/",
           "token":"<WAVEFRONT_API_TOKEN>"
         },
         "logManagements":[
@@ -80,25 +144,27 @@
             }
           }
         ]
-      },
+      }
+    ],
+    "onprem":[
       {
-        "id":"5ca771a9-741b-4f2b-8dcd-cabff005e3ff",
+        "id":"1890ac97-941d-4479-a90c-98061c1e3639",
         "info":{
           "type":"VSPHERE",
           "labels":{
-            "name":"ONPREM SDDC 6",
-            "geo-latitude":"33.8688 S",
-            "geo-longitude":"151.2093 E"
+            "name":"ONPREM SDDC 1",
+            "geo-latitude":"43.8041 N",
+            "geo-longitude":"120.5542 W"
           }
         },
         "api":{
-          "address":"https://vcenter.sddc-34-236-221-173.vmwarevmc.com",
+          "address":"https://vcenter.sddc-54-69-50-59.vmwarevmc.com",
           "credential":{
             "type":"NONE",
-              "passwordCredential":{
-              "username":"<VMC_SDDC6_VC_CREDENTIALS_USERNAME>",
-              "password":"<VMC_SDDC6_VC_CREDENTIALS_PASSWORD>"
-              }
+            "passwordCredential":{
+              "username":"<VMC_SDDC1_VC_CREDENTIALS_USERNAME>",
+              "password":"<VMC_SDDC1_VC_CREDENTIALS_PASSWORD>"
+            }
           }
         },
         "vsphere":{
@@ -106,14 +172,14 @@
           "datastore":"WorkloadDatastore",
           "folder":"<DEPLOYMENT_FOLDER>",
           "network":{
-            "name":"sddc6-vmware-vpn-onprem-4",
+            "name":"sddc1-vmware-vpn-onprem-3",
             "addressAllocation":"STATIC",
-            "gateway": "10.72.218.1",
+            "gateway":"10.72.212.1",
             "nameServers":[
               "10.78.1.132",
               "10.78.1.133"
             ],
-            "subnet":24
+            "subnet":23
           }
         },
         "wavefront":{

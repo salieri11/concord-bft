@@ -22,17 +22,18 @@ from suites.case import describe
 import util.generate_zones_migration as migration
 from util.node_creator import NodeCreator
 from util import cert as cert
+from util.castor import castor_helper as cs_helper
 
 log = hermes_logging.getMainLogger()
 ConnectionFixture = collections.namedtuple("ConnectionFixture", "request, rpc")
-BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas, clientNodes")
+BlockchainFixture = collections.namedtuple("BlockchainFixture", "blockchainId, consortiumId, replicas, clientNodes, castorOutputDir, roReplicas")
 ProductFixture = collections.namedtuple("ProductFixture", "product")
+
 
 # These orgs are artifically inserted into Helen and do not respond to all API calls
 # the way standard orgs do.
 BUILTIN_ORGS = ["0460bc7f-41a4-4570-acdb-adbade2acb86", "4c722759-fc17-408d-bc41-e6775fc1e111"]
 
-DEPLOYED_BLOCKCHAIN_FILE = "blockchain.json"
 
 def isBuiltInOrg(orgId):
    return orgId in BUILTIN_ORGS
@@ -239,15 +240,6 @@ def newZoneEqualsExistingZone(existingZone, newZone):
       return False
 
 
-def get_blockchain_summary_path():
-   '''
-   This returns the location into which blockchain details are written. It is a location
-   in the test suite's results directory, so it is included with Jenkins artifacts.
-   '''
-   suite_log_dir = os.path.dirname(helper.CURRENT_SUITE_LOG_FILE)
-   return os.path.join(suite_log_dir, DEPLOYED_BLOCKCHAIN_FILE)
-
-
 def deployToSddc(logDir, hermes_data, blockchainLocation):
    tokenDescriptor = getTokenDescriptor(hermes_data)
    log.info("deployToSddc using tokenDescriptor {}".format(tokenDescriptor))
@@ -321,7 +313,7 @@ def deployToSddc(logDir, hermes_data, blockchainLocation):
 
       # This will write the information about the deployed blockchain to the test suite's
       # resultsDir.
-      blockchain_summary_path = get_blockchain_summary_path()
+      blockchain_summary_path = helper.get_blockchain_summary_path()
 
       with open(blockchain_summary_path , "w") as f:
          json.dump(blockchainFullDetails, f, indent=4, default=str)
@@ -477,8 +469,7 @@ def validate_daml_participants(con_admin_request, blockchain_id, credentials, nu
     return success, participant_replicas
 
 
-def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas, daml_participant_replicas,
-                          log_dir):
+def save_replicas_to_json(blockchain_type, ethereum_replicas, daml_committer_replicas,    daml_participant_replicas,log_dir):
     """
     Saves committer and participant IPs in a json file
     :param blockchain_type: Type of blockchain. Will determine the replica dictionary structure
@@ -586,6 +577,11 @@ def fxProduct(request, hermes_info):
    '''
    # log.info("Hermes parameters \n%s" % hermes_info)
    hermes_data = hermes_info
+   
+   if hermes_data["hermesCmdlineArgs"].deploymentTool == "Castor":
+      # returning none because castor has its own fixtures
+      hermes_data["hermesCmdlineArgs"].noLaunch = True
+   
    if not hermes_data["hermesCmdlineArgs"].noLaunch:
       logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
       if hermes_data["hermesCmdlineArgs"].replicasConfig:
@@ -595,7 +591,7 @@ def fxProduct(request, hermes_info):
       endpoint_hosts = ["localhost"]
       try:
          productType = getattr(request.module, "productType",
-                               helper.TYPE_ETHEREUM)
+                              helper.TYPE_ETHEREUM)
 
          deploymentService = hermes_data["hermesCmdlineArgs"].deploymentService.lower()
          deploymentServiceIsRemote = True not in (host in deploymentService for host in ["localhost", "127.0.0.1"])
@@ -616,11 +612,11 @@ def fxProduct(request, hermes_info):
                if daml_participant_ip != 'localhost':
                   endpoint_port = helper.FORWARDED_DAML_LEDGER_API_ENDPOINT_PORT
                   setUpPortForwarding(daml_participant_ip,
-                                      credentials,
-                                      productType,
-                                      logDir,
-                                      src_port=endpoint_port,
-                                      dest_port=6865)
+                                    credentials,
+                                    productType,
+                                    logDir,
+                                    src_port=endpoint_port,
+                                    dest_port=6865)
 
             waitForStartupFunction = helper.verify_daml_test_ready
             waitForStartupParams = {
@@ -681,11 +677,40 @@ def fxProduct(request, hermes_info):
    # then include steps to stop the product.
 
 
+def castor_deployment(request, hermes_info):
+   '''
+   Function for castor deployment
+   It launches the product and creates blockchain, fetches the required values
+   for tuple using output file and returns thm.
+   '''
+   cs_helper.launch_castor_product(hermes_info)
+   cs_helper.create_castor_blockchain(request, hermes_info)
+
+   castorOutputDir = hermes_info["hermesTestLogDir"]
+   # blockchainId, conId, replicas, clientNodes, roReplicas = cs_helper.read_castor_output(castorOutputDir)
+   return cs_helper.read_castor_output(castorOutputDir)
+
+
 @pytest.fixture(scope="module")
 @describe("fixture; blockchain")
 def fxBlockchain(request, hermes_info, fxProduct):
    '''
    This module level fixture returns a BlockchainFixture namedtuple.
+   For Castor deployment: calls castor_deployment()
+   For Non-castor/regular deployment: calls non_castor_deployment()
+   '''
+   if hermes_info["hermesCmdlineArgs"].deploymentTool == "Castor":
+      blockchainId, conId, replicas, clientNodes, roReplicas, castorOutputDir = castor_deployment(request, hermes_info)
+   else:
+      blockchainId, conId, replicas, clientNodes, roReplicas, castorOutputDir = non_castor_deployment(hermes_info)
+   
+   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, clientNodes=clientNodes, castorOutputDir=castorOutputDir,roReplicas=roReplicas)
+ 
+
+def non_castor_deployment(hermes_data):
+   '''
+   Function for regular/non-castor deployment
+
    If --blockchainLocation was set to sddc or onprem on the command line, Helen will be invoked
    to create a consortium, then deploy a blockchain.
    Otherwise, the default consortium and blockchain pre-added to Helen for R&D, will be returned.
@@ -699,23 +724,22 @@ def fxBlockchain(request, hermes_info, fxProduct):
    conId = None
    replicas = None
    clientNodes = None
-   hermes_data = hermes_info
    logDir = os.path.join(hermes_data["hermesTestLogDir"], "fxBlockchain")
 
    if not auth.tokens[auth.CUSTOM_ORG]:
-       auth.readUsersFromConfig(hermes_data["hermesUserConfig"])
+      auth.readUsersFromConfig(hermes_data["hermesUserConfig"])
 
    devAdminRequest = Request(logDir,
-                             "fxBlockchain",
-                             hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
-                             hermes_data["hermesUserConfig"],
-                             auth.internal_admin)
+                           "fxBlockchain",
+                           hermes_data["hermesCmdlineArgs"].reverseProxyApiBaseUrl,
+                           hermes_data["hermesUserConfig"],
+                           auth.internal_admin)
 
    if auth.CUSTOM_BLOCKCHAIN in hermes_data["hermesUserConfig"]["product"] and \
       hermes_data["hermesUserConfig"]["product"][auth.CUSTOM_BLOCKCHAIN]:
       blockchainId, conId = getExistingBlockchainDetails(logDir, hermes_data)
    elif hermes_data["hermesCmdlineArgs"].blockchainLocation in \
-        [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
+      [helper.LOCATION_SDDC, helper.LOCATION_ONPREM]:
       log.warning("Some test suites do not work with remote deployments yet.")
       blockchainId, conId, replicas, clientNodes = deployToSddc(logDir, hermes_data,
                                                    hermes_data["hermesCmdlineArgs"].blockchainLocation)
@@ -752,14 +776,11 @@ def fxBlockchain(request, hermes_info, fxProduct):
          blockchainId = attr_map["blockchain_id"] if "blockchain_id" in attr_map.keys() else None
          conId = attr_map["consortium_id"] if "consortium_id" in attr_map.keys() else None
       else:
+         # The product was started with no blockchains.
          blockchainId = None
          conId = None
-   else:
-      # The product was started with no blockchains.
-      blockchainId = None
-      conId = None
-
-   return BlockchainFixture(blockchainId=blockchainId, consortiumId=conId, replicas=replicas, clientNodes=clientNodes)
+   
+   return blockchainId, conId, replicas, clientNodes, None, None
 
 
 @pytest.fixture(scope="module")
@@ -857,6 +878,7 @@ def fxConnection(request, fxBlockchain, fxHermesRunSettings):
 
    log.debug("request {}".format(request))
    return ConnectionFixture(request=request, rpc=rpc)
+
 
 @pytest.fixture(scope="module")
 @describe("fixture; Install DAML")

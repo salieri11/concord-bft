@@ -15,10 +15,9 @@ import util.chessplus.chessplus_helper as chessplus_helper
 from util import auth, helper, hermes_logging, json_helper, node_creator,\
     generate_grpc_bindings, pipeline
 from util.dlr import dlr_helper
-from util.stats_gatherer import StatsGatherer
 import event_recorder
+from util.stats_gatherer import StatsGatherer
 
-import fixtures.common_fixtures
 
 local_modules = [os.path.join(".", "lib", "persephone")]
 for path in local_modules:
@@ -222,7 +221,7 @@ def hermes_info(request):
             elif helper.blockchainIsRemote(cmdline_args):
                 # When Hermes does a deployment, details are placed in this file.
                 log.info("We deployed a blockchain and tests failed. Attempting support bundle retrieval.")
-                blockchain_summary_path = fixtures.common_fixtures.get_blockchain_summary_path()
+                blockchain_summary_path = helper.get_blockchain_summary_path()
                 log.info("Looking for file '{}' to gather support bundles".format(blockchain_summary_path))
 
                 if os.path.isfile(blockchain_summary_path):
@@ -644,6 +643,19 @@ def pytest_addoption(parser):
     nonLocalDeployConfig.addoption("--replicaStorage",
                                    help="Ability to override the replica storage value provided by SaaS.",
                                    default=None)
+    nonLocalDeployConfig.addoption("--roReplicaSize",
+                                   help="Size of replica nodes, must match the SaaS api.",
+                                   choices=node_creator.NodeCreator.SAAS_SIZES,
+                                   default=node_creator.NodeCreator.SAAS_SIZES[0])
+    nonLocalDeployConfig.addoption("--roReplicaMemory",
+                                   help="Ability to override the replica memory value provided by SaaS",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--roReplicaCpu",
+                                   help="Ability to override the replica cpu value provided by SaaS.",
+                                   default=None)
+    nonLocalDeployConfig.addoption("--roReplicaStorage",
+                                   help="Ability to override the replica storage value provided by SaaS.",
+                                   default=None)
     nonLocalDeployConfig.addoption("--tlsEnabledClient",
                                    help="Ability to enable TLS certification in client.",
                                    default=False,
@@ -652,9 +664,31 @@ def pytest_addoption(parser):
                                    help="The string containing comma seperated key value pairs for deployment properties.",
                                    default="")
     nonLocalDeployConfig.addoption("--skipDeploymentVerificationTest",
-                                   help="Whether to skip the post-deployment verification tests. (Running a DAML suite.)",
+                                   help="Whether to skip the post-deployment verification tests.(Running a DAML suite.)",
                                    default=False,
                                    action="store_true")
+    nonLocalDeployConfig.addoption("--readOnlyReplicas",
+                                   help="Provide read only replica details"
+                                   'Sample format: { "accessKey": "ACCESS_KEY_1","bucketName": "bucket name", "protocol": "s3", "secretKey": "secret key"},{ "accessKey": "ACCESS_KEY_1","bucketName": "bucket name", "protocol": "s3","secretKey": "secret key"}',
+                                   default="")
+    nonLocalDeployConfig.addoption("--enableNotaryServer",
+                                   help="Provide notary server details"
+                                   'Sample format: {"url": "https://notary.vdp.vmware.com", "tlsCertificateData": "djdsgfdgfsdgf"}',
+                                   default="False")         
+    nonLocalDeployConfig.addoption("--deploymentTool", 
+                                    help="Provide deployment tool as Helen or Castor",
+                                    default="Helen")
+    nonLocalDeployConfig.addoption("--enableBftClient",
+                                   help="Ability to enable BFT client.",
+                                   default=False)
+    nonLocalDeployConfig.addoption("--generateDamlDbPassword",
+                                   help="Ability to enable generation of DAML db password.",
+                                   default=False)
+    nonLocalDeployConfig.addoption("--pullMetricsInfo",
+                                   help="Enable ability to pull metrics from blockchain nodes."
+                                   'Sample format: {"username": "<username>", "password":"<password>", "tlsCertificateData": "", "tlsKeyData": ""}',
+                                   default="")
+
 
     almConfig = parser.getgroup(
         "ALParameters", "ALM Parameters:")
