@@ -7,7 +7,6 @@ LEDGER_PORT=6865
 MARKET_FLAVOR_NFR=nfr
 DAY2="2019-12-06"
 DAY3="2019-12-09"
-MAX_DURATION="3600 seconds"
 
 TMP=/tmp
 TIME_STAMP=`date +%Y%m%d_%H%M%S`
@@ -21,7 +20,7 @@ error() {
 }
 
 check_usage() {
-    if [ -z "${LEDGER_HOST}" -o -z "${DAML_SDK_VERSION}" -o -z "${SPIDER_IMAGE_TAG}" -o -z "${MARKET_FLAVOUR}" -o -z "${CONCURRENCY}" -o -z "${WORK_DIR}" -o -z "${ARRIVAL_RATE}" -o -z "${DURATION}" -o -z "${UNIT}" -o -z "${OPERATION}" ]
+    if [ -z "${LEDGER_HOST}" -o -z "${DAML_SDK_VERSION}" -o -z "${SPIDER_IMAGE_TAG}" -o -z "${MARKET_FLAVOUR}" -o -z "${CONCURRENCY}" -o -z "${WORK_DIR}" -o -z "${ARRIVAL_RATE}" -o -z "${DURATION}" -o -z "${UNIT}" -o -z "${OPERATION}" -o -z "${MAX_DURATION}" ]
     then
         error "Missing parameters"
         cat << EOF
@@ -34,6 +33,7 @@ Usage: $0 <OPTIONS>
           --resultsDir <Results/log directory path>
           --chessplus_trades_arrival_rate <Number of fixed trades per second>
           --chessplus_run_duration <Duration for running simulation>
+          --chessplus_max_run_duration <Max duration for running simulation>
           --chessplus_time_units <Time unit for running simulation>
           --chessplus_operation <Simulation to generate stream of trades>
 EOF
@@ -47,7 +47,7 @@ load_spider_application() {
 }
 
 create_initialize_once_file() {
-    if [ ! -z "${INITIALIZE_ONCE}" ] ; then
+    if [ "${INITIALIZE_ONCE}" ] ; then
         touch "$1"
     fi
 }
@@ -123,14 +123,14 @@ execute_command() {
                         if [ ! -z "${keyword_matched}" ]
                         then
                             info "**** Command ${COMMAND_TO_RUN} execution/validation completed successfully"
-                            create_initialize_once_file "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
+                            create_initialize_once_file "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}" "${INITIALIZE_ONCE}"
                             break
                         else
                             command_execution_failure "${COMMAND_TO_RUN}"
                         fi
                     else
                         info "**** Command execution completed successfully"
-                        create_initialize_once_file "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}"
+                        create_initialize_once_file "${IS_CMD_TO_BE_INITIALIZED_ONCE_FILE}" "${INITIALIZE_ONCE}"
                         break
                     fi
                 else
@@ -168,9 +168,9 @@ run_chess_plus_test() {
     then
         if [ "${OPERATION}" = "SingleDaySettlementInclNetting" ]
         then
-            execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o sim.max.duration=${MAX_DURATION} -o date.day2=${DAY2} -o date.day3=${DAY3} -o duration=\"${DURATION} ${UNIT}\"  -o sla.bucket=\"postgres\"  -o trades.source=\"${TRADE_FILE}\"" --validateString "Simulation SingleDaySettlementInclNetting started"
+            execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o sim.max.duration=\"${MAX_DURATION} ${UNIT}\" -o date.day2=${DAY2} -o date.day3=${DAY3} -o duration=\"${DURATION} ${UNIT}\"  -o sla.bucket=\"postgres\"  -o trades.source=\"${TRADE_FILE}\"" --validateString "Simulation SingleDaySettlementInclNetting started"
         else
-            execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o sim.max.duration=${MAX_DURATION} -o duration=\"${DURATION} ${UNIT}\" -o sla.bucket=\"postgres\" -o trades.source=\"${TRADE_FILE}\"" --validateString "Simulation TradesAtFixedRate started"
+            execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o sim.max.duration=\"${MAX_DURATION} ${UNIT}\" -o duration=\"${DURATION} ${UNIT}\" -o sla.bucket=\"postgres\" -o trades.source=\"${TRADE_FILE}\"" --validateString "Simulation TradesAtFixedRate started"
         fi
     else
         execute_command --commandToRun "gatling_simulations -s ${OPERATION} -o arrival.rate=${ARRIVAL_RATE} -o duration=\"${DURATION} ${UNIT}\"" --validateString "Simulation TradesAtFixedRate started"
@@ -209,17 +209,9 @@ while [ "$1" != "" ] ; do
             shift
             MARKET_FLAVOUR="$1"
             ;;
-        "--setupMarketOnce")
-            shift
-            MARKET_FLAVOUR="$1"
-            ;;
         "--concurrency")
             shift
             CONCURRENCY="$1"
-            ;;
-        "--noOfRequests")
-            shift
-            NO_OF_REQUESTS="$1"
             ;;
         "--resultsDir")
             shift
@@ -233,6 +225,10 @@ while [ "$1" != "" ] ; do
             shift
             DURATION="$1"
             ;;
+        "--chessplusRunMaxDuration")
+            shift
+            MAX_DURATION="$1"
+            ;;
         "--chessplusTimeUnits")
             shift
             UNIT="$1"
@@ -240,10 +236,6 @@ while [ "$1" != "" ] ; do
         "--chessplusOperation")
             shift
             OPERATION="$1"
-            ;;
-        "--timeoutUnit")
-            shift
-            TIMEOUT_UNIT="$1"
             ;;
         "--logLevel")
             shift

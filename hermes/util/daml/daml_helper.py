@@ -530,7 +530,7 @@ def download_spider_app(username, password, tag):
          raise Exception("Could not pull from DockerHub.  Aborting.")
 
    if not success:
-      raise Exception("Failed to pull digitalasset/spider-application:{}".format(spider_version))
+      raise Exception("Failed to pull digitalasset/spider-application:{}".format(tag))
 
 
 def install_daml_sdk(sdk_version=None):

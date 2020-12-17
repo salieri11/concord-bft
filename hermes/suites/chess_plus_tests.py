@@ -1,27 +1,15 @@
 #################################################################################
 # Copyright 2020 VMware, Inc.  All rights reserved. -- VMware Confidential
 #################################################################################
-import logging
-import os
-import pytest
-import subprocess
-import time
-import traceback
-
 import util.helper as helper
 import util.chessplus.chessplus_helper as chessplus_helper
-
 from suites.case import describe
-from fixtures.common_fixtures import fxProduct
 
 import util.hermes_logging
 log = util.hermes_logging.getMainLogger()
 
-productType = helper.TYPE_CHESSPLUS # Read by the fxProduct fixture
-
-
 @describe("Chess+ test on Blockchain")
-def test_chessplus(fxProduct, fxHermesRunSettings):
+def test_chessplus(fxHermesRunSettings):
    args = fxHermesRunSettings["hermesCmdlineArgs"]
    if args.replicasConfig:
       all_replicas = helper.parseReplicasConfig(
