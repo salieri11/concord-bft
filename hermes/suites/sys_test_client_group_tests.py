@@ -78,22 +78,7 @@ def define_groups(blockchain):
     '''
     log.debug("blockchain.replicas: {}".format(blockchain.replicas))
     participant_ips = []
-
-    # Warning about blockchain.replicas["daml_participant"]:
-    # If Hermes was passed --replicasConfig, we get an array of IPs.
-    # If Hermes did the deployment, we get an array of objects with the IP in one of the fields.
-    # Should be changed, might be widespread little changes.
-    if isinstance(blockchain.replicas["daml_participant"][0], str):
-        participant_ips = blockchain.replicas["daml_participant"]
-    else:
-        for p in blockchain.replicas["daml_participant"]:
-            if "ip" in p and p["ip"]:
-                participant_ips.append(p["ip"])
-            elif "public_ip" in p and p["public_ip"]:
-                participant_ips.append(p["public_ip"])
-            elif "private_ip" in p and p["private_ip"]:
-                participant_ips.append(p["private_ip"])
-
+    participant_ips, committer_ips = util.helper.extract_ip_lists_from_fxBlockchain(blockchain)
     groups = {}
 
     for ip in participant_ips:
@@ -105,9 +90,9 @@ def define_groups(blockchain):
         attempts = 30
         sleep_time = 10 # 5 min.
         group = None
-
+        username, password = util.helper.getNodeCredentials(blockchain.blockchainId, ip)
         while attempts > 0:
-            group = util.helper.ssh_connect(ip, "root", "Bl0ckch@!n", cmd, verbose=False)
+            group = util.helper.ssh_connect(ip, username, password, cmd, verbose=False)
 
             if group and group.strip():
                 group = group.strip()
@@ -197,3 +182,31 @@ def test_can_use_each_node_in_a_group(fxBlockchain, fxConnection, fxPoolParty):
         parties.send_txs(count=3, connections=3)
         parties.verify_txs(3)
         rotations -= 1
+
+
+@describe()
+@pytest.mark.smoke
+def test_trc_tls_deployed(fxBlockchain, fxHermesRunSettings):
+    if 'org_trc_trs_tls_enabled' not in fxHermesRunSettings["hermesCmdlineArgs"].propertiesString:
+        pytest.skip("Not TRC-TLS Enable")
+
+    properties = fxHermesRunSettings["hermesCmdlineArgs"].propertiesString.split(",")
+
+    for prop in properties:
+      key = prop.split("=")[0]
+      value = prop.split("=")[1]
+      if key == "org_trc_trs_tls_enabled" and value.lower() != "true":
+        pytest.skip("Not TRC-TLS Enable")
+
+    participants, committers = util.helper.extract_ip_lists_from_fxBlockchain(fxBlockchain)
+    for ip in participants:
+        cmd = 'grep "insecure-thin-replica-client=false" /config/daml-ledger-api/environment-vars'
+        username, password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
+        response = util.helper.ssh_connect(ip, username, password, cmd, verbose=False)
+        assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
+
+    for ip in committers:
+        cmd = 'grep "thin_replica_tls_cert_path: /config/concord/config-local/trs_tls_certs" /config/concord/config-local/deployment.config'
+        username, password = util.helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
+        response = util.helper.ssh_connect(ip, username, password, cmd, verbose=False)
+        assert response and response.strip(), "Secure Thin replica client is not enabled for {}".format(ip)
