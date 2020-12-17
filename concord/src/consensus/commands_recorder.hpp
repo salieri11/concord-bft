@@ -1,7 +1,7 @@
 // Copyright 2020 VMware, all rights reserved
 
-#ifndef CONCORD_DAML_COMMANDS_RECORDER_HPP_
-#define CONCORD_DAML_COMMANDS_RECORDER_HPP_
+#ifndef CONCORD_COMMANDS_RECORDER_HPP_
+#define CONCORD_COMMANDS_RECORDER_HPP_
 
 #include <chrono>
 #include <map>
@@ -9,10 +9,10 @@
 #include "performance.pb.h"
 
 namespace concord {
-namespace daml {
-class DamlCommandsRecorder {
+namespace consensus {
+class CommandsRecorder {
  public:
-  DamlCommandsRecorder(const std::string& outputDir);
+  CommandsRecorder(const std::string& outputDir);
 
   bool NewCommand(const std::string& cid);
 
@@ -37,8 +37,8 @@ class DamlCommandsRecorder {
       recorded_commands_;
   std::string output_dir_;
 };
-}  // namespace daml
+}  // namespace consensus
 
 }  // namespace concord
 
-#endif  // CONCORD_DAML_COMMANDS_RECORDER_HPP_
+#endif  // CONCORD_COMMANDS_RECORDER_HPP_

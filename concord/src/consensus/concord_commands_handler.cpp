@@ -53,6 +53,14 @@ ConcordCommandsHandler::ConcordCommandsHandler(
           std::make_shared<reconfiguration::ConcordControlHandler>()),
       storage_(storage),
       metadata_storage_(storage),
+      commands_recorder_(
+          config.hasValue<std::string>("command_recording_output_dir")
+              ? config.getValue<std::string>("command_recording_output_dir")
+              : "/concord/log/recorded_commands"),
+      command_recording_enabled_(
+          config.hasValue<bool>("command_recording_enable")
+              ? config.getValue<bool>("command_recording_enable")
+              : false),
       command_handler_counters_{prometheus_registry->createCounterFamily(
           "concord_command_handler_operation_counters_total",
           "counts how many operations the command handler has done", {})},
@@ -451,8 +459,10 @@ void ConcordCommandsHandler::execute(ExecutionRequestsQueue &requests,
 }
 
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
-    const com::vmware::concord::ReadSet &read_set) const {
+    const com::vmware::concord::PreExecutionResult &pre_execution_result)
+    const {
   const auto last_block_id = storage_.getLastBlock();
+  const auto read_set = pre_execution_result.read_set();
   // E.L the concord proto will need to change to include types as well
   for (const auto &kf : read_set.keys_with_fingerprints()) {
     const Sliver key{std::string{kf.key()}};
@@ -464,6 +474,11 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
       std::stringstream msg;
       msg << "Key " << key << " is not available in storage.";
       throw std::runtime_error(msg.str());
+    }
+    if (command_recording_enabled_) {
+      commands_recorder_.AddPostExecutionRead(
+          pre_execution_result.request_correlation_id(), kf.key(),
+          out.toString());
     }
     if (enable_histograms_or_summaries) {
       pre_execution_read_keys_size_summary_.Observe(kf.key().length());

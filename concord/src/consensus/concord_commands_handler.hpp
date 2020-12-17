@@ -12,6 +12,7 @@
 #include "KVBCInterfaces.h"
 #include "Logger.hpp"
 #include "OpenTracing.hpp"
+#include "commands_recorder.hpp"
 #include "concord.pb.h"
 #include "db_interfaces.h"
 #include "kv_types.hpp"
@@ -111,6 +112,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
  protected:
   const concord::kvbc::ILocalKeyValueStorageReadOnly &storage_;
   concord::storage::ConcordBlockMetadata metadata_storage_;
+  mutable CommandsRecorder commands_recorder_;
+  bool command_recording_enabled_;
   prometheus::Family<prometheus::Counter> &command_handler_counters_;
   prometheus::Family<prometheus::Histogram> &command_handler_histograms_;
   prometheus::Family<prometheus::Summary> &command_handler_summaries_;
@@ -181,8 +184,8 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
                                     concordUtils::SpanWrapper{}) override;
 
   // Checks the pre-executed result for read/write conflicts
-  bool HasPreExecutionConflicts(
-      const com::vmware::concord::ReadSet &read_set) const;
+  bool HasPreExecutionConflicts(const com::vmware::concord::PreExecutionResult
+                                    &pre_execution_result) const;
   // Add the writeSet to the set of KV pairs which accumulates all the writes
   // that will be written to the database as a single block.
   void addWritesToBlock(kvbc::SetOfKeyValuePairs writeSet);

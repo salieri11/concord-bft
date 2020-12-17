@@ -16,6 +16,8 @@
 #include "storage/kvb_key_types.h"
 #include "time/time_contract.hpp"
 
+#include <boost/filesystem.hpp>
+
 using std::map;
 using std::string;
 using std::vector;
@@ -233,8 +235,10 @@ bool DamlKvbCommandsHandler::PreExecute(
     const da_kvbc::CommitRequest& commit_request,
     const opentracing::Span& parent_span, ConcordResponse& concord_response) {
   // Callback for reading from storage.
+  auto cid = commit_request.correlation_id();
+
   KeyTypeAndValueWithFingerprintReaderFunc storage_reader =
-      [&](const auto& keys) { return ReadKeysWithType(keys); };
+      [&](const auto& keys) { return ReadKeysWithType(cid, keys); };
 
   auto start = std::chrono::steady_clock::now();
 
@@ -245,12 +249,18 @@ bool DamlKvbCommandsHandler::PreExecute(
       pre_execution_result);
 
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::steady_clock::now() - start)
-                      .count();
-  if (enable_histograms_or_summaries) {
-    daml_exec_eng_dur_.Observe(duration);
+      std::chrono::steady_clock::now() - start);
+
+  if (command_recording_enabled_) {
+    commands_recorder_.NewCommand(cid);
+    commands_recorder_.AddCommandExecutionDuration(
+        cid, std::chrono::duration_cast<std::chrono::nanoseconds>(duration));
   }
-  LOG_INFO(logger_, "DAML external PreExecute duration [" << duration << "ms]");
+  if (enable_histograms_or_summaries) {
+    daml_exec_eng_dur_.Observe(duration.count());
+  }
+  LOG_INFO(logger_,
+           "DAML external PreExecute duration [" << duration.count() << "ms]");
   if (!status.ok()) {
     LOG_ERROR(logger_, "Pre-execution failed " << status.error_code() << ": "
                                                << status.error_message());
@@ -267,6 +277,7 @@ bool DamlKvbCommandsHandler::PreExecute(
                                     .toString()
                              << "]");
     }
+
     return true;
   }
 }
@@ -300,6 +311,7 @@ std::string DamlKvbCommandsHandler::KeyTypeToString(
 
 std::map<std::string, ValueFingerprintPair>
 DamlKvbCommandsHandler::ReadKeysWithType(
+    const std::string& cid,
     const google::protobuf::RepeatedPtrField<
         com::digitalasset::kvbc::PreprocessorFromEngine::KeyAndType>& keys) {
   std::vector<std::string> keys_bytes{(std::size_t)keys.size()};
@@ -312,6 +324,10 @@ DamlKvbCommandsHandler::ReadKeysWithType(
   auto values = GetFromStorage(keys_bytes);
   std::map<std::string, ValueFingerprintPair> result;
   for (auto& entry : values) {
+    if (command_recording_enabled_) {
+      commands_recorder_.AddPreExecutionRead(cid, entry.first,
+                                             entry.second.first);
+    }
     result[entry.first] =
         std::make_pair(std::move(entry.second.first),
                        SerializeFingerprint(entry.second.second));
@@ -354,6 +370,10 @@ bool DamlKvbCommandsHandler::PostExecute(
     LOG_DEBUG(logger_, "PreExec_KV_metrics Key length: " << kv.first.length()
                                                          << " Value length: "
                                                          << kv.second.length());
+    if (command_recording_enabled_) {
+      commands_recorder_.AddPostExecutionWrite(
+          correlation_id, kv.first.toString(), kv.second.toString());
+    }
   }
   auto start = std::chrono::steady_clock::now();
   RecordTransaction(raw_write_set, storage_.getLastBlock(), correlation_id,
@@ -361,6 +381,7 @@ bool DamlKvbCommandsHandler::PostExecute(
   auto record_transaction_duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - start);
+
   LOG_INFO(logger_,
            "Done handling DAML post execution, time: "
                << TimeUtil::ToString(record_time)
@@ -598,16 +619,24 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
         pre_execution_result.request_correlation_id();
     SCOPED_MDC_CID(correlation_id);
 
+    bool result = false;
     if (!pre_execution_result.has_read_set()) {
       LOG_WARN(logger_, "Post-execution failed due to missing read set.");
-      return false;
-    } else if (HasPreExecutionConflicts(pre_execution_result.read_set())) {
+    } else if (HasPreExecutionConflicts(pre_execution_result)) {
       LOG_INFO(logger_, "Post-execution failed due to conflicts.");
-      return false;
+
     } else {
-      return PostExecute(pre_execution_result, time_contract, parent_span,
-                         response);
+      result = PostExecute(pre_execution_result, time_contract, parent_span,
+                           response);
     }
+    if (command_recording_enabled_) {
+      try {
+        commands_recorder_.SaveCommand(correlation_id);
+      } catch (boost::filesystem::filesystem_error& ex) {
+        LOG_ERROR(logger_, "Failed to save command execution: " << ex.what());
+      }
+    }
+    return result;
   } else {
     auto daml_req = concord_req.daml_request();
     if (!daml_req.has_command()) {
