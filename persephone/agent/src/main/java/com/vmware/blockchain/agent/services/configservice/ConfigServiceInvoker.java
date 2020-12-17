@@ -55,9 +55,10 @@ public class ConfigServiceInvoker {
      * @param nodeId    node identifier.
      * @return list of {@link ConfigurationComponent}s.
      */
-    public List<ConfigurationComponent> retrieveConfiguration(ConfigurationSessionIdentifier session, String nodeId)
+    public List<ConfigurationComponent> retrieveConfiguration(ConfigurationSessionIdentifier session, String nodeId,
+                                                              String opid)
             throws AgentException {
-        var request = NodeConfigurationRequest.newBuilder().setHeader(MessageHeader.newBuilder().build())
+        var request = NodeConfigurationRequest.newBuilder().setHeader(MessageHeader.newBuilder().setId(opid).build())
                 .setIdentifier(session);
 
         request.setNodeId(nodeId);

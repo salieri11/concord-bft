@@ -364,7 +364,8 @@ public class NodeStartupOrchestrator {
         if (pullConfig) {
             log.info("Reading from Config Service");
             var configList = configServiceInvoker.retrieveConfiguration(configuration.getConfigurationSession(),
-                                                                        configuration.getNodeId());
+                    configuration.getNodeId(),
+                    configuration.getOpid());
             writeConfiguration(configList);
             log.info("Populated the configurations");
         }

@@ -42,7 +42,7 @@ public class ConfigController {
         log.info("Received request to download config with identifier {}", sessionid);
         configServiceInvoker
                 .retrieveConfiguration(ConfigurationSessionIdentifier.newBuilder().setId(sessionid.toString()).build(),
-                                       nodeId);
+                                       nodeId, sessionid.toString());
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
