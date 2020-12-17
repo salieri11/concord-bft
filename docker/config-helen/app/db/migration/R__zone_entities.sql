@@ -1,5 +1,5 @@
 INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALUES ('7eef6110-68bc-11ea-906e-8c859085f3e7', 'helen.zone', 1, '{
-  "name": "VMC SDDC4",
+  "name": "VMC SDDC6",
   "latitude": "45.2551139",
   "longitude": "-120.888727",
   "type": "VMC_AWS",
@@ -12,8 +12,8 @@ INSERT into entity(row_key, column_name, version, body, user_id, user_name) VALU
   "storage": "WorkloadDatastore",
   "folder": "HelenTesting",
   "network": {
-    "name": "sddc6-vmware-vpn-cloud-5",
-    "gateway": "10.72.217.1",
+    "name": "sddc6-vmware-vpn-cloud-1",
+    "gateway": "10.72.223.1",
     "subnet": 24,
     "name_servers": ["10.78.1.132", "10.78.1.133"]
   },

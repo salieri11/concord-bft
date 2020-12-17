@@ -61,7 +61,7 @@ CSP_STAGE_REFRESH_TOKEN=`get_value 'CSP' 'STAGING_API_TOKEN'`
 BINTRAY_PW=`get_value 'bintray' 'dev_key'`
 BINTRAY_UN=`get_value 'bintray' 'dev_user'`
 
-DOCKER_R_ADDRESS=https://registry-1.docker.io/v2
+DOCKER_R_ADDRESS=https://blockchain-docker-internal.artifactory.eng.vmware.com
 DOCKER_R_UN=`get_value 'docker-reader' 'username'`
 DOCKER_R_PW=`get_value 'docker-reader' 'password'`
 
