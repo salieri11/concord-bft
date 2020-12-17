@@ -9,7 +9,6 @@ import java.security.Security;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +19,7 @@ import javax.validation.constraints.NotNull;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.lognet.springboot.grpc.GRpcService;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -125,6 +125,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void getNodeConfiguration(@NotNull NodeConfigurationRequest request,
                                      @NotNull StreamObserver<NodeConfigurationResponse> observer) {
         try {
+            var sessionId = ConfigurationServiceUtil.extractOrGenerateId(request.getHeader().getId());
+            MDC.put(ConfigurationServiceUtil.OPID, sessionId.toString());
             log.info("Received request {}", request);
 
             String key = String.join(separator, request.getIdentifier().getId(), request.getNodeId());
@@ -145,6 +147,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             var errorMsg = String.format("Retrieving configuration results failed for id: %s with error: %s",
                     request.getIdentifier(), e.getLocalizedMessage());
             observer.onError(new StatusException(Status.INVALID_ARGUMENT.withDescription(errorMsg)));
+        } finally {
+            MDC.remove(ConfigurationServiceUtil.OPID);
         }
     }
 
@@ -152,7 +156,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
     public void createConfigurationV2(@NotNull ConfigurationServiceRequestV2 request,
                                       @NotNull StreamObserver<ConfigurationSessionIdentifier> observer) {
 
-        var sessionId = UUID.randomUUID();
+        var sessionId = ConfigurationServiceUtil.extractOrGenerateId(request.getHeader().getId());
+        MDC.put(ConfigurationServiceUtil.OPID, sessionId.toString());
         log.info("Request received. Session Id : {}\n Request : {}", sessionId, request.toString());
         BlockchainNodeList nodeList = ConfigurationServiceUtil.getNodeList(request.getNodesMap(), sessionId);
 
@@ -314,6 +319,8 @@ public class ConfigurationService extends ConfigurationServiceImplBase {
             log.error("Error organizing the configurations for sessions {}", sessionId, e);
             throw new ConfigServiceException(ErrorCode.CONFIGURATION_GENERATION_FAILURE,
                                              "Error organizing the configurations for sessions {}" + sessionId, e);
+        } finally {
+            MDC.remove(sessionId.toString());
         }
 
         observer.onNext(ConfigurationSessionIdentifier.newBuilder()

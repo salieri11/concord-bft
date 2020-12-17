@@ -30,6 +30,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConfigurationServiceUtil {
 
+    public static final String OPID = "OpId";
+
     /**
      * Create and return a list of Node type objects. NodeType values are mapped to a subclass of Node class. For
      * example: NodeType.REPLICA is mapped to Replica NodeType.READ_REPLICA is mapped to ReadReplica NodeType.CLIENT is
@@ -115,6 +117,22 @@ public class ConfigurationServiceUtil {
 
         return BlockchainNodeList.builder().replicas(replicaNodes).clients(clientNodes).readReplicas(readReplicaNodes)
                 .build();
+    }
+
+    /**
+     * Generate a new {@link UUID} based on a given request {@link MessageHeader}, or generate a
+     * random value as ID if request does not contain sufficient parametric data.
+     *
+     */
+    public static UUID extractOrGenerateId(String idString) {
+        UUID uuid;
+        if (idString.isEmpty()) {
+            uuid = UUID.randomUUID();
+        } else {
+            // Hash the string value into an UUID.
+            uuid = UUID.fromString(idString);
+        }
+        return uuid;
     }
 
 }
