@@ -21,6 +21,7 @@ import time
 from datetime import datetime
 from tempfile import NamedTemporaryFile
 from util import helper
+from fixtures.common_fixtures import fxBlockchain
 import util.hermes_logging as hermes_logging
 
 log = hermes_logging.getMainLogger()
@@ -113,7 +114,8 @@ def main(args):
    ret_status = 1
    if status:
       log.info("Successfuly instantiated health monitoring daemon on all replicas")
-      monitor_status = helper.monitor_replicas(replicas_config,
+      monitor_status = helper.monitor_replicas(fxBlockchain,
+                                               replicas_config,
                                                args.runDuration,
                                                args.loadInterval,
                                                args.resultsDir,

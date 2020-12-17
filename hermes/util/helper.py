@@ -31,18 +31,21 @@ import datetime
 from . import numbers_strings
 from enum import Enum
 from urllib.parse import urlparse, urlunparse
+from datetime import datetime, timedelta
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.auth as auth
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.json_helper as json_helper_util
    import hermes_util.hermes_logging as hermes_logging_util
    import hermes_util.blockchain_ops as blockchain_ops
+   import hermes_util.wavefront as wavefront
 else:
    import util.auth as auth
    import util.daml.daml_helper as daml_helper
    import util.json_helper as json_helper_util
    import util.hermes_logging as hermes_logging_util
    import util.blockchain_ops as blockchain_ops
+   import util.wavefront as wavefront
    import rest
 
 from time import strftime, localtime, sleep
@@ -875,13 +878,34 @@ def verify_connectivity(ip, port, bytes_to_send=[], success_bytes=[], min_bytes=
 
    return False
 
+def get_wavefront_metrics(blockchainId, replica_ip):
+   '''
+      Helper util method to fetch the wavefront metrics for passed blockchainId and replica_ip
+      :param blockchainId: blockchain to fetch metric details for
+      :param replica_ip: replica to fetch metric details for
+      :return: metrics details for replica_ip for last five minutes
+      '''
+   log.info("fetching metrics for replica: {}".format(replica_ip))
+   metric_name = "vmware.blockchain.concord.command.handler.operation.counters.total.counter"
+   metric_query = "rate(ts({}".format(metric_name)
+   if replica_ip is not None:
+      metric_query = metric_query + ",vm_ip={}".format(replica_ip)
+   metric_query = metric_query + ",{}={}))".format("host", blockchainId)
+   start_epoch = (datetime.now() - timedelta(seconds=300)).strftime('%s')
+   end_epoch = (datetime.now() + timedelta(seconds=2)).strftime('%s')
+   log.info("Start time is {} and end time is {}".format(
+      start_epoch, end_epoch))
+   wavefrontMetrics = wavefront.call_wavefront_chart_api(metric_query, start_epoch, end_epoch, granularity="m")
+   return wavefrontMetrics
 
-def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
+
+def monitor_replicas(fxBlockchain, replica_config, run_duration, load_interval, log_dir,
                      test_list_json_file, testset, notify_target=None, notify_job=None):
    '''
    Helper util method to monitor the health of the replicas, and do a blockchain
    test (send/get transactions) and collect support logs incase of a replica
    failed status (crash or failed  txn test)
+   :param fxBlockchain: blockchain fixtures
    :param replica_config: replica config file
    :param run_duration: No. of hrs to monitor the replicas
    :param load_interval: Interval in moins between every monitoring call
@@ -893,8 +917,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    :return:False if replicas reported a failure during the run_duration time, else True
    '''
    all_replicas_and_type = parseReplicasConfig(replica_config)
-   BlockchainFixture = collections.namedtuple("BlockchainFixture",
-                                              "blockchainId, consortiumId, replicas, clientNodes")
+   # BlockchainFixture = collections.namedtuple("BlockchainFixture","blockchainId, consortiumId, replicas, clientNodes")
 
    from . import slack
 
@@ -910,7 +933,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
    slack.reportMonitoringIfTarget(
      target=notify_target, msgType="kickOff",
      replicasPath=replica_config, jobNameShort=notify_job)
-   initialStats = get_replicas_stats(all_replicas_and_type)
+   initialStats = get_replicas_stats(all_replicas_and_type, fxBlockchain.blockchainId)
    # first message that will be the main thread
    if notify_job:
      firstMessageText = "<RUN> has {} hour remaining.\n\nConsole: {}\n\nStatus:\n{}".format(
@@ -945,7 +968,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
       log.info("************************************************************")
 
       crashed_committers, crashed_participants, unexpected_crash_results_dir = blockchain_ops.get_all_crashed_nodes(
-         all_replicas_and_type, log_dir)
+         fxBlockchain, log_dir)
 
       status = False if len(crashed_committers + crashed_participants) > 0 else True
       nodes_status = {
@@ -1007,7 +1030,7 @@ def monitor_replicas(replica_config, run_duration, load_interval, log_dir,
 
       # report to Slack in predefined interval
       if time.time() - slack_last_reported > HEALTHD_SLACK_NOTIFICATION_INTERVAL:
-        stats = get_replicas_stats(all_replicas_and_type, concise=True)
+        stats = get_replicas_stats(all_replicas_and_type, fxBlockchain.blockchainId, concise=True)
         remaining_time = str(int((end_time - time.time()) / 3600))
         duration = str(int((time.time() - start_time) / 3600))
         midRunMessage = "<RUN> has {} hour remaining ({}h passed). Status:\n{}".format(
@@ -1212,18 +1235,17 @@ def run_long_running_tests(tests, replica_config, log_dir):
    return testset_result_dict
 
 
-def get_replicas_stats(all_replicas_and_type, concise=False):
+def get_replicas_stats(all_replicas_and_type, blockchainId=None, concise=False):
   '''
     Given replicas with health daemon installed, get the latest
     stats report from each replica with sftp_client function
     returns json and Slack message_format of the stats
   '''
-  credentials = getUserConfig()["persephoneTests"]["provisioningService"]["concordNode"]
-  username = credentials["username"]
-  password = credentials["password"]
   temp_json_path = "/tmp/healthd_recent.json"
   all_reports = { "json": {}, "message_format": [] }
   all_committers_mem = []
+  metric_dict = {}
+  metric_list = ["written_blocks", "daml_writes", "daml_reads"]
 
   for blockchain_type, replica_ips in all_replicas_and_type.items():
     typeName = "Committer" if not concise else "c"
@@ -1232,6 +1254,21 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
 
     log.info("Retrieving stats for replicas '{}', file '{}', to local file '{}'".format(replica_ips, HEALTHD_RECENT_REPORT_PATH, temp_json_path))
     for i, replica_ip in enumerate(replica_ips):
+      for metric in metric_list:
+         metric_dict.update({metric:0})
+      username, password = getNodeCredentials(blockchainId, replica_ip)
+      if blockchain_type == TYPE_DAML_PARTICIPANT:
+         log.info("skipping participant node for wavefront metrics")
+      elif blockchain_type == TYPE_DAML_COMMITTER:
+         metrics = get_wavefront_metrics(blockchainId, replica_ip)
+         metrics_json = json.loads(metrics)
+         if "timeseries" in metrics_json:
+            for result in metrics_json['timeseries']:
+               for operation_name in metric_list:
+                  if result["tags"]["operation"] == operation_name:
+                     metric_dict.update({operation_name: result["data"][len(result["data"]) - 1][1]})
+         else:
+            log.error("Metrics data not available for replica: {}".format(replica_ip))
       try:
         if sftp_client(replica_ip, username, password, HEALTHD_RECENT_REPORT_PATH,
                       temp_json_path, action="download"):
@@ -1244,12 +1281,17 @@ def get_replicas_stats(all_replicas_and_type, concise=False):
               all_committers_mem.append(stat["mem"])
             status_emoji = ":red_circle:" if stat["status"] == "bad" else ":green_circle:"
             if not concise:
-              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%".format(
-                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+              all_reports["message_format"].append("{} [{}-{}] ({}) cpu: {}%, mem: {}%, disk: {}%, blocks: {} "
+                                                   "/s, daml writes: {} /s, daml read: {} /s".format(
+                status_emoji, typeName, i+1, replica_ip, stat["cpu"]["avg"], stat["mem"], stat["disk"],
+                 round(metric_dict["written_blocks"], 3), round(metric_dict["daml_writes"], 3),
+                 round(metric_dict["daml_reads"], 3)
               ))
             else:
-              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}%".format(
-                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"]
+              all_reports["message_format"].append("{} {}{} | {}% | {}% | {}% | {} /s | {} /s | {} /s".format(
+                status_emoji, typeName, i+1, stat["cpu"]["avg"], stat["mem"], stat["disk"],
+                 round(metric_dict["written_blocks"], 3), round(metric_dict["daml_writes"], 3),
+                 round(metric_dict["daml_reads"], 3)
               ))
         else:
            raise Exception("Failed retrieving stats for replica '{}', file '{}', to "
@@ -1582,7 +1624,7 @@ def getNodeCredentials(blockchain_id, node_ip):
                                                tokenDescriptor=token_descriptor,
                                                service=auth.SERVICE_DEFAULT)
         log.debug("\nAdmin request object created")
-      
+
         node_type, node_id = get_node_id_type(con_admin_request, blockchain_id, node_ip)
         if not node_type or not node_id:
             raise Exception("Either IP is invalid or does not belong to given Blockchain")
@@ -2016,7 +2058,7 @@ def parseReplicasConfig(replicas):
   result = {} # clean up and enforce replicas structure
 #   if isinstance(replicasObject, dict):
 #     replicasObject = json.loads(json.dumps(replicasObject)) 
-  
+
   for nodeType in replicasObject:
     nodeWithThisType = replicasObject[nodeType]
     if nodeType == "others":
