@@ -28,6 +28,7 @@ message ConcordAgentConfiguration {
     string node_id = 9;
     Properties properties = 10;
     Endpoint notary_server = 11;
+    string opid = 12;
 }
 
 enum AgentAttributes {
