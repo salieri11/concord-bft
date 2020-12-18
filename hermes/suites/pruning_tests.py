@@ -33,14 +33,18 @@ log = util.hermes_logging.getMainLogger()
 # Read by the fxProduct fixture.
 productType = helper.TYPE_DAML
 MAX_TRIES_TO_PERFORM_AN_ACTION = 10
-
+TIME_SERVICE_DB_KEY = "0x20"
 net_utils = network_utils.NetworkUtils()
 operator_docker_utils = None
+concord_docker_utils = None
+
 
 @describe()
 def test_init(fxProduct, fxHermesRunSettings):
     global operator_docker_utils
+    global concord_docker_utils
     operator_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.operator_containers)
+    concord_docker_utils = hermes_docker_utils.DockerUtils(hermes_docker_utils.concord_containers)
 
 def _try_to_perform_an_action(action, stop_condition):
     for i in range(MAX_TRIES_TO_PERFORM_AN_ACTION):
@@ -76,6 +80,19 @@ def _execute_prune_request():
     else:
         return False, -1
 
+def _execute_getValue_for_ts(concord_id, block_version=""):
+    """
+        This function uses the ./sparse_merkle_db_editor that is installed on every concord container to check the
+        latest version of the time service record.
+        The time service record is stored under key TIME_SERVICE_DB_KEY (currently 0x20).
+        If we give a specific block version, this returns us the value of the time record in that specific version.
+    """
+    cmd = "./sparse_merkle_db_editor /concord/rocksdbdata getValue {} {}".format(TIME_SERVICE_DB_KEY, block_version)
+    response = concord_docker_utils.exec_cmd(id=concord_id, cmd=cmd)
+    if "Failed to execute command [getValue]" in response.decode('utf-8').rstrip():
+        return response.decode('utf-8').rstrip()
+    res = json.loads(response)
+    return res
 
 @describe()
 def test_get_latestPruneableBlock(fxProduct, fxHermesRunSettings):
@@ -124,3 +141,18 @@ def test_pruning_with_lagging_replica(fxProduct, fxHermesRunSettings):
     assert prune_res[1] < highest_prunable_block
     assert prune_res[1] == min_pruneable_block
     net_utils.flush_ip_tables(hermes_docker_utils.concord_containers[3])
+
+
+@describe()
+def test_and_verify_pruning(fxProduct, fxHermesRunSettings):
+    get_val_res = _execute_getValue_for_ts(concord_id=3)
+    assert "Failed to execute command [getValue]" not in get_val_res
+    latest_ts_block_id = get_val_res["blockVersion"]
+    if not latest_ts_block_id.isdigit():
+        assert False
+    time.sleep(2)
+    prune_res = _try_to_perform_an_action(_execute_prune_request, lambda _: _[0] is True)
+    assert prune_res[0] is True
+    assert prune_res[1] > int(latest_ts_block_id)
+    error_response = _execute_getValue_for_ts(concord_id=2, block_version=latest_ts_block_id)
+    assert "Failed to execute command [getValue]" in error_response

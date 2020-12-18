@@ -18,6 +18,12 @@
     dockerComposeFiles: '${PERSEPHONE_COMPOSE}'
     runWithGenericTests: false
     testModule: 'suites/persephone_tests_new.py'
+- PruningTests:
+    enabled: true
+    runAlone: true
+    dockerComposeFiles: '${COMPOSE_PREFIX}-daml-nano.yml ${COMPOSE_PREFIX}-operator.yml'
+    concordConfigurationInput: '/concord/config/dockerConfigurationInput-pruning.yaml'
+    testModule: 'suites/pruning_tests.py'
 - ReconfigurationTests:
     enabled: true
     runAlone: true
