@@ -129,6 +129,11 @@ public class DeployerServiceImpl implements DeployerService {
                         ReconfigurationDescriptorModel.class.cast(deploymentDescriptor);
                 clone(infrastructureDescriptor, reconfigurationDescriptorModel, outputDirectoryLocation);
                 break;
+            case SCALE:
+                ReconfigurationDescriptorModel scalingDescriptorModel =
+                        ReconfigurationDescriptorModel.class.cast(deploymentDescriptor);
+                scaling(infrastructureDescriptor, scalingDescriptorModel, outputDirectoryLocation);
+                break;
             default:
                 break;
         }
@@ -257,9 +262,57 @@ public class DeployerServiceImpl implements DeployerService {
         // Process cloning
         try {
             now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            printWriter.printf("Starting deployment type: %s, at %s\n", CastorDeploymentType.RECONFIGURE, now);
+            printWriter.printf("Starting deployment type: %s, at %s\n", CastorDeploymentType.CLONE, now);
 
             cloningService.cloningHandoff(
+                    printWriter, infrastructureDescriptor, cloneBlockchainDescriptorModel, deploymentCompletionFuture);
+        } finally {
+            try {
+                CastorDeploymentStatus result =
+                        deploymentCompletionFuture.get(deploymentTimeoutMinutes, TimeUnit.MINUTES);
+                log.info("Deployment completed with status: {}", result);
+                now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                printWriter.printf("Cloning request submitted at %s with status %s\n", now, result);
+            } catch (InterruptedException e) {
+                log.error("Deployment failure. Cloning was interrupted", e);
+            } catch (ExecutionException e) {
+                log.error("Deployment failure. Cloning encountered an error", e);
+            } catch (TimeoutException e) {
+                log.error("Deployment failure: timed out in {} minutes", deploymentTimeoutMinutes, e);
+            }
+            printWriter.close();
+        }
+    }
+
+    private void scaling(
+            InfrastructureDescriptorModel infrastructureDescriptor,
+            ReconfigurationDescriptorModel cloneBlockchainDescriptorModel,
+            String outputDirectoryLocation) {
+
+        String consortiumName = cloneBlockchainDescriptorModel.getBlockchain().getConsortiumName();
+        String now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        String outputFileName = consortiumName + "_" + now;
+        Path outputFilePath = Paths.get(outputDirectoryLocation, outputFileName);
+        String fullOutputFileName = outputFilePath.toString();
+
+        FileOutputStream fos;
+        try {
+            fos = new FileOutputStream(fullOutputFileName, true);
+        } catch (IOException e) {
+            log.error("Could not open file for writing: {}", outputDirectoryLocation);
+            return;
+        }
+        PrintWriter printWriter = new PrintWriter(fos, true);
+
+        CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture = new CompletableFuture<>();
+        long deploymentTimeoutMinutes = environment.getProperty(DEPLOYMENT_TIMEOUT_MINUTES_KEY, Long.class, 30L);
+
+        // Process cloning
+        try {
+            now = Instant.now().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            printWriter.printf("Starting deployment type: %s, at %s\n", CastorDeploymentType.SCALE, now);
+
+            cloningService.scalingHandoff(
                     printWriter, infrastructureDescriptor, cloneBlockchainDescriptorModel, deploymentCompletionFuture);
         } finally {
             try {

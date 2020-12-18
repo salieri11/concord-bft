@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Deployment Descriptor for cloning.
@@ -28,7 +29,7 @@ public class ReconfigurationDescriptorModel implements DeploymentDescriptorModel
     // These MUST match the zone name in the Infrastructure descriptor.
     @NotEmpty(message = "deployment.replicas.not.specified")
     @Valid
-    private List<Replica> replicas;
+    private List<PopulatedReplica> populatedReplicas;
 
     @Valid
     private NodeSpecification replicaNodeSpec;
@@ -59,34 +60,53 @@ public class ReconfigurationDescriptorModel implements DeploymentDescriptorModel
      */
     @Getter
     @Setter
+    @SuperBuilder
     @EqualsAndHashCode
     public static class PopulatedClient extends Client {
+        private String nodeId;
         private String damlDbPassword;
         private String clientGroupId;
-
-        /**
-         * Override builder for inheritance.
-         */
-        @Builder
-        public PopulatedClient(String damlDbPassword, String clientGroupId,
-                               String zoneName, String authUrlJwt, String providedIp, String groupName,
-                               TlsLedgerData tlsLedgerData) {
-            super(zoneName, authUrlJwt, providedIp, groupName, tlsLedgerData);
-            this.damlDbPassword = damlDbPassword;
-            this.clientGroupId = clientGroupId;
-        }
-
-        /**
-         * Builder class. Do NOT Delete this. Compilation will fail even if Intellij says so.
-         */
-        public static class PopulatedClientBuilder extends ClientBuilder {
-            PopulatedClientBuilder() {
-                super();
-            }
-        }
     }
 
+    /**
+     * Required replicas.
+     */
+    @Getter
+    @Setter
+    @SuperBuilder
+    @EqualsAndHashCode
+    public static class PopulatedReplica extends Replica {
+        private String nodeId;
+    }
+
+    /**
+     * Required read only replicas.
+     */
+    @Getter
+    @Setter
+    @SuperBuilder
+    @EqualsAndHashCode
+    public static class PopulatedReadOnlyReplica extends ReadonlyReplica {
+        private String nodeId;
+    }
+
+    /**
+     * Get replica info.
+     */
+    public List<Replica> getReplicas() {
+        if (populatedReplicas == null) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(populatedReplicas);
+    }
+
+    /**
+     * Get clients info.
+     */
     public List<Client> getClients() {
+        if (populatedClients == null) {
+            return new ArrayList<>();
+        }
         return new ArrayList<>(populatedClients);
     }
 }

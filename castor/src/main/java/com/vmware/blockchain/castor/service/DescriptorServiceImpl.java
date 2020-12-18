@@ -49,6 +49,7 @@ public class DescriptorServiceImpl implements DescriptorService {
         typeToDeploymentDescriptorMap.put(CastorDeploymentType.PROVISION, ProvisionDescriptorDescriptorModel.class);
         typeToDeploymentDescriptorMap.put(CastorDeploymentType.RECONFIGURE, ReconfigurationDescriptorModel.class);
         typeToDeploymentDescriptorMap.put(CastorDeploymentType.CLONE, ReconfigurationDescriptorModel.class);
+        typeToDeploymentDescriptorMap.put(CastorDeploymentType.SCALE, ReconfigurationDescriptorModel.class);
     }
 
     /**

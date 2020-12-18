@@ -1,20 +1,24 @@
 {
-  "replicas": [
+  "populatedReplicas": [
     {
       "zoneName": "test-zone-1 - A",
-      "providedIp": "10.72.216.94"
+      "providedIp": "10.72.216.94",
+      "nodeId": "13e1cbd8-e810-49f6-aff2-f48572e0a95d"
     },
     {
       "zoneName": "test-zone-1 - A",
-      "providedIp": "10.72.216.90"
+      "providedIp": "10.72.216.90",
+      "nodeId": "23e1cbd8-e810-49f6-aff2-f48572e0a95d"
     },
     {
       "zoneName": "test-zone-1 - A",
-      "providedIp": "10.72.216.92"
+      "providedIp": "10.72.216.92",
+      "nodeId": "33e1cbd8-e810-49f6-aff2-f48572e0a95d"
     },
     {
       "zoneName": "test-zone-1 - A",
-      "providedIp": "10.72.216.91"
+      "providedIp": "10.72.216.91",
+      "nodeId": "43e1cbd8-e810-49f6-aff2-f48572e0a95d"
     }
   ],
   "populatedClients": [
@@ -23,14 +27,16 @@
       "providedIp": "10.72.216.95",
       "damlDbPassword": "pass",
       "clientGroupId" : "UUID1",
-      "groupName" : "g1"
+      "groupName" : "g1",
+      "nodeId": "53e1cbd8-e810-49f6-aff2-f48572e0a95d"
     },
     {
       "zoneName": "test-zone-1 - A",
       "providedIp": "10.72.216.93",
       "damlDbPassword": "pass",
       "clientGroupId" : "UUID2",
-      "groupName" : "g2"
+      "groupName" : "g2",
+      "nodeId": "63e1cbd8-e810-49f6-aff2-f48572e0a95d"
     }
   ],
   "blockchain": {

@@ -180,10 +180,20 @@ public class DeploymentHelper {
             Properties.Builder propBuilder = Properties.newBuilder();
             buildPropertiesForReplica(replica, replicaNodeSpec, propBuilder);
 
+            var nodeId = UUID.randomUUID().toString();
+            if (replica instanceof ReconfigurationDescriptorModel.PopulatedReplica) {
+                ReconfigurationDescriptorModel.PopulatedReplica popReplica =
+                        (ReconfigurationDescriptorModel.PopulatedReplica) replica;
+
+                if (!Strings.isNullOrEmpty(popReplica.getNodeId())) {
+                    nodeId = popReplica.getNodeId();
+                }
+            }
+
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder()
                             .setType(NodeType.REPLICA)
-                            .setNodeId(UUID.randomUUID().toString())
+                            .setNodeId(nodeId)
                             .setSite(OrchestrationSiteIdentifier.newBuilder().setId(replica.getZoneName()).build())
                             .setProperties(propBuilder)
             );
@@ -216,11 +226,21 @@ public class DeploymentHelper {
             propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_SECRET_KEY.name(), readonlyReplica.getSecretKey());
             propBuilder.putValues(NodeProperty.Name.OBJECT_STORE_URL.name(), readonlyReplica.getUrl());
 
+            var nodeId = UUID.randomUUID().toString();
+            if (readonlyReplica instanceof ReconfigurationDescriptorModel.PopulatedReadOnlyReplica) {
+                ReconfigurationDescriptorModel.PopulatedReadOnlyReplica popReadonlyReplica =
+                        (ReconfigurationDescriptorModel.PopulatedReadOnlyReplica) readonlyReplica;
+
+                if (!Strings.isNullOrEmpty(popReadonlyReplica.getNodeId())) {
+                    nodeId = popReadonlyReplica.getNodeId();
+                }
+            }
+
             // This node is of type read-replica
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder()
                             .setType(NodeType.READ_REPLICA)
-                            .setNodeId(UUID.randomUUID().toString())
+                            .setNodeId(nodeId)
                             .setSite(OrchestrationSiteIdentifier.newBuilder()
                                              .setId(readonlyReplica.getZoneName()).build())
                             .setProperties(propBuilder)
@@ -279,17 +299,20 @@ public class DeploymentHelper {
                             DeploymentDescriptorModel.TlsLedgerData.ClientAuth.REQUIRE.toString());
                 }
             }
-
+            var nodeId = UUID.randomUUID().toString();
             if (client instanceof ReconfigurationDescriptorModel.PopulatedClient) {
                 ReconfigurationDescriptorModel.PopulatedClient popClient =
                                                                 (ReconfigurationDescriptorModel.PopulatedClient) client;
                 propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_ID.name(), popClient.getClientGroupId());
-                if (deploymentDescriptorModel.getBlockchain().getBlockchainType()
-                                                                        == DeploymentDescriptorModel.BlockchainType.DAML
-                    && StringUtils.hasText(popClient.getDamlDbPassword())) {
-                    propBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), popClient.getDamlDbPassword());
+                propBuilder.putValues(NodeProperty.Name.DAML_DB_PASSWORD.name(), popClient.getDamlDbPassword());
+
+                if (!Strings.isNullOrEmpty(client.getGroupName())) {
+                    propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), client.getGroupName());
                 }
-                propBuilder.putValues(NodeProperty.Name.CLIENT_GROUP_NAME.name(), client.getGroupName());
+
+                if (!Strings.isNullOrEmpty(popClient.getNodeId())) {
+                    nodeId = popClient.getNodeId();
+                }
             } else {
                 // Process client group and add group properties.
                 String groupId;
@@ -309,7 +332,7 @@ public class DeploymentHelper {
 
             nodeAssignmentBuilder.addEntries(
                     NodeAssignment.Entry.newBuilder().setType(NodeType.CLIENT)
-                            .setNodeId(UUID.randomUUID().toString())
+                            .setNodeId(nodeId)
                             .setSite(OrchestrationSiteIdentifier.newBuilder().setId(client.getZoneName()).build())
                             .setProperties(propBuilder)
             );

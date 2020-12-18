@@ -10,12 +10,11 @@ import javax.validation.constraints.NotBlank;
 
 import com.vmware.blockchain.castor.service.LedgerTlsClientAuthValid;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 
 /**
  * The interface that defines contracts for the provision, deprovision, and reconfigure models.
@@ -27,10 +26,8 @@ public interface ClientDescriptorModel {
      */
     @Getter
     @Setter
-    @Builder
+    @SuperBuilder
     @EqualsAndHashCode
-    @AllArgsConstructor
-    @NoArgsConstructor
     public static class Client {
         // This MUST match the zone name in the Infrastructure descriptor.
         @NotBlank(message = "deployment.client.zone.invalid")
