@@ -23,6 +23,7 @@ DEFAULT_ARRIVAL_RATE = "1"
 DEFAULT_OPERATION = "TradesAtFixedRate"
 DEFAULT_UNIT = "seconds"
 DEFAULT_DURATION = "600"
+DEFAULT_MAX_DURATION = "1200"
 chess_plus_run_timeout = {
    DEFAULT_MARKET_FLAVOR: DEFAULT_TEST_TIMEOUT,
    "nfr": "432000"
@@ -76,6 +77,7 @@ def run_chess_plus(args, participant_ip):
       "--resultsDir", args.resultsDir,
       "--chessplusTradesArrivalRate", args.chessplusTradesArrivalRate,
       "--chessplusRunDuration", args.chessplusRunDuration,
+      "--chessplusRunMaxDuration", args.chessplusRunMaxDuration,
       "--chessplusTimeUnits", args.chessplusTimeUnits,
       "--chessplusOperation", args.chessplusOperation,
       "--logLevel", str(args.logLevel)

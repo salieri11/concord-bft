@@ -506,6 +506,8 @@ def pytest_addoption(parser):
                      help="Number of fixed trades per second")
     parser.addoption("--chessplusRunDuration", default=chessplus_helper.DEFAULT_DURATION,
                      help="Duration for running simulation")
+    parser.addoption("--chessplusRunMaxDuration", default=chessplus_helper.DEFAULT_MAX_DURATION,
+                        help="Max duration for running simulation")
     parser.addoption("--chessplusTimeUnits", default=chessplus_helper.DEFAULT_UNIT,
                      help="Time unit for running simulations")
     parser.addoption("--chessplusOperation", default=chessplus_helper.DEFAULT_OPERATION,
