@@ -721,6 +721,18 @@ def pytest_addoption(parser):
                         help="The user who ALM will be told is doing this test run.  Defaults to logged in user.",
                         default="")
 
+    # Blockbench specification file. .json file that is used as payload for start API
+    parser.addoption('--blockbenchSpec', help='Path to a .json file. Copy hermes/resources/blockbench_start.json'
+                                               ' and update the values', dest='blockbench_spec')
+    parser.addoption('--blockbenchOperation',
+                               help='Choose the action  - Run the test till completion'
+                                    ' or just start or just get progress',
+                               default='run', choices=['run', 'start', 'getprogress'],
+                               dest='blockbench_operation')
+    # Required for blockbench
+    parser.addoption('--blockbenchRepoPath', help='Path to block-bench Git repo',
+                                              dest='blockbench_repo_path')
+
 
 def _get_suite_short_name(module_name):
     '''

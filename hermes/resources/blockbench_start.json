@@ -1,0 +1,35 @@
+{
+  "name": "abcd",
+  "description": "string",
+  "dappPlan": {
+    "dapp": "IOU",
+    "hopCount": 1,
+    "extras": {
+  
+    },
+    "uploadDar": true
+  },
+  "workloadModel": "CLOSE",
+  "phasePlans": [
+    {
+      "workloadCount": 100,
+      "workloadTimeoutSec": 30,
+      "loadFactor": 2
+    }
+  ],
+  "scaleFactor": 0,
+  "participants": [
+    {
+      "ledger": {
+        "host": "localhost",
+        "port": 6865
+      },
+      "party": {
+        "owner": "Elis",
+        "newOwner": "Bob"
+      },
+      "connections": 1
+    }
+  ],
+  "tlsId": 0
+}
