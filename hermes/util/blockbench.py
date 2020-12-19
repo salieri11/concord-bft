@@ -269,14 +269,13 @@ def prepare_for_blockbench_test(repo_path):
         service_url = 'http://localhost:{}'.format(port)
         return service_url
     log.info('Loadgen Not running, Starting')
-    # blockbench_repo_folder = get_blockbench_repo_path()
     log.info('Blockbench repo folder - {}'.format(repo_path))
     # Need to be done once initially, but ok to do subsequently
     # This is failing intermittently. Won't stop the test.
     try:
         start_influxdb(repo_path)
     except Exception as e:
-        log.info('Influxdb did not start, Exception - {}'.format(e))
+        log.warning('Influxdb did not start, Exception - {}'.format(e))
     start_loadgen(repo_path)
     port = get_loadgen_port()
     service_url = 'http://localhost:{}'.format(port)
@@ -330,7 +329,6 @@ def blockbench_main(args, ledger_api_hosts):
             # Start and finish
             result, completion_percentage = run_blockbench(bc_obj, start_data)
             log.info('Blockbench Completion Percentage - {}'.format(completion_percentage))
-    if result:
-        stop_loadgen(repo_path)
+    stop_loadgen(repo_path)
     return result
 
