@@ -122,6 +122,12 @@ ConcordCommandsHandler::ConcordCommandsHandler(
               {{"item", "pre_processing_write_kv_set_size_summary"},
                {"layer", "ConcordCommandsHandler"}},
               {{0.25, 0.1}, {0.5, 0.1}, {0.75, 0.1}, {0.9, 0.1}})},
+      post_execution_conflicts_detection_duration_ms{
+          prometheus_registry->createHistogram(
+              command_handler_histograms_,
+              {{"item", "post_execution_conflicts_detection_duration_ms"},
+               {"layer", "ConcordCommandsHandler"}},
+              {10, 20, 40, 80, 160, 320, 480, 640, 960, 1280})},
       appender_(appender) {
   if (concord::time::IsTimeServiceEnabled(config)) {
     if (time_contract) {
@@ -133,7 +139,7 @@ ConcordCommandsHandler::ConcordCommandsHandler(
 
   auto &replicaConfig = node_config.subscope("replica", 0);
   replica_id_ = replicaConfig.getValue<uint16_t>("principal_id");
-  enable_histograms_or_summaries =
+  enable_histograms_or_summaries_ =
       node_config.hasValue<bool>("enable_histograms_or_summaries")
           ? node_config.getValue<bool>("enable_histograms_or_summaries")
           : true;
@@ -386,17 +392,12 @@ int ConcordCommandsHandler::execute(uint16_t client_id, uint64_t sequence_num,
     execute_span->SetTag(concord::utils::kRequestSizeTag, request_size);
 
     UpdateTime(*execute_span, request, read_only, client_id);
-    std::chrono::steady_clock::time_point execute_transaction_start_time;
-    if (enable_histograms_or_summaries && pre_execute && !has_pre_executed) {
-      execute_transaction_start_time = std::chrono::steady_clock::now();
-    }
+    MsSumRecorder time_recorder(
+        pre_execution_duration_ms_summary_,
+        enable_histograms_or_summaries_ && pre_execute && !has_pre_executed);
     result = Execute(request, request_context, flags, time_.get(),
                      *execute_span, response);
-    if (enable_histograms_or_summaries && pre_execute && !has_pre_executed) {
-      auto pre_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - execute_transaction_start_time);
-      pre_execution_duration_ms_summary_.Observe(pre_time.count());
-    }
+    time_recorder.take();
 
     if (time_ && request.has_time_request()) {
       AddTimeUpdateBlock(*execute_span, response, result, read_only);
@@ -461,6 +462,8 @@ void ConcordCommandsHandler::execute(ExecutionRequestsQueue &requests,
 bool ConcordCommandsHandler::HasPreExecutionConflicts(
     const com::vmware::concord::PreExecutionResult &pre_execution_result)
     const {
+  MsHistRecorder time_recorder(post_execution_conflicts_detection_duration_ms,
+                               enable_histograms_or_summaries_);
   const auto last_block_id = storage_.getLastBlock();
   const auto read_set = pre_execution_result.read_set();
   // E.L the concord proto will need to change to include types as well
@@ -480,18 +483,14 @@ bool ConcordCommandsHandler::HasPreExecutionConflicts(
           pre_execution_result.request_correlation_id(), kf.key(),
           out.toString());
     }
-    if (enable_histograms_or_summaries) {
-      pre_execution_read_keys_size_summary_.Observe(kf.key().length());
-      pre_execution_read_values_size_summary_.Observe(out.length());
-    }
-    if (current_block_height != read_block_height) {
-      return true;
-    }
+    updatePrometheusRecorder(pre_execution_read_keys_size_summary_,
+                             kf.key().length());
+    updatePrometheusRecorder(pre_execution_read_values_size_summary_,
+                             out.length());
+    if (current_block_height != read_block_height) return true;
   }
-  if (enable_histograms_or_summaries) {
-    pre_execution_read_kv_set_size_summary_.Observe(
-        read_set.keys_with_fingerprints_size());
-  }
+  updatePrometheusRecorder(pre_execution_read_kv_set_size_summary_,
+                           read_set.keys_with_fingerprints_size());
   return false;
 }
 
@@ -563,7 +562,8 @@ concordUtils::Status ConcordCommandsHandler::addBlock(
                     << updates.size());
       auto time_data = time_->Serialize();
       amended_updates.insert(time_data);
-      internal_kv_size_summary_.Observe(time_data.second.length());
+      updatePrometheusRecorder(internal_kv_size_summary_,
+                               time_data.second.length());
       LOG_TRACE(logger_,
                 "ConcordCommandsHandler::addBlock, time changed2, updates: "
                     << updates.size());

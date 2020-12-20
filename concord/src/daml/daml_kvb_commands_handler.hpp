@@ -70,7 +70,11 @@ class DamlKvbCommandsHandler
             {{"layer", "DamlKvbCommandsHandler"},
              {"duration", "daml_handler_duration_ms"}},
             {10, 20, 40, 80, 160, 320, 480, 640, 960, 1280})},
-
+        daml_post_exec_dur_ms_{prometheus_registry->createHistogram(
+            command_handler_histograms_,
+            {{"layer", "DamlKvbCommandsHandler"},
+             {"duration", "daml_post_exec_duaration_ms"}},
+            {10, 20, 40, 80, 160, 320, 480, 640, 960, 1280})},
         write_ops_{prometheus_registry->createCounter(
             command_handler_counters_, {{"layer", "DamlKvbCommandsHandler"},
                                         {"operation", "daml_writes"}})},
@@ -188,6 +192,7 @@ class DamlKvbCommandsHandler
   std::unique_ptr<IDamlValidatorClient> validator_client_;
   prometheus::Histogram& daml_exec_eng_dur_;
   prometheus::Histogram& daml_hdlr_exec_dur_;
+  prometheus::Histogram& daml_post_exec_dur_ms_;
   prometheus::Counter& write_ops_;
   prometheus::Counter& read_ops_;
   prometheus::Counter& failed_ops_;
