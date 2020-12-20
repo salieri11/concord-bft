@@ -157,9 +157,7 @@ DamlKvbCommandsHandler::GetFromStorage(const std::vector<std::string>& keys) {
     }
     result[skey] = std::make_pair(proto.value(), actual_block_id);
   }
-  if (enable_histograms_or_summaries) {
-    read_keys_count_.Observe(keys.size());
-  }
+  updatePrometheusRecorder(read_keys_count_, keys.size());
   return result;
 }
 
@@ -194,13 +192,15 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
                                    *execute_commit_span, read_set, updates);
 
   if (success) {
-    auto record_transaction_start = std::chrono::steady_clock::now();
+    concord::consensus::MsHistRecorder time_recorder(
+        daml_hdlr_exec_dur_, enable_histograms_or_summaries_);
+    const auto record_transaction_start = std::chrono::steady_clock::now();
     RecordTransaction(updates, current_block_id, correlation_id,
                       *execute_commit_span, concord_response);
-    auto end = std::chrono::steady_clock::now();
-    auto total_duration =
+    const auto end = std::chrono::steady_clock::now();
+    const auto total_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    auto record_transaction_duration =
+    const auto record_transaction_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(
             end - record_transaction_start);
     LOG_INFO(
@@ -211,9 +211,6 @@ bool DamlKvbCommandsHandler::ExecuteCommit(
             << record_transaction_duration.count() << ", clock: "
             << std::chrono::steady_clock::now().time_since_epoch().count());
     execution_time_.Increment((double)total_duration.count());
-    if (enable_histograms_or_summaries) {
-      daml_hdlr_exec_dur_.Observe(total_duration.count());
-    }
     return true;
   } else {
     LOG_INFO(logger_, "Failed handling DAML commit command, time: "
@@ -239,28 +236,15 @@ bool DamlKvbCommandsHandler::PreExecute(
 
   KeyTypeAndValueWithFingerprintReaderFunc storage_reader =
       [&](const auto& keys) { return ReadKeysWithType(cid, keys); };
-
-  auto start = std::chrono::steady_clock::now();
-
+  concord::consensus::MsHistRecorder time_recorder(
+      daml_exec_eng_dur_, enable_histograms_or_summaries_);
   auto pre_execution_result = concord_response.mutable_pre_execution_result();
   grpc::Status status = validator_client_->PreExecute(
       commit_request.submission(), commit_request.participant_id(),
       commit_request.correlation_id(), parent_span, storage_reader,
       pre_execution_result);
-
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::steady_clock::now() - start);
-
-  if (command_recording_enabled_) {
-    commands_recorder_.NewCommand(cid);
-    commands_recorder_.AddCommandExecutionDuration(
-        cid, std::chrono::duration_cast<std::chrono::nanoseconds>(duration));
-  }
-  if (enable_histograms_or_summaries) {
-    daml_exec_eng_dur_.Observe(duration.count());
-  }
-  LOG_INFO(logger_,
-           "DAML external PreExecute duration [" << duration.count() << "ms]");
+  auto duration = time_recorder.take();
+  LOG_INFO(logger_, "DAML external PreExecute duration [" << duration << "ms]");
   if (!status.ok()) {
     LOG_ERROR(logger_, "Pre-execution failed " << status.error_code() << ": "
                                                << status.error_message());
@@ -359,14 +343,13 @@ bool DamlKvbCommandsHandler::PostExecute(
   SetOfKeyValuePairs raw_write_set;
   GenerateWriteSetForPreExecution(pre_execution_output, record_time,
                                   raw_write_set);
-  if (enable_histograms_or_summaries) {
-    pre_execution_write_kv_set_size_summary_.Observe(raw_write_set.size());
-  }
+  updatePrometheusRecorder(pre_execution_write_kv_set_size_summary_,
+                           raw_write_set.size());
   for (auto& kv : raw_write_set) {
-    if (enable_histograms_or_summaries) {
-      pre_execution_write_keys_size_summary_.Observe(kv.first.length());
-      pre_execution_write_values_size_summary_.Observe(kv.second.length());
-    }
+    updatePrometheusRecorder(pre_execution_write_keys_size_summary_,
+                             kv.first.length());
+    updatePrometheusRecorder(pre_execution_write_values_size_summary_,
+                             kv.second.length());
     LOG_DEBUG(logger_, "PreExec_KV_metrics Key length: " << kv.first.length()
                                                          << " Value length: "
                                                          << kv.second.length());
@@ -471,9 +454,7 @@ void DamlKvbCommandsHandler::WriteSetToRawUpdates(
                            << KeyTypeToString(entry.key_type()) << " to "
                            << thin_replica_ids.size() << " thin replica IDs");
     auto value = CreateDamlKvbValue(entry.value(), thin_replica_ids);
-    if (enable_histograms_or_summaries) {
-      daml_kv_size_summary_.Observe(value.length());
-    }
+    updatePrometheusRecorder(daml_kv_size_summary_, value.length());
     updates.insert(std::make_pair(std::move(key), std::move(value)));
   }
 }
@@ -529,19 +510,13 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
     return adapted_result;
   };
 
-  auto start = std::chrono::steady_clock::now();
-
+  concord::consensus::MsHistRecorder time_recorder(
+      daml_exec_eng_dur_, enable_histograms_or_summaries_);
   std::vector<KeyValuePairWithThinReplicaIds> write_set;
   grpc::Status status = validator_client_->Validate(
       submission, record_time, participant_id, correlation_id, parent_span,
       kvb_read, &read_set, &write_set);
-
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::steady_clock::now() - start)
-                      .count();
-  if (enable_histograms_or_summaries) {
-    daml_exec_eng_dur_.Observe(duration);
-  }
+  const auto duration = time_recorder.take();
   LOG_INFO(logger_, "DAML external Validate (Pipelined) duration [" << duration
                                                                     << "ms]");
 
@@ -549,9 +524,7 @@ bool DamlKvbCommandsHandler::DoCommitPipelined(
   for (const auto& entry : write_set) {
     auto key = CreateDamlKvbKey(entry.first);
     auto value = CreateDamlKvbValue(entry.second);
-    if (enable_histograms_or_summaries) {
-      daml_kv_size_summary_.Observe(value.length());
-    }
+    updatePrometheusRecorder(daml_kv_size_summary_, value.length());
     LOG_DEBUG(logger_, "KV_metrics Key length: " << key.length()
                                                  << ", Value length: "
                                                  << value.length());
@@ -577,10 +550,8 @@ void DamlKvbCommandsHandler::RecordTransaction(
   SetOfKeyValuePairs amended_updates(updates);
   auto copied_correlation_id = correlation_id;
   auto cid_val = kvbc::Value(std::move(copied_correlation_id));
-  if (enable_histograms_or_summaries) {
-    internal_kv_size_summary_.Observe(cid_val.length());
-    written_keys_count_.Observe(updates.size());
-  }
+  updatePrometheusRecorder(internal_kv_size_summary_, cid_val.length());
+  updatePrometheusRecorder(written_keys_count_, updates.size());
   amended_updates.insert({cid_key_, std::move(cid_val)});
   BlockId new_block_id = 0;
   if (accumulate_writes) {
@@ -614,6 +585,8 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
 
   bool has_pre_executed = flags & bftEngine::MsgFlag::HAS_PRE_PROCESSED_FLAG;
   if (has_pre_executed && concord_req.has_pre_execution_result()) {
+    concord::consensus::MsHistRecorder time_recorder(
+        daml_post_exec_dur_ms_, enable_histograms_or_summaries_);
     auto pre_execution_result = concord_req.pre_execution_result();
     const std::string correlation_id =
         pre_execution_result.request_correlation_id();
@@ -623,8 +596,8 @@ bool DamlKvbCommandsHandler::ExecuteCommand(
     if (!pre_execution_result.has_read_set()) {
       LOG_WARN(logger_, "Post-execution failed due to missing read set.");
     } else if (HasPreExecutionConflicts(pre_execution_result)) {
+      time_recorder.cancel();
       LOG_INFO(logger_, "Post-execution failed due to conflicts.");
-
     } else {
       result = PostExecute(pre_execution_result, time_contract, parent_span,
                            response);

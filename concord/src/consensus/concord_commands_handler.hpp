@@ -24,7 +24,12 @@
 
 namespace concord {
 namespace consensus {
-
+typedef concord::utils::PrometheusTimeRecorder<prometheus::Histogram,
+                                               std::chrono::milliseconds>
+    MsHistRecorder;
+typedef concord::utils::PrometheusTimeRecorder<prometheus::Summary,
+                                               std::chrono::milliseconds>
+    MsSumRecorder;
 struct ConcordRequestContext {
   uint16_t client_id;
   uint64_t sequence_num;
@@ -128,10 +133,11 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   prometheus::Summary &pre_execution_write_values_size_summary_;
   prometheus::Summary &pre_execution_read_kv_set_size_summary_;
   prometheus::Summary &pre_execution_write_kv_set_size_summary_;
+  prometheus::Histogram &post_execution_conflicts_detection_duration_ms;
 
   // Collecting metrics may impact performance. We want to give the ability
   // configure whether to collect them or not.
-  bool enable_histograms_or_summaries;
+  bool enable_histograms_or_summaries_;
 
   const kvbc::Key cid_key_ = kvbc::Key(
       new decltype(storage::kKvbKeyCorrelationId)[1]{
@@ -142,6 +148,11 @@ class ConcordCommandsHandler : public concord::kvbc::ICommandsHandler,
   std::unique_ptr<concord::time::TimeContract> time_;
   kvbc::SetOfKeyValuePairs accumulatedBlock_;
   std::set<std::string> accumulatedBlockClientIds_;
+
+  template <typename T>
+  void updatePrometheusRecorder(T &recorder, double val) const {
+    if (enable_histograms_or_summaries_) recorder.Observe(val);
+  }
 
  public:
   ConcordCommandsHandler(
