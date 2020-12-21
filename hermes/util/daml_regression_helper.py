@@ -177,7 +177,7 @@ def make_daml_request(reraise, blockchain_id, client_host, no_of_txns=1, wait_ti
     url = get_daml_url(client_host)
     username, password = helper.getNodeCredentials(blockchain_id, client_host)
     if not helper.check_docker_health(client_host, username, password,
-                                      helper.TYPE_DAML_PARTICIPANT, max_timeout=5, verbose=False):
+                                      helper.TYPE_DAML_PARTICIPANT):
         log.warning("\n*** Unexpected crash ***")
         return False
 
@@ -187,7 +187,7 @@ def make_daml_request(reraise, blockchain_id, client_host, no_of_txns=1, wait_ti
     p_daml_txn = multiprocessing.Process(target=make_daml_request,
                                          args=(url, no_of_txns, wait_time))
     p_daml_txn.start()
-    count, retries, wait = 0, 10, 60
+    count, retries, wait = 0, 5, 30
     while count < retries:
         if p_daml_txn.is_alive():
             log.info("\nIs process alive for trial no {}? {}".format(count+1, p_daml_txn.is_alive()))
