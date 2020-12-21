@@ -56,5 +56,6 @@
     "HelenVMSizeTests": "vmsize_test",
     "TlsDamlTests": "hermes.suites.tls_daml_tests",
     "BackupRestoreTests": "hermes.suites.backup_restore_tests",
-    "DlrTest": "hermes.suites.dlr_test"
+    "DlrTest": "hermes.suites.dlr_test",
+    "monitor_replicas": "hermes.suites.monitor_replicas_test"
 }

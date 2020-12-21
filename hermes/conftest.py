@@ -521,6 +521,10 @@ def pytest_addoption(parser):
     parser.addoption("--runID",
                      default=helper.get_time_now_in_milliseconds(),
                      help="Unique ID to differentiate runs")
+    parser.addoption("--replicas",
+                     action='append',
+                     nargs='*',
+                     help="Repeated set of blockchain type:<comma separated list of IPs>")
     parser.addoption("--runDuration",
                      type=int,
                      default=6,
