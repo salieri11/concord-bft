@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.assertj.core.util.Strings;
+import org.slf4j.MDC;
 import org.springframework.util.StringUtils;
 
 import com.google.common.net.InetAddresses;
+import com.vmware.blockchain.deployment.common.Constants;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.ErrorCode;
 import com.vmware.blockchain.deployment.services.exception.NotFoundPersephoneException;
@@ -297,6 +299,7 @@ public class CloudInitConfiguration {
                 .setConfigService(configServiceRestEndpoint)
                 .setConfigurationSession(configGenId)
                 .setOutboundProxyInfo(outboundProxy)
+                .setOpid(MDC.get(Constants.OPID))
                 .setProperties(propBuilder);
 
         if (!Strings.isNullOrEmpty(nodeIdString)) {

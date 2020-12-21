@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.slf4j.MDC;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -29,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ProtocolStringList;
+import com.vmware.blockchain.deployment.common.Constants;
 import com.vmware.blockchain.deployment.server.Application;
 import com.vmware.blockchain.deployment.services.exception.BadRequestPersephoneException;
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
@@ -97,6 +99,7 @@ public class CloudInitConfigurationTest {
 
         cloudInitConfiguration = new CloudInitConfiguration(request, datacenterInfo, "c0nc0rd");
         cloudInitConfiguration = spy(cloudInitConfiguration);
+        MDC.put(Constants.OPID, "test-opid");
 
         doReturn(ConcordAgentConfiguration.getDefaultInstance()).when(cloudInitConfiguration).getConfiguration();
     }
