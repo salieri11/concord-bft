@@ -49,7 +49,7 @@ def validateBlockchainFields(blockchain):
     assert "created" in blockchain, "No field called created in blockchain"
     assert type(blockchain["created"]) == int, "Expecting int value for created"
 
-    assert len(blockchain.keys()) == 7, "Expecting 7 fields"
+    assert len(blockchain.keys()) == 8, "Expecting 7 fields"
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # CONTRACT VALIDATORS

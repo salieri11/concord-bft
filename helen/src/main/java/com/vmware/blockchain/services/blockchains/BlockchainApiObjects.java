@@ -9,6 +9,7 @@ import static com.vmware.blockchain.services.blockchains.Blockchain.BlockchainTy
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.validation.Valid;
@@ -123,6 +124,7 @@ public class BlockchainApiObjects {
         private String version;
         private String createdBy;
         private Date created;
+        private Map<String, String> metadata;
 
         public BlockchainGetResponse(Blockchain b) {
             this.id = b.getId();
@@ -132,6 +134,7 @@ public class BlockchainApiObjects {
             this.version = b.getBlockchainVersionString();
             this.createdBy = b.getCreateUserName();
             this.created = b.getCreated();
+            this.metadata = b.metadata;
         }
     }
 
