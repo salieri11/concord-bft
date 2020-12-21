@@ -195,29 +195,25 @@ class ConcordBftStatisticsCollector : public prometheus::Collectable {
 template <typename T, typename RESOLUTION>
 class PrometheusTimeRecorder {
  public:
-  PrometheusTimeRecorder(T& recorder, bool cancel = false,
+  PrometheusTimeRecorder(T& recorder, bool active = true,
                          std::chrono::steady_clock::time_point start_time =
                              std::chrono::steady_clock::now())
-      : recorder_(recorder), cancel_(cancel), start_time_(start_time) {}
-  void cancel() { cancel_ = true; }
+      : recorder_(recorder), active_(active), start_time_(start_time) {}
+  void cancel() { active_ = false; }
   uint64_t take(std::chrono::steady_clock::time_point stop_time =
                     std::chrono::steady_clock::now()) {
+    if (!active_) return 0;
     const auto total =
         std::chrono::duration_cast<RESOLUTION>(stop_time - start_time_).count();
     recorder_.Observe(total);
-    cancel_ = true;
+    active_ = false;
     return total;
   }
-  ~PrometheusTimeRecorder() {
-    if (!cancel_)
-      recorder_.Observe(std::chrono::duration_cast<RESOLUTION>(
-                            std::chrono::steady_clock::now() - start_time_)
-                            .count());
-  }
+  ~PrometheusTimeRecorder() { take(); }
 
  private:
   T& recorder_;
-  bool cancel_;
+  bool active_;
   std::chrono::steady_clock::time_point start_time_;
 };
 }  // namespace concord::utils
