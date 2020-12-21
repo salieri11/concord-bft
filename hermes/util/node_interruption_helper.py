@@ -17,13 +17,11 @@ if 'hermes_util' in sys.modules.keys():
    import hermes_util.hermes_logging as hermes_logging_util
    import hermes.util.helper as helper
    import hermes.util.blockchain_ops as blockchain_ops
-   import hermes.util.backup_restore_helper as backup_restore_helper
 else:
    import util.daml.daml_helper as daml_helper
    import util.hermes_logging as hermes_logging_util
    import util.helper as helper
    import util.blockchain_ops as blockchain_ops
-   import util.backup_restore_helper as backup_restore_helper
 
 log = hermes_logging_util.getMainLogger()
 interrupted_nodes = []
@@ -763,7 +761,7 @@ def sleep_and_check(blockchain_id, init_sleep_time, step, max_sleep_time, start_
                start_block, end_block))
 
             for ip in replica_ips:                  
-               block_data.append(backup_restore_helper.get_raw_block_range(blockchain_id, ip, start_block, end_block))
+               block_data.append(helper.get_raw_block_range(blockchain_id, ip, start_block, end_block))
             
             if all(i == block_data[0] for i in block_data):
                log.info("Block data is same")

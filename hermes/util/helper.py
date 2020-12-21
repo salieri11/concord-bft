@@ -2661,3 +2661,99 @@ def get_blockchain_summary_path():
    '''
    suite_log_dir = os.path.dirname(CURRENT_SUITE_LOG_FILE)
    return os.path.join(suite_log_dir, DEPLOYED_BLOCKCHAIN_FILE)
+
+
+def get_raw_block_range(blockchain_id, node, start_block, end_block):
+   '''
+   Function to get raw block data for a range of block ids.
+   Args:
+      blockchain_id: Blockchain id
+      node: Node to read from.
+      start_block: ID of first block in the range
+      end_block: ID of final block + 1 (not included in results)
+   Returns:
+      Dictionary mapping block ID to hex encoded raw data
+   '''
+   log.info('Getting raw block range for {}'.format(node))
+   assert node_start_stop(blockchain_id, node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+
+   version = get_product_version(blockchain_id, node)
+   if not version:
+      log.error('Unable to get product version')
+      return False
+
+   cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
+   docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
+               'target=/concord/rocksdbdata $image:{} /concord/sparse_merkle_db_editor ' \
+               '/concord/rocksdbdata getRawBlockRange {} {}'.format(version, start_block, end_block)
+   username, password = getNodeCredentials(blockchain_id, node)
+   status_post_action = ssh_connect(node, username=username, password=password,
+                                          command=(cmd + docker_cmd))
+
+   if 'NotFoundException' in status_post_action:
+      log.info("No results returned for block range {} to {}".format(start_block, end_block))
+      return False
+
+   '''
+   Output is in the following format, where <num> is block id like '100'
+   and <data> is hex-encoded binary raw data like '123456abcdef':
+   {
+   "rawBlock<num>": "0x<data>",
+   "rawBlock<num>": "0x<data>",
+   ...
+   }
+   '''
+   output = json.loads(status_post_action)
+   key_start = 'rawBlock'
+   key_len = len(key_start)
+   result = {}
+   for key, val in output.items():
+      assert key.startswith(key_start) and val.startswith('0x'), "Unexpected block data: {}:{}".format(key, val)
+      result[key[key_len:]] = val[2:]
+
+   assert node_start_stop(blockchain_id, node, START_NODE), 'Failed to Start Node {}'.format(node)
+   return result
+
+
+def node_start_stop(blockchain_id, node, action):
+   '''
+   Function to start/stop all components except node-agent of participant or replica.
+   Args:
+      blockchain_id: Blockchain id
+      node: Node to start/stop.
+      action: Either to start or stop node.
+   Returns:
+      True when the desired action is completed.
+      False when fails perform the desired action.
+   '''
+   log.debug("{} containers on {}".format(action.upper(), node))
+
+   cmd = "curl -X POST 127.0.0.1:8546/api/node/management?action={}".format(action)
+   username, password = getNodeCredentials(blockchain_id, node)
+   status_post_action = ssh_connect(node, username=username, password=password, command=cmd)
+
+   if status_post_action is None or 'Failed' in status_post_action or 'Connection refused' in status_post_action:
+      log.error('Unable to {} containers.\nResponse {}'.format(action, status_post_action))
+      return False
+
+   log.debug("{} on {} completed".format(action.upper(), node))
+   return True
+
+
+def get_product_version(blockchain_id, node):
+   '''
+   Function to get product version on node.
+   Args:
+      blockchain_id: Blockchain id
+      node: Node to check backup.
+   Returns:
+      Version in '0.0.0.0000' format.
+      False when unable to get version.
+   '''
+   cmd = 'docker inspect concord | grep "com.vmware.blockchain.version"'
+   username, password = getNodeCredentials(blockchain_id, node)
+   status_post_action = ssh_connect(node, username, password, cmd)
+   if status_post_action is None or status_post_action is '':
+      log.error('Unable get the product version')
+      return False
+   return status_post_action.split(": ")[1].rstrip("\n").rstrip("\r").replace('"', '')
