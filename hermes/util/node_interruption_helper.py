@@ -17,11 +17,13 @@ if 'hermes_util' in sys.modules.keys():
    import hermes_util.hermes_logging as hermes_logging_util
    import hermes.util.helper as helper
    import hermes.util.blockchain_ops as blockchain_ops
+   import hermes.util.backup_restore_helper as backup_restore_helper
 else:
    import util.daml.daml_helper as daml_helper
    import util.hermes_logging as hermes_logging_util
    import util.helper as helper
    import util.blockchain_ops as blockchain_ops
+   import util.backup_restore_helper as backup_restore_helper
 
 log = hermes_logging_util.getMainLogger()
 interrupted_nodes = []
@@ -755,62 +757,23 @@ def sleep_and_check(blockchain_id, init_sleep_time, step, max_sleep_time, start_
             log.info("Waiting for State Transfer to finish, estimated time {0} seconds".format(
                 init_sleep_time))
             time.sleep(init_sleep_time)
-            res = check_replica_block_data(blockchain_id, start_block, end_block, replica_ips)
+
+            block_data = []
+            log.info("Checking data from {} to {}".format(
+               start_block, end_block))
+
+            for ip in replica_ips:                  
+               block_data.append(backup_restore_helper.get_raw_block_range(blockchain_id, ip, start_block, end_block))
+            
+            if all(i == block_data[0] for i in block_data):
+               log.info("Block data is same")
+               res = True
+            else:
+               log.info("Block data is not same")
+               res = False
+
             total_sleep_time += init_sleep_time
             init_sleep_time = step
         return res
     except Exception as excp:
         return excp
-
-
-def check_replica_block_data(blockchain_id, start_block, end_block, replica_ips):
-   '''
-   Function to check the data in data blocks of replica_ips are same
-   Args:
-      blockchain_id: Blockchain Id
-      start_block: First block from which block data have to be checked
-      end_block: Last block to which block data have to be checked
-      replica_ips: List of replicas ip to be checked for data
-   Returns:
-      bool: True if the all the data blocks of replica_ips are having same data, False otherwise
-   '''
-   block_data = []
-   block_data_length = []
-   log.info("Checking data from {} to {}".format(
-      start_block, end_block))
-   tool_path = "/concord/conc_rocksdb_adp"
-   path_param = "-path=/concord/rocksdbdata"
-   op_param = "-op=getDigest"
-   
-   try:
-      for ip in replica_ips:
-         username, password = helper.getNodeCredentials(blockchain_id, ip)
-         p_param = "-p={0}:{1}".format(start_block,end_block)
-         cmd = ' '.join([tool_path, path_param, op_param, p_param])
-         # Docker command for getting block_data_output
-         container = 'concord'
-         final_cmd = 'docker exec {0} {1}'.format(container, cmd)
-         block_data_output = helper.ssh_connect(
-               ip, username, password, final_cmd)
-         if not "Total size" in str(block_data_output):
-            log.info("Block data not found for : {}. Starting it.".format(ip))
-            start_container(blockchain_id, ip, container, 60)
-            return False
-         else:
-            block_data.append(str(block_data_output).split("-------", 1)[1])
-            length = int(str(block_data_output).split("Total size :")[
-                            1].replace("\\n", "").replace("'", ""))
-         log.info("Data length from replica {0} is {1} bytes".format(ip, length))
-         block_data_length.append(length)
-      if all(i == block_data_length[0] for i in block_data_length):
-         log.info("Block length is same")
-         if all(i == block_data[0] for i in block_data):
-            log.info("Block data is same")
-            return True
-         log.info("Block data is not same")
-         return False
-      else:
-         log.info("Block length is not same")
-         return False
-   except Exception as excp:
-      return excp
