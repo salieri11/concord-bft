@@ -70,4 +70,44 @@ public class CloningServiceImpl implements CloningService {
             deploymentCompletionFuture.complete(CastorDeploymentStatus.SUCCESS);
         }
     }
+
+    @Override
+    public void scalingHandoff(
+            PrintWriter printWriter,
+            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            ReconfigurationDescriptorModel reconfigurationDescriptorModel,
+            CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture) {
+
+        DeploymentRequest cloningRequest = DeploymentHelper.constructDeploymentRequest(
+                infrastructureDescriptorModel, reconfigurationDescriptorModel);
+
+        // Additionally, the reconfigure request must be provided a blockchain ID from a previous
+        // PROVISION deployment.
+        UUID blockchainId = reconfigurationDescriptorModel.getBlockchain().getBlockchainId();
+        DeploymentSpec originalSpec = cloningRequest.getSpec();
+        var originalProps = originalSpec.getProperties();
+        var finalPros = Properties.newBuilder(originalProps)
+                .putValues(DeploymentAttributes.NO_LAUNCH.name(), "True")
+                .putValues(DeploymentAttributes.SKIP_CONFIG_SERVICE.name(), "True");
+        DeploymentSpec.Builder newSpec =
+                DeploymentSpec.newBuilder(originalSpec)
+                        .setBlockchainId(blockchainId.toString())
+                        .setProperties(finalPros);
+
+        // Request a deployment from the provisioning service
+        String deploymentRequestId = provisionerService
+                .submitDeploymentRequest(DeploymentRequest.newBuilder(cloningRequest).setSpec(newSpec).build(),
+                                         deploymentCompletionFuture);
+        printWriter.printf("Deployment Request Id: %s\n", deploymentRequestId);
+
+        // Process callbacks from the provisioning service
+        CastorDeploymentStatus status = provisionerService.provisionAndComplete(printWriter, deploymentRequestId);
+        if (CastorDeploymentStatus.FAILURE == status) {
+            // TODO introduce auto cleanup if needed.
+            deploymentCompletionFuture.complete(CastorDeploymentStatus.FAILURE);
+        } else {
+            deploymentCompletionFuture.complete(CastorDeploymentStatus.SUCCESS);
+        }
+    }
+
 }

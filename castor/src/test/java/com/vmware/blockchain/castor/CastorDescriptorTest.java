@@ -636,17 +636,17 @@ public class CastorDescriptorTest {
         String infraLocation = infraResource.getFile().getAbsolutePath();
         InfrastructureDescriptorModel readInfra =
                 descriptorService.readInfrastructureDescriptorSpec(infraLocation);
+
+        Set<String> expectedErrorCodes = new HashSet<>();
+        expectedErrorCodes.add("not.all.ips.specified.for.deployment");
+        expectedErrorCodes.add("no.blockchain.id.for.reconfiguration");
+        expectedErrorCodes.add("not.all.node.id.specified.for.deployment");
+
         List<ValidationError> errors = validatorService.validate(
                 CastorDeploymentType.RECONFIGURE, readInfra, readInvalidDeployment);
         Set<String> validationErrorCodes = errors.stream()
                 .map(ValidationError::getErrorCode).collect(Collectors.toSet());
-
-        // The invalid reconfigure descriptor has 2 errors:
-        // (1) missing blockchain Id (2) client ip not specified for one client
-        Set<String> expectedErrorCodes = new HashSet<>();
-        expectedErrorCodes.add("not.all.ips.specified.for.deployment");
-        expectedErrorCodes.add("no.blockchain.id.for.reconfiguration");
-        assertEquals(2, validationErrorCodes.size());
+        assertEquals(3, validationErrorCodes.size());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
     }
 
@@ -694,7 +694,8 @@ public class CastorDescriptorTest {
 
         Set<String> expectedErrorCodes = new HashSet<>();
         expectedErrorCodes.add("not.all.clients.daml.db.passwords.provided");
-        assertEquals(1, validationErrorCodes.size());
+        expectedErrorCodes.add("not.all.node.id.specified.for.deployment");
+        assertEquals(2, validationErrorCodes.size());
         assertThat(validationErrorCodes, containsInAnyOrder(expectedErrorCodes.toArray()));
     }
 

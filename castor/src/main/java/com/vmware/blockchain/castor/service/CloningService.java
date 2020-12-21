@@ -28,4 +28,16 @@ public interface CloningService {
             ReconfigurationDescriptorModel reconfigurationDescriptorModel,
             CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture);
 
+    /**
+     * Reconfiguration entrypoint.
+     * @param printWriter the writer to which the reconfiguration status is logged
+     * @param infrastructureDescriptorModel the infra descriptor
+     * @param reconfigurationDescriptorModel cloning deployment descriptor
+     * @param deploymentCompletionFuture the completion future used to signal the caller about the status of the request
+     */
+    void scalingHandoff(
+            PrintWriter printWriter,
+            InfrastructureDescriptorModel infrastructureDescriptorModel,
+            ReconfigurationDescriptorModel reconfigurationDescriptorModel,
+            CompletableFuture<CastorDeploymentStatus> deploymentCompletionFuture);
 }

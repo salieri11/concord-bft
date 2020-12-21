@@ -285,6 +285,24 @@ public class ValidatorServiceImpl implements ValidatorService {
             errors.add(e);
         }
 
+        // Ensure NodeId are specified or all clients and replicas.
+        long replicaNodeIdCount = deploymentDescriptor.getPopulatedReplicas().stream().mapToInt(c -> {
+            return StringUtils.hasText(c.getNodeId()) ? 1 : 0;
+        }).sum();
+        long clientNodeIdCount = deploymentDescriptor.getPopulatedClients().stream().mapToInt(c -> {
+            return StringUtils.hasText(c.getNodeId()) ? 1 : 0;
+        }).sum();
+        long totalNodeIds = replicaNodeIdCount + clientNodeIdCount;
+
+        if (totalNodeIds != totalClientsAndReplicass) {
+            String error = "not.all.node.id.specified.for.deployment";
+            ValidationError e = ValidationError.builder()
+                    .errorCode(error)
+                    .propertyPath("nodeId")
+                    .build();
+            errors.add(e);
+        }
+
         //Ensure all or none of the client nodes have DAML DB password
         long clientDamlDbPassCount = deploymentDescriptor.getPopulatedClients().stream().mapToInt(c -> {
             return StringUtils.hasText(c.getDamlDbPassword()) ? 1 : 0;
