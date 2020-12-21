@@ -145,14 +145,13 @@ def test_pruning_with_lagging_replica(fxProduct, fxHermesRunSettings):
 
 @describe()
 def test_and_verify_pruning(fxProduct, fxHermesRunSettings):
-    get_val_res = _execute_getValue_for_ts(concord_id=3)
-    assert "Failed to execute command [getValue]" not in get_val_res
-    latest_ts_block_id = get_val_res["blockVersion"]
-    if not latest_ts_block_id.isdigit():
-        assert False
+    latest_pruneable_blocks = _try_to_perform_an_action(_get_latestPrunableBlock, lambda _: _ is not None)
+    min_pruneable_block = min(latest_pruneable_blocks.values())
     time.sleep(2)
     prune_res = _try_to_perform_an_action(_execute_prune_request, lambda _: _[0] is True)
     assert prune_res[0] is True
-    assert prune_res[1] > int(latest_ts_block_id)
-    error_response = _execute_getValue_for_ts(concord_id=2, block_version=latest_ts_block_id)
+    assert prune_res[1] >= int(min_pruneable_block)
+    # We prune until the very last block. For sure this block contains the former min_pruneable_block because the pruning
+    # request is self is contained in another pre-prepare (and block)
+    error_response = _execute_getValue_for_ts(concord_id=2, block_version=min_pruneable_block)
     assert "Failed to execute command [getValue]" in error_response
