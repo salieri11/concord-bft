@@ -6,9 +6,9 @@ We want to be able to track which events are [causally related](https://scattere
 and produce causal ordered logs,
 which will help us to get a view from above on the entire system and not only from a replica point of view.
 
-##Libraries
+## Libraries
 
-###Click
+### Click
 
 We decided to build our command-line applications with Click.
 Click is a Python package for creating command-line interfaces in a composable way.
@@ -25,21 +25,21 @@ Commands are created with a click.command() decorator. Values are passed via opt
 Options are added with the click.option() decorator, arguments with the click.argument().
 Values in options follow the name of the option while arguments are taken positionally.
 
-###tqmd
+### tqmd
 
 Instantly make your loops show a smart progress meter by wrapping any iterable.
 A text progress bar used to display the progress of a long-running operation,
 in our case parsing large log files,
 providing a visual cue that processing is underway.
 
-##Commands
+## Commands
 CLI parse each protocol in our system separately, hence implements a dedicated parser for each case.
 
-For more information about the tool commands
+For information about the tool commands:
 
 `cli --help`
 
-For information about specific command
+For information about specific command:
 
 `cli <name_of_the_command> --help`
 
@@ -58,8 +58,21 @@ CLI includes the following parsers:
 
   `cli daml_parser <daml_log_file> exceeded-threshold --thld <threshold>`
 
+**State Transfer parser** - This parser parses State Transfer logs in a causal order. The parser requires two obligatory arguments and one optional:
+1. in_path = <some_path> A path to the location of the logs.
+2. out_path = <some_path> A path to the location where the output will be generated.
+3. --is_deploy=<true/false> -  A flag that tells the parser which kind of log format will be parsed. Deployment or local format. (Optional: default value deploy=true)
 
-##Installation
+- The following command will causal order State Transfer logs with deployment format.
+
+  `cli st_parser <in_path> <out_path>`
+
+- The following command will causal order State Transfer logs with local run format.
+
+  `cli st_parser <in_path> <out_path> --is_deploy=false`
+
+
+## Installation
 CLI tool comes with setup.py file, which allows us to install it easily.
 
 Run the following commands in your console:
@@ -74,3 +87,7 @@ You would use this when trying to install a package locally, most often in the c
 It will just link the package to the original location,
 meaning any changes to the original package would reflect directly in your environment.
 Thus, prevent the dev from re-installing the tool after every change in the source.
+
+## Notes
+- The causal order parser will generate a summary of the events detected in the logs. Parsing different logging levels logs might produce a summary with missing information.
+- Although adding new parameters to the logs won't break the parser, changing or removing columns will.
