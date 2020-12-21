@@ -10,6 +10,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.MDC;
+
 import com.vmware.blockchain.deployment.services.exception.PersephoneException;
 import com.vmware.blockchain.deployment.services.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.services.orchestration.OrchestratorData;
@@ -40,6 +42,7 @@ public class NetworkHelper {
             NodeAssignment nodes,
             Map<OrchestrationSiteIdentifier, Orchestrator> sessionOrchestrators,
             ConcurrentHashMap.KeySetView<DeployedResource, Boolean> results) throws PersephoneException {
+        Map<String, String> mdc = MDC.getCopyOfContextMap();
         var privateNetworkAddressMap =
                 new ConcurrentHashMap<UUID, DeploymentExecutionContext.LocalNodeDetails>();
         var networkAddressPromises = nodes.getEntriesList().stream()
@@ -52,6 +55,7 @@ public class NetworkHelper {
                             false);
                     return CompletableFuture
                             .runAsync(() -> {
+                                MDC.setContextMap(mdc);
                                 var eventInfo = orchestrator.createPrivateNetworkAddress(addressRequest);
                                 var createdEvent = (OrchestratorData.NetworkResourceEventCreated) eventInfo;
                                 DeployedResource deployedResource = DeployedResource.newBuilder()
