@@ -1704,7 +1704,9 @@ def get_node_id_type(req_obj, blockchain_id, node_ip):
     Fetch the Node Id and Type using Blockchain Id and Node IP
     '''
     # First check in list of replicas, if not found, check in participants.
+    log.info("blockchain_id to fetch replicas:::::{}".format(blockchain_id))
     replicas = req_obj.getReplicas(blockchain_id)
+    log.info("replicas:::::{}".format(replicas))
     node_type, node_id = None, None
     node_found = [r["id"] for r in replicas if r["public_ip"] == node_ip or r["private_ip"] == node_ip]
     if node_found:
