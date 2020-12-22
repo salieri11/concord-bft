@@ -252,11 +252,11 @@
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
     baseCommand: '"${python}" -m pytest suites/ui_e2e_deploy_daml.py'
     testModule: 'suites/ui_e2e_deploy_daml.py'
-- HelenDeployEthereumToSDDC:
-    enabled: true
-    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
-    baseCommand: '${MAIN_PYTEST} suites/eth_core_vm_tests.py --blockchainLocation sddc --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
-    testModule: 'suites/eth_core_vm_tests.py'
+#- HelenDeployEthereumToSDDC:
+#    enabled: true
+#    dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
+#    baseCommand: '${MAIN_PYTEST} suites/eth_core_vm_tests.py --blockchainLocation sddc --tests="-k vmArithmeticTest/add0.json" --suitesRealname HelenDeployEthereumToSDDC'
+#    testModule: 'suites/eth_core_vm_tests.py'
 - HelenDeployDAMLToSDDC:
     enabled: true
     dockerComposeFiles: '${PERSEPHONE_DOCKER_COMPOSE}'
