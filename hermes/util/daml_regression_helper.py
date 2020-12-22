@@ -26,6 +26,7 @@ PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node "
 CHECKPOINT_ERROR_MESSAGE = "Failed to trigger new checkpoint"
 DAML_ATTEMPTS = 2
 
+
 def format_hosts_structure(all_replicas):
     '''
     Currently the structure of replicas is different when blockchain is deployed 
@@ -175,29 +176,29 @@ def make_daml_request(reraise, blockchain_id, client_host, no_of_txns=1, wait_ti
     log.info("\n*** Submit daml transaction(s) ***")
     url = get_daml_url(client_host)
     username, password = helper.getNodeCredentials(blockchain_id, client_host)
-
-    if not helper.check_docker_health(client_host, username, password,\
-         helper.TYPE_DAML_PARTICIPANT, max_timeout=5, verbose=False):
+    if not helper.check_docker_health(client_host, username, password,
+                                      helper.TYPE_DAML_PARTICIPANT):
         log.warning("\n*** Unexpected crash ***")
         return False
 
     def make_daml_request(url, no_of_txns, wait_time):
         simple_request(url, no_of_txns, wait_time)
-
+    log.info("\nStarting call to make_daml_request for url {}".format(url))
     p_daml_txn = multiprocessing.Process(target=make_daml_request,
                                          args=(url, no_of_txns, wait_time))
     p_daml_txn.start()
-    sleep_time = wait_time * 60 + 30
-    time.sleep(sleep_time)
-    log.debug("\nIs process alive? {}".format(p_daml_txn.is_alive()))
-    if p_daml_txn.is_alive():
-        time.sleep(20)
+    count, retries, wait = 0, 5, 30
+    while count < retries:
         if p_daml_txn.is_alive():
-            reraise()
-            p_daml_txn.terminate()
-            return False
+            log.info("\nIs process alive for trial no {}? {}".format(count+1, p_daml_txn.is_alive()))
+            time.sleep(wait)
+            count+=1
         else:
-            return True
+            break
+    if count == retries:
+        reraise()
+        p_daml_txn.terminate()
+        return False
     else:
         return True
 
@@ -215,7 +216,8 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings, fxBlockcha
     '''
     log.info("\n**** Performing sanity check after every test ****")
     try:
-        log.debug("\nCheck if all the participant nodes are up, if not bring them up")
+        log.debug(
+            "\nCheck if all the participant nodes are up, if not bring them up")
         for client_host in fixture_tuple.client_hosts:
             # Check if client host is up
             assert interrupt_node(fxHermesRunSettings, fxBlockchain, client_host,
@@ -234,13 +236,16 @@ def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings, fxBlockcha
                 "Failed to power on committer {}".format(concord_host)
 
         cmd = "docker start daml_ledger_api; docker inspect --format {{.State.Status}} daml_ledger_api"
-        helper.ssh_parallel(fxBlockchain.blockchainId, fixture_tuple.client_hosts, cmd, verbose=False)
+        helper.ssh_parallel(fxBlockchain.blockchainId,
+                            fixture_tuple.client_hosts, cmd, verbose=False)
 
         cmd = "docker start daml_index_db; docker inspect --format {{.State.Status}} daml_index_db"
-        helper.ssh_parallel(fxBlockchain.blockchainId, fixture_tuple.client_hosts, cmd, verbose=False)
+        helper.ssh_parallel(fxBlockchain.blockchainId,
+                            fixture_tuple.client_hosts, cmd, verbose=False)
 
         cmd = "docker start concord; docker inspect --format {{.State.Status}} concord"
-        helper.ssh_parallel(fxBlockchain.blockchainId, fixture_tuple.concord_hosts, cmd, verbose=False)
+        helper.ssh_parallel(fxBlockchain.blockchainId,
+                            fixture_tuple.concord_hosts, cmd, verbose=False)
 
         log.debug("\nPerform daml transaction as final check")
         for client_host in fixture_tuple.client_hosts:
@@ -291,7 +296,8 @@ def power_on_all_participants(fxHermesRunSettings, fxBlockchain, client_hosts):
                               intr_helper.NODE_INTERRUPT_VM_STOP_START,
                               intr_helper.NODE_RECOVER), \
             PARTICIPANT_POWER_ON_ERROR_MSG + "[{}]".format(client_host)
-        log.debug("Participant no {} : {} is on".format(count + 1, client_host))
+        log.debug("Participant no {} : {} is on".format(
+            count + 1, client_host))
     log.info("\n*** Powered on all the participants ***")
 
 
@@ -361,7 +367,7 @@ def stop_for_replica_list(blockchain_id, replica_list, container_name, count):
     log.info("\n*** Stopped {} replicas ***".format(count))
 
 
-def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
+def verify_view_change(reraise, fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
     '''
     Function to verify view change happened successfully
     Args:
@@ -384,6 +390,7 @@ def verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, inter
             log.debug("View change successful")
             return True
         else:
+            reraise()
             return False
     except Exception as excp:
         assert False, excp
@@ -400,12 +407,13 @@ def trigger_checkpoint(bc_id, client_host):
     '''
     no_of_txns_for_checkpoint, wait_time, duration = 170, 0, 200
     checkpoint_before_txns = get_last_checkpoint(bc_id)
-    log.debug("Checkpoint before transactions: {}".format(checkpoint_before_txns))
-    p_daml_txn = multiprocessing.Process(target=continuous_daml_request_submission,
+    log.debug("Checkpoint before transactions: {}".format(
+        checkpoint_before_txns))
+    p_tc_daml_txn = multiprocessing.Process(target=continuous_daml_request_submission,
                                          args=(client_host, no_of_txns_for_checkpoint, wait_time, duration))
-    p_daml_txn.start()
-    p_daml_txn.join()
-    p_daml_txn.terminate()
+    p_tc_daml_txn.start()
+    p_tc_daml_txn.join()
+    p_tc_daml_txn.terminate()
     checkpoint_after_txns = get_last_checkpoint(bc_id)
     log.debug("Checkpoint after transactions: {}".format(checkpoint_after_txns))
     if checkpoint_after_txns > checkpoint_before_txns:
@@ -434,9 +442,14 @@ def get_last_checkpoint(bc_id):
     str_output = wavefront.call_wavefront_chart_api(
         metric_query, start_epoch, end_epoch, granularity="s")
     output = json.loads(str_output)
-    checkpoints_info = output["timeseries"][0]["data"]
-    if checkpoints_info:
-        last_checkpoint = checkpoints_info[-1][1]
-    else:
-        last_checkpoint = -1
+    timeseries_length = len(output["timeseries"])
+    last_checkpoint = -1
+    # Find last checkpoint in reverse loop
+    for i in range(timeseries_length-1, -1, -1):
+        if output["timeseries"][i]["data"]:
+            last_checkpoint = output["timeseries"][i]["data"][-1][1]
+            break
+        else:
+            continue
+    log.info("\nLast checkpoint is {}".format(last_checkpoint))
     return last_checkpoint

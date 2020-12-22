@@ -791,7 +791,7 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
     - Stop primary replica.
     - Start new thread to verify State transfer before view change happens.
     - After State transfer completes, stop f-1 non-primary replicas.
-    - Verify that client requests are are processed correctly.
+    - Verify that client requests are processed correctly.
     - Restart stopped replicas.
     Args:
         fxLocalSetup: Local fixture
@@ -847,15 +847,17 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
 
             # Step 8 : Start new thread for State transfer check
             que_st_check = queue.Queue()
-            thread_st_check = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6: q.put(
-                intr_helper.sleep_and_check(arg1, arg2, arg3, arg4, arg5, arg6)),
+            thread_st_check = Thread(target=lambda q, arg1, arg2, arg3, arg4, arg5, arg6, arg7: q.put(
+                intr_helper.sleep_and_check(arg1, arg2, arg3, arg4, arg5, arg6, arg7)),
                 args=(que_st_check, fxBlockchain.blockchainId, 0, 30, 420, init_block_id, p_block_id, non_primary_replicas))
             thread_st_check.start()
 
-            # Step 9 : Verify view change is successfull
-            assert dr_helper.verify_view_change(fxBlockchain, init_primary_rip, init_primary_index, [init_primary_rip]), \
+            # Step 9 : Verify view change is successful
+            assert dr_helper.verify_view_change(reraise, fxBlockchain, init_primary_rip, init_primary_index, [init_primary_rip]), \
                 "View Change did not happen successfully"
 
+            log.info("\nInside main test - view change done")
+            
             # Step 10 : Checking whether view change happened before state transfer
             if not thread_st_check.isAlive():
                 st_check_result = que_st_check.get()
@@ -882,5 +884,6 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
             assert simple_request(
                 url, 1, 0), dr_helper.PARTICIPANT_GENERIC_ERROR_MSG
 
+            log.info("*** Test is successful")
         except Exception as excp:
             assert False, excp
