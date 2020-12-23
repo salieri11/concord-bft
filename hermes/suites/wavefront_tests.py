@@ -25,7 +25,8 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxBlockchain, fxProduct)
     '''
     Function scoped fixture to enable all the test cases utilize common func.
     Args:
-        fxHermesRunSettings: Hermes command line arguments (part of conftest.py so no explicit import).
+        fxHermesRunSettings: Hermes command line arguments
+            (part of conftest.py so no explicit import).
         fxBlockchain: Blockchain fixture
         fxProduct: Product fixture
     Returns:
@@ -33,7 +34,8 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxBlockchain, fxProduct)
         concord_hosts: Concord (committer) replicas
     '''
     log.info("\n\nBlockchain fixture is {}".format(fxBlockchain))
-    client_hosts, concord_hosts = dr_helper.format_hosts_structure(fxBlockchain.replicas)
+    client_hosts, concord_hosts = \
+        helper.format_hosts_structure(fxBlockchain.replicas)
 
     local_tuple = LocalSetupFixture(
         client_hosts=client_hosts, concord_hosts=concord_hosts)

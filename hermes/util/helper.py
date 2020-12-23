@@ -28,10 +28,13 @@ import socket
 import struct
 import statistics
 import datetime
+from functools import lru_cache
 from . import numbers_strings
 from enum import Enum
 from urllib.parse import urlparse, urlunparse
 from datetime import datetime, timedelta
+from retry import retry
+from itertools import zip_longest
 if 'hermes_util' in sys.modules.keys():
    import hermes_util.auth as auth
    import hermes_util.daml.daml_helper as daml_helper
@@ -210,10 +213,16 @@ TIME_FMT_TIMEZONE = "%Y-%m-%d %H:%M:%S %Z%z"
 # Individual tag information to override deployment spec (model)
 DEPLOYMENT_PROPERTIES = {} # dict of { [container_name_key: string]: tag_value }
 
+# Start or Stop Node
+START_NODE = 'start'
+STOP_NODE = 'stop'
+
+
 # Enum class for differentiating the node type
 class NodeType(Enum):
    REPLICA = 0
    CLIENT = 1
+
 
 def copy_docker_env_file(docker_env_file=docker_env_file):
    '''
@@ -417,7 +426,7 @@ def work_around_bc_5021(output):
 
    return output
 
-
+# TODO: use retry with backoff instead of backoff using sleep
 def durable_ssh_connect(host, username, password, command, log_mode=None, verbose=True, attempts=5):
    '''
    Run ssh_connect with exponential backoff retries.
@@ -439,66 +448,88 @@ def durable_ssh_connect(host, username, password, command, log_mode=None, verbos
    raise exc
 
 
+@lru_cache(maxsize=50)
+@retry((paramiko.AuthenticationException, paramiko.SSHException, Exception), tries=3, delay=30)
+def _get_ssh_connection(host, username, password, log_mode=None, verbose=True):
+   '''
+   Cache an ssh connection for use through out the session.
+   For some reason, if unable to establish connection,
+   re-try 6 times with delay of 3s with backoff factor 2
+   e.g. try now, try after 3s, 6s, 12s 
+   '''
+   try:
+      ssh = paramiko.SSHClient()
+      ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+      ssh.connect(host, username=username, password=password)
+   except paramiko.AuthenticationException as e:
+      log.error("Authentication failed when connecting \
+         to {} with exception: {}".format(host, e))
+      raise
+   except paramiko.SSHException  as e:
+      log.error("Error in establishing SSH connection.")
+      raise
+   except Exception as e:
+      if verbose:
+         if log_mode == "WARNING":
+            log.warning("Could not connect to {}".format(host))
+         else:
+            log.error("Could not connect to {}: {}".format(host, e))
+         raise
+
+   return ssh
+
+
+@retry((EOFError, Exception), tries=3, delay=10)
 def ssh_connect(host, username, password, command, log_mode=None, verbose=True, log_response=True):
    '''
    Helper method to execute a command on a host via SSH
-   :param host: IP of the destination host
-   :param username: username for SSH connection
-   :param password: password for username
-   :param command: command, as a string, to be executed on the remote host.
-   :param log_mode: Override to log connectivity issue as a warning
-   :param log_response: Whether to log the remote command response
-   :return: Output of the command
+   If unable to execute command, re-try 3 times with delay of 10s
+   Arguments:
+      :param host: IP of the destination host
+      :param username: username for SSH connection
+      :param password: password for username
+      :param command: command, as a string, to be executed on the remote host.
+      :param log_mode: Override to log connectivity issue as a warning
+      :param log_response: Whether to log the remote command response
+   :return: Output of the intended command
    '''
    warnings.simplefilter("ignore", cryptography.utils.CryptographyDeprecationWarning)
    logging.getLogger("paramiko").setLevel(logging.WARNING)
 
    resp = None
    ssh = None
-   retry_attempt = 1
-   while retry_attempt <= 3:
-      try:
-         log.debug("SSH connect attempt {}/3".format(retry_attempt))
-         ssh = paramiko.SSHClient()
-         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-         ssh.connect(host, username=username, password=password, timeout=60)
-         ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
-                                                              get_pty=True)
-         outlines = ssh_stdout.readlines()
-         # Hack for new security hardened OVA 1.0 that adds an extra line in SSH output
-         # "/etc/bash.bashrc: line 42: TMOUT: readonly variable"
-         for i in range(len(outlines)):
-            if "TMOUT: readonly variable" in outlines[i]:
-               del outlines[i]
-               break
-         resp = ''.join(outlines)
-         if log_response:
-            log.debug(resp)
-         break
-      except paramiko.AuthenticationException as e:
-         log.error("Authentication failed when connecting to {} with exception: {}".format(host, e))
-         time.sleep(10)
-         if retry_attempt == 3:
-            raise
-      except EOFError as e:
-         if "Error reading SSH protocol banner" in str(e):
-            log.error("SSH failure, most likely due to network congestion.")
-         time.sleep(10)
-         if retry_attempt == 3:
-            raise
-      except Exception as e:
-         if verbose:
-            if log_mode == "WARNING":
-               log.warning("Could not connect to {}".format(host))
-            else:
-               log.error("Could not connect to {}: {}".format(host, e))
-         if retry_attempt == 3:
-            raise
-      finally:
-         if ssh:
-            ssh.close()
-         retry_attempt += 1
-
+   try:
+      ssh = _get_ssh_connection(host, username, password)
+      ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
+                                                            get_pty=True)
+      outlines = ssh_stdout.readlines()
+      # Hack for new security hardened OVA 1.0 that adds an extra line in SSH output
+      # "/etc/bash.bashrc: line 42: TMOUT: readonly variable"
+      for i in range(len(outlines)):
+         if "TMOUT: readonly variable" in outlines[i]:
+            del outlines[i]
+            break
+      resp = ''.join(outlines)
+      if log_response:
+         log.debug(resp)
+      log.info("_get_ssh_connection cache State: {}"
+               .format(_get_ssh_connection.cache_info()))
+   except EOFError as e:
+      if "Error reading SSH protocol banner" in str(e):
+         log.error("SSH failure, most likely due to network congestion.")
+         raise
+   except Exception as e:
+      # Due to node interruption or change in module,
+      # or by virtue of unknown errors,
+      # ssh handles are no more valid.
+      # Let us clear cache. Acquire ssh connection again.
+      _get_ssh_connection.cache_clear()
+      if verbose:
+         if log_mode == "WARNING":
+            log.warning("Could not connect to {}".format(host))
+         else:
+            log.error("Could not connect to {}: {}".format(host, e))
+         raise
    return work_around_bc_5021(resp)
 
 
@@ -1602,10 +1633,11 @@ def getZoneConfig(args=None, filepath=None):
    return zone_config_object
 
 
-
+@lru_cache(maxsize=50)
 def getNodeCredentials(blockchain_id, node_ip):
     '''
-      Returns tuple (username, password) used for ssh_connect to concord node
+      Returns tuple (username, password) used for ssh_connect to concord node.
+      It caches  the  user and password for subsequent use.
       :param blockchain_id: Blockchain Id to which node belongs
       :param node_ip: IP of given node
       e.g. username, password = getNodeCredentials('b2129..','10.78.20.41')
@@ -1644,14 +1676,12 @@ def getNodeCredentials(blockchain_id, node_ip):
             error_msg = node_credentials[0]["error_code"] + "-" + node_credentials[0]["error_message"]
             raise Exception(error_msg)
 
-        return node_credentials["username"], node_credentials["password"]
+        return (node_credentials["username"], node_credentials["password"])
     except Exception as e:
         if "No response for a ReST request was received" in str(e):
            # Cases where blockchain is not created through Helen in the current process
            # and rather an already created blockchain is passed
-           configObject = getUserConfig()
-           credentials = configObject["persephoneTests"]["provisioningService"]["concordNode"]
-           return (credentials["username"], credentials["password"])
+           return getNodeCredentialsForCastor()
         else:
            log.error("\nException while fetching node credentials : {}".format(e))
            raise(e)
@@ -1791,7 +1821,7 @@ def waitForDockerContainers(host, username, password, replicaType, timeout=2700)
          raise Exception("Container '{}' on '{}' failed to come up.".format(name, host))
 
 
-def check_docker_health(node, username, password, replica_type,
+def check_docker_health(node, replica_type, blockchain_id,
                         max_timeout=600, verbose=True):
    '''
    Verify docker health status
@@ -1807,6 +1837,7 @@ def check_docker_health(node, username, password, replica_type,
    start_time = time.time()
    docker_images_found = False
    command_to_run = "docker ps --format '{{.Names}}'"
+   username, password = getNodeCredentials(blockchain_id, node)
    expected_docker_containers = getReplicaContainers(replica_type)
    if verbose: log.info(
       "Waiting for all docker containers to be up on '{}' within {} mins".format(
@@ -2663,97 +2694,124 @@ def get_blockchain_summary_path():
    return os.path.join(suite_log_dir, DEPLOYED_BLOCKCHAIN_FILE)
 
 
-def get_raw_block_range(blockchain_id, node, start_block, end_block):
-   '''
-   Function to get raw block data for a range of block ids.
-   Args:
-      blockchain_id: Blockchain id
-      node: Node to read from.
-      start_block: ID of first block in the range
-      end_block: ID of final block + 1 (not included in results)
-   Returns:
-      Dictionary mapping block ID to hex encoded raw data
-   '''
-   log.info('Getting raw block range for {}'.format(node))
-   assert node_start_stop(blockchain_id, node, STOP_NODE), 'Failed to Stop Node {}'.format(node)
+def exec_cmd_on_node(host, cmd, blockchain_id=None, user=None, passwd=None):
+    '''
+      Function to execute given docker command.
+      Get user and password of the node and execute command.
+      This function is a wrapper on ssh_connect. 
+      It uses getNodeCredentials to obtain user and passwd of node.
+      user/passwd may also be provided when already available
+      Args:
+         host: Node to check backup.
+         cmd: Command to execute
+         blockchain_id: Blockchain id.
+         user: required when user and password are hardcoded 
+         passwd: required when user and password are hardcoded
+      Returns:
+         ssh_connect  result.
+    '''
+    username = None
+    password = None
 
-   version = get_product_version(blockchain_id, node)
-   if not version:
-      log.error('Unable to get product version')
-      return False
+    if user is None or passwd is None and blockchain_id is not None:
+       username, password = getNodeCredentials(blockchain_id, host)
+    else:
+       # Use given user and passwd, blockchain id is not needed
+       username = user
+       password = passwd
 
-   cmd = 'image=$(docker images --format "{{.Repository}}" | grep "concord-core");'
-   docker_cmd = 'docker run -it --entrypoint="" --mount type=bind,source=/mnt/data/rocksdbdata,' \
-               'target=/concord/rocksdbdata $image:{} /concord/sparse_merkle_db_editor ' \
-               '/concord/rocksdbdata getRawBlockRange {} {}'.format(version, start_block, end_block)
-   username, password = getNodeCredentials(blockchain_id, node)
-   status_post_action = ssh_connect(node, username=username, password=password,
-                                          command=(cmd + docker_cmd))
+    if username is None or password is None:
+       log.error("Unable to get user or password for host:{}, blockchain: {}"\
+          .format(host, blockchain_id))
+       return False
 
-   if 'NotFoundException' in status_post_action:
-      log.info("No results returned for block range {} to {}".format(start_block, end_block))
-      return False
+    return ssh_connect(host, username=username, password=password,
+                                command=cmd)
 
-   '''
-   Output is in the following format, where <num> is block id like '100'
-   and <data> is hex-encoded binary raw data like '123456abcdef':
-   {
-   "rawBlock<num>": "0x<data>",
-   "rawBlock<num>": "0x<data>",
-   ...
-   }
-   '''
-   output = json.loads(status_post_action)
-   key_start = 'rawBlock'
-   key_len = len(key_start)
-   result = {}
-   for key, val in output.items():
-      assert key.startswith(key_start) and val.startswith('0x'), "Unexpected block data: {}:{}".format(key, val)
-      result[key[key_len:]] = val[2:]
 
-   assert node_start_stop(blockchain_id, node, START_NODE), 'Failed to Start Node {}'.format(node)
-   return result
+@lru_cache(maxsize=20)
+def get_product_version(blockchain_id, host):
+    '''
+      Function to get product version on node.
+      The function maintains the version of the product in cache
+      for subsequent use.
+      Args:
+         blockchain_id: Blockchain id
+         host: Concord node to get version.
+      Returns:
+         Version in '0.0.0.0000' format.
+         False when unable to get version.
+    '''
+    version = False
+    cmd = 'docker inspect concord | grep "com.vmware.blockchain.version"'
+    status = exec_cmd_on_node(host, cmd, blockchain_id=blockchain_id)
+    if status is None or status is '':
+        log.error('Unable get the product version')
+    else:
+        version = status.split(": ")[1].rstrip("\n").rstrip("\r").replace('"', '')
+    return version
+
+
+def format_hosts_structure(all_replicas):
+    '''
+    Currently the structure of replicas is different when blockchain is deployed 
+    and when replicasConfig argument is provided.
+    Once the utility functions are corrected to allow only single format, 
+    this function would be removed.
+    '''
+    client_hosts = all_replicas["daml_participant"]
+    concord_hosts = all_replicas["daml_committer"]
+
+    client_hosts_list, concord_hosts_list = [], []
+
+    # Parse through the participants and committers
+    for client_host, concord_host in list(zip_longest(client_hosts, concord_hosts)):
+        # Participant hosts
+        if client_host:
+            if (isinstance(client_host, dict)):
+                client_host = client_host["private_ip"] if client_host[
+                    "private_ip"] is not None else client_host["public_ip"]
+            client_hosts_list.append(client_host)
+
+        # Committer hosts
+        if concord_host:
+            if (isinstance(concord_host, dict)):
+                concord_host = concord_host["private_ip"] \
+                    if concord_host["private_ip"] is not None else concord_host["public_ip"]
+            concord_hosts_list.append(concord_host)
+
+    client_hosts = client_hosts_list if len(
+        client_hosts_list) else client_hosts
+    concord_hosts = concord_hosts_list if len(
+        concord_hosts_list) else concord_hosts
+
+    return client_hosts, concord_hosts
 
 
 def node_start_stop(blockchain_id, node, action):
-   '''
-   Function to start/stop all components except node-agent of participant or replica.
-   Args:
-      blockchain_id: Blockchain id
-      node: Node to start/stop.
-      action: Either to start or stop node.
-   Returns:
-      True when the desired action is completed.
-      False when fails perform the desired action.
-   '''
-   log.debug("{} containers on {}".format(action.upper(), node))
+    '''
+    Function to start/stop all components
+    except node-agent of participant or replica.
+    Args:
+        blockchain_id: Blockchain id
+        node: Node to start/stop.
+        action: Either to start or stop node.
+    Returns:
+        True when the desired action is completed.
+        False when fails perform the desired action.
+    '''
+    log.debug("{} containers on {}".format(action.upper(), node))
 
-   cmd = "curl -X POST 127.0.0.1:8546/api/node/management?action={}".format(action)
-   username, password = getNodeCredentials(blockchain_id, node)
-   status_post_action = ssh_connect(node, username=username, password=password, command=cmd)
+    cmd = "curl -X POST 127.0.0.1:8546/api/node/management?action={}".\
+        format(action)
+    status_post_action = exec_cmd_on_node(node, cmd,
+                                                 blockchain_id=blockchain_id)
 
-   if status_post_action is None or 'Failed' in status_post_action or 'Connection refused' in status_post_action:
-      log.error('Unable to {} containers.\nResponse {}'.format(action, status_post_action))
-      return False
+    if status_post_action is None or 'Failed' in status_post_action \
+       or 'Connection refused' in status_post_action:
+        log.error('Unable to {} \
+            containers.\nResponse {}'.format(action, status_post_action))
+        return False
 
-   log.debug("{} on {} completed".format(action.upper(), node))
-   return True
-
-
-def get_product_version(blockchain_id, node):
-   '''
-   Function to get product version on node.
-   Args:
-      blockchain_id: Blockchain id
-      node: Node to check backup.
-   Returns:
-      Version in '0.0.0.0000' format.
-      False when unable to get version.
-   '''
-   cmd = 'docker inspect concord | grep "com.vmware.blockchain.version"'
-   username, password = getNodeCredentials(blockchain_id, node)
-   status_post_action = ssh_connect(node, username, password, cmd)
-   if status_post_action is None or status_post_action is '':
-      log.error('Unable get the product version')
-      return False
-   return status_post_action.split(": ")[1].rstrip("\n").rstrip("\r").replace('"', '')
+    log.debug("{} on {} completed".format(action.upper(), node))
+    return True

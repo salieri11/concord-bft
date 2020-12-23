@@ -8,11 +8,15 @@ from collections import namedtuple
 import pytest
 import time
 import random
-from util import helper, hermes_logging, blockchain_ops, daml_regression_helper as dr_helper
+from util import helper, hermes_logging, blockchain_ops
+from util import daml_regression_helper as dr_helper
+from util import rocksdb_helper
 import multiprocessing
-from util.daml.daml_requests import simple_request, continuous_daml_request_submission, get_daml_url
+from util.daml.daml_requests import simple_request, \
+    continuous_daml_request_submission, get_daml_url
 import util.node_interruption_helper as intr_helper
-from fixtures.common_fixtures import fxBlockchain, fxNodeInterruption, fxProduct
+from fixtures.common_fixtures import fxBlockchain, \
+    fxNodeInterruption, fxProduct
 from subprocess import check_output, CalledProcessError
 import queue
 import util.daml.daml_helper as daml_helper
@@ -42,8 +46,8 @@ def fxLocalSetup(request, reraise, fxHermesRunSettings, fxNodeInterruption, fxBl
     global installed
     log.info("\n*** Blockchain fixture is {} ***".format(fxBlockchain))
     f_count = blockchain_ops.get_f_count(fxBlockchain.replicas)
-    client_hosts, concord_hosts = dr_helper.format_hosts_structure(
-        fxBlockchain.replicas)
+    client_hosts, concord_hosts = \
+        helper.format_hosts_structure(fxBlockchain.replicas)
 
     local_tuple = LocalSetupFixture(
         client_hosts=client_hosts, concord_hosts=concord_hosts, f_count=f_count)
@@ -434,10 +438,10 @@ def test_requests_processed_only_with_quorum(reraise, fxLocalSetup, fxHermesRunS
             # Step 0 - f+1 non primary replicas to be started
             # Step 1 - f non primary and 1 primary replicas to be started
             if step == 0:
-                dr_helper.start_for_replica_list(
+                dr_helper.start_all_replicas(
                     fxBlockchain.blockchainId, non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
             else:
-                dr_helper.start_for_replica_list(
+                dr_helper.start_all_replicas(
                     fxBlockchain.blockchainId, primary_and_non_primary_replicas, container_name, fxLocalSetup.f_count + 1)
 
             # Create & verify transactions after powering on stopped replicas
@@ -582,7 +586,7 @@ def test_fault_tolerance_view_change(reraise, fxLocalSetup, fxHermesRunSettings,
                 p_stop_start_primary.terminate()
                 log.info("\nStop & start primary process completed")
 
-            assert dr_helper.verify_view_change(fxBlockchain, init_primary_rip, init_primary_index,
+            assert dr_helper.verify_view_change(reraise, fxBlockchain, init_primary_rip, init_primary_index,
                                                 [interrupted_nodes]), \
                 "View Change did not happen successfully"
 
@@ -825,8 +829,9 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
                 non_primary_replicas[0])
 
             # Step 3 : Find block id of stopped replica
-            init_block_id = dr_helper.get_block_id(
-                fxBlockchain.blockchainId, non_primary_replicas[0])
+            init_block_id = rocksdb_helper.get_block_id(
+                fxBlockchain.blockchainId, non_primary_replicas[0],
+                skip_start=True, skip_stop=True)
 
             # Step 4 : Start the daml transactions and trigger checkpoint
             assert dr_helper.trigger_checkpoint(
@@ -842,8 +847,9 @@ def test_st_coinciding_vc(reraise, fxLocalSetup, fxHermesRunSettings, fxBlockcha
                 fxBlockchain.blockchainId, init_primary_rip, container_name, 30), "Failed to stop primary [{}]".format(init_primary_rip)
 
             # Step 7 : Find block id of stopped primary replica
-            p_block_id = dr_helper.get_block_id(
-                fxBlockchain.blockchainId, init_primary_rip)
+            p_block_id = rocksdb_helper.get_block_id(
+                fxBlockchain.blockchainId, init_primary_rip,
+                skip_start=True, skip_stop=True)
 
             # Step 8 : Start new thread for State transfer check
             que_st_check = queue.Queue()
