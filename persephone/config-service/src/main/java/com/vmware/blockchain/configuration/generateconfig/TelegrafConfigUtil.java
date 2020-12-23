@@ -188,10 +188,30 @@ public class TelegrafConfigUtil {
         if (!StringUtils.hasText(tag)) {
             return "";
         }
+        int numberComponents = tag.split("\\.").length;
+        if (numberComponents == 4) {
+            return parseFourComponentTag(tag);
+        } else {
+            return parseFiveComponentTag(tag);
+        }
+    }
+
+    private String parseFourComponentTag(String tag) {
         String second = tag.split("\\.")[1];
         String fourth = tag.split("\\.")[3];
         if ((tag.startsWith("0.0.0") && Integer.parseInt(fourth) < 2466)
-            || (tag.startsWith("1.0.0") && Integer.parseInt(fourth) <= 67)
+            || (tag.startsWith("1.0.")/* && Integer.parseInt(fourth) <= 67*/)
+            || (tag.startsWith("0.") && Integer.parseInt(second) > 0)) {
+            return "";
+        }
+        return DAML_DB_DEFAULT_PASSWORD;
+    }
+
+    private String parseFiveComponentTag(String tag) {
+        String second = tag.split("\\.")[1];
+        String fifth = tag.split("\\.")[4];
+        if ((tag.startsWith("0.0.0.0") && Integer.parseInt(fifth) < 2466)
+            || (tag.startsWith("1.0.") /*&& Integer.parseInt(fifth) <= 67*/)
             || (tag.startsWith("0.") && Integer.parseInt(second) > 0)) {
             return "";
         }
