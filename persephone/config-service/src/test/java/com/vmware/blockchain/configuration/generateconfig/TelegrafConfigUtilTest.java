@@ -237,6 +237,63 @@ public class TelegrafConfigUtilTest {
     }
 
     @Test
+    public void testTelegrafConfigPrometeusInputCustomPassword5ComponentTag() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.0.2466",
+                                     NodeProperty.Name.DAML_DB_PASSWORD.name(), "customPass"))
+                .build();
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_INDEX_DB,
+                ServiceType.DAML_LEDGER_API,
+                ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties)
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "CLIENT";
+
+        Properties properties11000 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.1.0.0.0",
+                                     NodeProperty.Name.DAML_DB_PASSWORD.name(), "customPass"))
+                .build();
+        NodesInfo.Entry nodeInfo11000 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties11000)
+                .addAllServices(servicesList)
+                .build();
+
+        Properties properties11111 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.1.1.1.1",
+                                     NodeProperty.Name.DAML_DB_PASSWORD.name(), "customPass"))
+                .build();
+        NodesInfo.Entry nodeInfo11111 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties11111)
+                .addAllServices(servicesList)
+                .build();
+
+        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                             "unitTest", nodeInfo, nodeType);
+
+        String actual11000 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo11000, nodeType);
+
+        String actual11111 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo11111, nodeType);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafConfigCustomPass.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+        Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual11000.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual11111.equalsIgnoreCase(expected)).isTrue();
+    }
+
+    @Test
     public void testTelegrafConfigPrometeusInputWithUsernameAndNoPassword() throws IOException {
         Properties properties = Properties.newBuilder()
                 .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.2465"))
@@ -291,6 +348,102 @@ public class TelegrafConfigUtilTest {
     }
 
     @Test
+    public void testTelegrafConfigPrometeusInputNoPassword5ComponentTag() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.0.2465"))
+                .build();
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_INDEX_DB,
+                ServiceType.DAML_LEDGER_API,
+                ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties)
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "CLIENT";
+
+        Properties properties09000 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.9.0.0.0"))
+                .build();
+        NodesInfo.Entry nodeInfo09000 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties09000)
+                .addAllServices(servicesList)
+                .build();
+
+        Properties properties09111 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.9.1.1.1"))
+                .build();
+        NodesInfo.Entry nodeInfo09111 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties09111)
+                .addAllServices(servicesList)
+                .build();
+
+        Properties properties100067 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.0.0.0.67"))
+                .build();
+        NodesInfo.Entry nodeInfo100067 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties100067)
+                .addAllServices(servicesList)
+                .build();
+
+        Properties properties10000 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.0.0.0.0"))
+                .build();
+        NodesInfo.Entry nodeInfo10000 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties10000)
+                .addAllServices(servicesList)
+                .build();
+
+        Properties properties10111 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.0.1.1.1"))
+                .build();
+        NodesInfo.Entry nodeInfo10111 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties10111)
+                .addAllServices(servicesList)
+                .build();
+
+        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                             "unitTest", nodeInfo, nodeType);
+
+        String actual0900 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo09000, nodeType);
+
+        String actual09111 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo09111, nodeType);
+
+        String actual100067 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                  "unitTest", nodeInfo100067, nodeType);
+
+        String actual10000 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                  "unitTest", nodeInfo10000, nodeType);
+
+        String actual10111 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo10111, nodeType);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafConfigNoPass.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+        Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual0900.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual09111.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual100067.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual10000.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual10111.equalsIgnoreCase(expected)).isTrue();
+    }
+
+    @Test
     public void testTelegrafConfigPrometeusInputWithUsernameAndDefaultPassword() throws IOException {
         Properties properties = Properties.newBuilder()
                 .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.2466"))
@@ -317,30 +470,70 @@ public class TelegrafConfigUtilTest {
                 .addAllServices(servicesList)
                 .build();
 
-        Properties properties10068 = Properties.newBuilder()
-                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.0.0.68"))
+        String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                             "unitTest", nodeInfo, nodeType);
+
+        String actual1100 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo1100, nodeType);
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource("SampleTelegrafConfigParticipant.conf").getFile());
+        var expected = new String(Files.readAllBytes(file.toPath()));
+        Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual1100.equalsIgnoreCase(expected)).isTrue();
+    }
+
+    @Test
+    public void testTelegrafConfigPrometeusInputWithDefaultPassword5ComponentTag() throws IOException {
+        Properties properties = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "0.0.0.0.2466"))
                 .build();
-        NodesInfo.Entry nodeInfo10068 = NodesInfo.Entry.newBuilder()
+        List<ServiceType> servicesList = List.of(
+                ServiceType.DAML_INDEX_DB,
+                ServiceType.DAML_LEDGER_API,
+                ServiceType.GENERIC);
+        NodesInfo.Entry nodeInfo = NodesInfo.Entry.newBuilder()
                 .setNodeIp("10.0.0.1")
                 .setId("node-0")
-                .setProperties(properties10068)
+                .setProperties(properties)
+                .addAllServices(servicesList)
+                .build();
+        String nodeType = "CLIENT";
+
+        Properties properties11000 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.1.0.0.0"))
+                .build();
+        NodesInfo.Entry nodeInfo11000 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties11000)
+                .addAllServices(servicesList)
+                .build();
+
+        Properties properties11111 = Properties.newBuilder()
+                .putAllValues(Map.of(DeploymentAttributes.IMAGE_TAG.name(), "1.1.1.1.1"))
+                .build();
+        NodesInfo.Entry nodeInfo11111 = NodesInfo.Entry.newBuilder()
+                .setNodeIp("10.0.0.1")
+                .setId("node-0")
+                .setProperties(properties11111)
                 .addAllServices(servicesList)
                 .build();
 
         String actual = telegrafConfigUtil.getTelegrafConfig("testConsortium",
                                                              "unitTest", nodeInfo, nodeType);
 
-        String actual0900 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                                                                 "unitTest", nodeInfo1100, nodeType);
+        String actual11000 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo11000, nodeType);
 
-        String actual10067 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
-                                                                  "unitTest", nodeInfo10068, nodeType);
+        String actual11111 = telegrafConfigUtil.getTelegrafConfig("testConsortium",
+                                                                 "unitTest", nodeInfo11111, nodeType);
 
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("SampleTelegrafConfigParticipant.conf").getFile());
         var expected = new String(Files.readAllBytes(file.toPath()));
         Assertions.assertThat(actual.equalsIgnoreCase(expected)).isTrue();
-        Assertions.assertThat(actual0900.equalsIgnoreCase(expected)).isTrue();
-        Assertions.assertThat(actual10067.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual11000.equalsIgnoreCase(expected)).isTrue();
+        Assertions.assertThat(actual11111.equalsIgnoreCase(expected)).isTrue();
     }
 }
