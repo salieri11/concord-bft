@@ -16,7 +16,6 @@ RUN apt-get update && apt-get -y install \
     build-essential \
     clang-7 \
     clang-format-7 \
-    curl \
     g++ \
     git \
     libboost1.65-dev \
@@ -32,8 +31,6 @@ RUN apt-get update && apt-get -y install \
     libzstd1-dev \
     libtool \
     libs3-dev \
-    llvm-5.0 \
-    llvm-5.0-dev \
     libyaml-cpp0.5v5 \
     libyaml-cpp-dev \
     pkg-config \
@@ -41,14 +38,16 @@ RUN apt-get update && apt-get -y install \
     python3-pip \
     wget \
     zlib1g-dev \
+    libcurl4-openssl-dev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-7 /usr/bin/clang-format
 RUN ln -s /usr/bin/clang-format-diff-7 /usr/bin/clang-format-diff
 
-# Install CMake 3.16
+# Install CMake 3.18
 RUN wget -q -O cmake-linux.sh \
-    https://github.com/Kitware/CMake/releases/download/v3.16.1/cmake-3.16.1-Linux-x86_64.sh && \
+    https://github.com/Kitware/CMake/releases/download/v3.18.3/cmake-3.18.3-Linux-x86_64.sh && \
     sh cmake-linux.sh -- --skip-license --prefix=/usr && \
     rm cmake-linux.sh
 
@@ -83,14 +82,6 @@ RUN wget --no-check-certificate -q \
     make install && \
     cd / && \
     rm -r log4cplus-2.0.4
-
-WORKDIR /
-RUN git clone https://github.com/ethereum/evmjit.git && \
-    cd /evmjit && \
-    git checkout 4e9f3d76292c7de0c6613427761f843b1719f614
-WORKDIR /evmjit/build
-RUN cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic -O3" ..
-RUN cmake --build . --config RelWithDebInfo -- -j4
 
 WORKDIR /
 RUN git clone https://github.com/relic-toolkit/relic && \
@@ -135,6 +126,19 @@ RUN git clone https://svc.blockhain_1:Nn2NPdU6Ny9ZaYyXs3DB@gitlab.eng.vmware.com
     make install && \
     cd / && \
     rm -r openssl
+
+# curl (with SSL) is needed for evmone (the package manager needs it)
+WORKDIR /
+RUN mkdir curl && \
+    cd curl && \
+    wget --no-check-certificate  https://curl.haxx.se/download/curl-7.66.0.tar.gz && \
+    tar xvzf curl-7.66.0.tar.gz && \
+    cd curl-7.66.0 && \
+    ./configure --with-ssl && \
+    make && \
+    make install && \
+    cd / && \
+    rm -r curl
 
 # gRPC for TRS/TEE/Performance API server
 WORKDIR /
@@ -214,7 +218,7 @@ RUN git clone https://github.com/jaegertracing/jaeger-client-cpp && \
     cmake -DHUNTER_ENABLED=NO -DBUILD_TESTING=NO -DBUILD_SHARED_LIBS=NO -DJAEGERTRACING_BUILD_EXAMPLES=NO .. && \
     make -j4 && \
     make install && \
-    cp ../cmake/Findthrift.cmake /usr/share/cmake-3.16/Modules/ && \
+    cp ../cmake/Findthrift.cmake /usr/share/cmake-3.18/Modules/ && \
     cd ../.. && \
     rm -r jaeger-client-cpp
 
@@ -255,6 +259,18 @@ RUN wget --no-check-certificate -q \
     make install && \
     cd ../.. && \
     rm -r HdrHistogram_c-0.11.2
+
+WORKDIR /
+RUN git clone https://github.com/ethereum/evmone.git && \
+    cd /evmone && \
+    git checkout v0.5.0 && \
+    mkdir build && \
+    git submodule update --init --recursive && \
+    cd /evmone/build && \
+    cmake -DBUILD_SHARED_LIBS=ON -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && \
+    cmake --build . --config RelWithDebInfo -- -j${MAKE_PARALLELISM} && \
+    make install && \
+    rm -r /evmone
 
 # Python module dependencies - Please keep the command towards the end of this file
 # - tatsu is used by CMF compiler
