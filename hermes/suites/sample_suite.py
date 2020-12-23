@@ -4,6 +4,9 @@
 import pytest
 from suites.case import describe
 import util.hermes_logging
+import random
+from functools import lru_cache
+from retry import  retry
 log = util.hermes_logging.getMainLogger()
 
 
@@ -87,3 +90,40 @@ def test_parameterize_example(stop_node_1, stop_node_2):
     next_stop_node()
     execute_transactions("again")
     assert True, "Expected to  execute functions"
+
+@lru_cache(maxsize=10)
+@retry(Exception, tries=4, delay=2, backoff=2)
+def method_requiring_retries(msg):
+    '''
+    demonstrate use of retry and lru_cache
+    retry - retries 5 times with delay of 1 sec between each retry
+    retries are done on getting exception
+    lru_cache returns already cached results
+    '''
+    try:
+        roll_dice = random.randint(1, 5)
+        log.info("Rolling dice, will try 5 times and \
+            will succeed on 1 and 5 -  Dice Number: {}".format(roll_dice))
+        if roll_dice > 1 and roll_dice < 5:
+            e = "Exception Raised: Some random exception in Sample Suite - Ignore"
+            raise Exception("Exception Raised: Some random exception in Sample Suite - Ignore")
+
+    except Exception as e:
+            log.info("Exception Raised: Some random exception in Sample Suite - Ignore")
+            raise
+
+    return(msg)
+
+
+@describe("Simple Sample to demo retry")
+@pytest.mark.parametrize("msg", ["Hi There", "Hello", "Welcome", "Hi There", "Welcome"])
+def test_retry_example(msg):
+    '''
+    Demonstrates usage and use of retry
+    '''
+    try:
+        msg = method_requiring_retries(msg)
+        log.info("LRU Cache State: {}".format(method_requiring_retries.cache_info()))
+        assert True, "Expected function to send a message"
+    except Exception as e:
+        assert True, "Exception...do not fail in sample "     

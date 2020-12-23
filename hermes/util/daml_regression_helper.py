@@ -9,7 +9,7 @@ from . import helper, hermes_logging, blockchain_ops, wavefront
 from . import node_interruption_helper as intr_helper
 import multiprocessing
 from asyncio import set_event_loop, new_event_loop, get_event_loop
-from itertools import zip_longest
+
 import time
 import util.daml.daml_helper as daml_helper
 
@@ -25,82 +25,6 @@ PARTICIPANT_POWER_ON_ERROR_MSG = "Failed to power on participant node "
 PARTICIPANT_POWER_OFF_ERROR_MSG = "Failed to power off participant node "
 CHECKPOINT_ERROR_MESSAGE = "Failed to trigger new checkpoint"
 DAML_ATTEMPTS = 2
-
-
-def format_hosts_structure(all_replicas):
-    '''
-    Currently the structure of replicas is different when blockchain is deployed 
-    and when replicasConfig argument is provided.
-    Once the utility functions are corrected to allow only single format, 
-    this function would be removed.
-    '''
-    client_hosts = all_replicas["daml_participant"]
-    concord_hosts = all_replicas["daml_committer"]
-
-    client_hosts_list, concord_hosts_list = [], []
-
-    # Parse through the participants and committers
-    for client_host, concord_host in list(zip_longest(client_hosts, concord_hosts)):
-        # Participant hosts
-        if client_host:
-            if (isinstance(client_host, dict)):
-                client_host = client_host["private_ip"] if client_host[
-                    "private_ip"] is not None else client_host["public_ip"]
-            client_hosts_list.append(client_host)
-
-        # Committer hosts
-        if concord_host:
-            if (isinstance(concord_host, dict)):
-                concord_host = concord_host["private_ip"] \
-                    if concord_host["private_ip"] is not None else concord_host["public_ip"]
-            concord_hosts_list.append(concord_host)
-
-    client_hosts = client_hosts_list if len(
-        client_hosts_list) else client_hosts
-    concord_hosts = concord_hosts_list if len(
-        concord_hosts_list) else concord_hosts
-
-    return client_hosts, concord_hosts
-
-
-def get_block_id(blockchain_id, ip):
-    '''
-    Function to get last block_id of a replica
-    Args:
-        ip: IP of replica
-    Returns:
-        int: Last Block ID of replica 
-    '''
-    username, password = helper.getNodeCredentials(blockchain_id, ip)
-
-    # Find concord-core container image
-    cmd_for_container_image = 'docker images | grep -m1 concord-core'
-    container_image = helper.ssh_connect(
-        ip, username, password, cmd_for_container_image)
-    container_image_list = [i for i in container_image.split(" ") if i != ""]
-    concord_core_param = container_image_list[0] + \
-        ':' + container_image_list[1]
-
-    params = "type=bind,source=/mnt/data/rocksdbdata/,target=/concord/rocksdbdata"
-    tool_path = "/concord/sparse_merkle_db_editor /concord/rocksdbdata"
-    cmd = ' '.join([params, concord_core_param, tool_path])
-
-    # Find last block ID
-    cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(
-        cmd)
-    log.debug("\nFinding last block ID")
-    result = helper.ssh_connect(
-        ip, username, password, cmd_for_block_id)
-    if ("Error" in str(result)):
-        params = "type=bind,source=/config/concord/rocksdbdata/,target=/concord/rocksdbdata"
-        cmd = ' '.join([params, concord_core_param, tool_path])
-        cmd_for_block_id = 'docker run -it --entrypoint="" --mount {0} getLastBlockID'.format(
-            cmd)
-        result = helper.ssh_connect(
-            ip, username, password, cmd_for_block_id)
-    block_id = (result.split(': \"')[1]).split('\"')[0]
-    log.debug("Block ID : {}".format(block_id))
-    return int(block_id)
 
 
 def install_sdk_deploy_daml(client_host):
@@ -176,8 +100,9 @@ def make_daml_request(reraise, blockchain_id, client_host, no_of_txns=1, wait_ti
     log.info("\n*** Submit daml transaction(s) ***")
     url = get_daml_url(client_host)
     username, password = helper.getNodeCredentials(blockchain_id, client_host)
-    if not helper.check_docker_health(client_host, username, password,
-                                      helper.TYPE_DAML_PARTICIPANT):
+    if not helper.check_docker_health(client_host,
+                                      helper.TYPE_DAML_PARTICIPANT,
+                                      blockchain_id):
         log.warning("\n*** Unexpected crash ***")
         return False
 
@@ -203,11 +128,13 @@ def make_daml_request(reraise, blockchain_id, client_host, no_of_txns=1, wait_ti
         return True
 
 
-def perform_sanity_check(reraise, fixture_tuple, fxHermesRunSettings, fxBlockchain):
+def perform_sanity_check(reraise, fixture_tuple,
+                         fxHermesRunSettings, fxBlockchain):
     '''
     Function to perform sanity check after executing every test.
-    It powers on the node and start containers, if brought down or stopped during any test
-    Performs daml transaction as last check. 
+    It powers on the node and start containers,
+        if brought down or stopped during any test
+    Performs daml transaction as last check.
     Args:
         fixture_tuple: Local setup fixture tuple.
         fxHermesRunSettings: Hermes command line arguments.
@@ -329,7 +256,7 @@ def staggered_start_committers(fxHermesRunSettings, fxBlockchain, concord_hosts)
     log.info("\n*** Started all the committers in staggered manner ***")
 
 
-def start_for_replica_list(blockchain_id, replica_list, container_name, count):
+def start_all_replicas(blockchain_id, replica_list, container_name, count):
     '''
     Function to start committer nodes from list of replicas
     for maximum count provided
@@ -344,7 +271,8 @@ def start_for_replica_list(blockchain_id, replica_list, container_name, count):
     for i in range(count):
         concord_host = replica_list[i]
         assert intr_helper.start_container(
-            blockchain_id, concord_host, container_name), "Failed to start committer node [{}]".format(concord_host)
+            blockchain_id, concord_host, container_name), \
+            "Failed to start committer node [{}]".format(concord_host)
     log.info("\n*** Started {} replicas ***".format(count))
 
 
@@ -363,18 +291,21 @@ def stop_for_replica_list(blockchain_id, replica_list, container_name, count):
     for i in range(count):
         concord_host = replica_list[i]
         assert intr_helper.stop_container(
-            blockchain_id, concord_host, container_name), "Failed to stop committer node [{}]".format(concord_host)
+            blockchain_id, concord_host, container_name), \
+            "Failed to stop committer node [{}]".format(concord_host)
     log.info("\n*** Stopped {} replicas ***".format(count))
 
 
-def verify_view_change(reraise, fxBlockchain, init_primary_rip, init_primary_index, interrupted_nodes=[]):
+def verify_view_change(reraise, fxBlockchain, init_primary_rip,
+                       init_primary_index, interrupted_nodes=[]):
     '''
     Function to verify view change happened successfully
     Args:
-        fxBlockchain: Blockchain tuple of (blockchainId, consortiumId, replicas, clientNodes).
+        fxBlockchain: Blockchain tuple of
+            (blockchainId, consortiumId, replicas, clientNodes).
         init_primary_rip: Initial primary IP
         init_primary_index: Initial primary index
-        interrupted_nodes: Nodes which are stopped        
+        interrupted_nodes: Nodes which are stopped
     Returns:
         bool: True if view change happened successfully, False otherwise.
     '''

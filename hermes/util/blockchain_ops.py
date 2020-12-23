@@ -403,25 +403,28 @@ def echo_current_state_info(replicas):
 
 
 def fetch_master_replica(fxBlockchain):
-  '''
-  Get master replica IP
-  :param fxBlockchain: Blockchain tuple of (blockchainId, consortiumId, replicas, clientNodes).
-  :return: master replica IP
-  '''
-  cmd = "cat /config/daml-ledger-api/environment-vars"
-  master_replica = None
-  for ip in participants_of(fxBlockchain.replicas):
-    username, password = helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
-    ssh_output = helper.ssh_connect(ip, username, password, cmd)
-    if ssh_output:
-      for line in ssh_output.split():
-        if "REPLICAS" in line:
-          first_replica_with_port = line.split('=')[1]
-          master_replica = first_replica_with_port.split(':')[0]
-          break
+    '''
+    Get master replica IP
+    :param fxBlockchain: Blockchain tuple
+        (blockchainId, consortiumId, replicas, clientNodes).
+    :return: master replica IP
+    '''
+    cmd = "cat /config/daml-ledger-api/environment-vars"
+    master_replica = None
 
-  log.info("Master replica: {}".format(master_replica))
-  return master_replica
+    for ip in participants_of(fxBlockchain.replicas):
+        ssh_output = helper.\
+          exec_cmd_on_node(ip, cmd,
+                           blockchain_id=fxBlockchain.blockchainId)
+        if ssh_output:
+            for line in ssh_output.split():
+                if "REPLICAS" in line:
+                    first_replica_with_port = line.split('=')[1]
+                    master_replica = first_replica_with_port.split(':')[0]
+                    break
+
+    log.info("Master replica: {}".format(master_replica))
+    return master_replica
 
 
 # This function is not used anywhere so far
@@ -436,8 +439,9 @@ def print_replica_info(fxBlockchain, interrupted_nodes=[]):
   filtered_ips = [ip for ip in committers_of(fxBlockchain.replicas) if ip not in interrupted_nodes]
   log.info("")
   for ip in filtered_ips:
-    username, password = helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
-    ssh_output = helper.ssh_connect(ip, username, password, cmd)
+    ssh_output = helper.\
+          exec_cmd_on_node(ip, cmd,
+                           blockchain_id=fxBlockchain.blockchainId)
     primary_should_be = principal_id = currentPrimary = '?'
     if ssh_output:
       for line in ssh_output.split('\r'):
@@ -552,9 +556,11 @@ def wait_for_docker_startup(host, user, password, container_names):
   wait_time = 60
 
   while not reachable and wait_time > 0:
-    statuses = helper.ssh_connect(host,
-                                  user, password,
-                                  "docker ps -a --format '{{ .Names }}\t\t{{ .Status }}'")
+    cmd = "docker ps -a --format '{{ .Names }}\t\t{{ .Status }}'"
+    statuses = helper.\
+        exec_cmd_on_node(host, cmd,
+                         user=user,
+                         passwd=password)
     if statuses:
       reachable = True
     else:
@@ -580,9 +586,11 @@ def wait_for_docker_startup(host, user, password, container_names):
 
     while not all_up and wait_time > 0:
       all_up = True
-      statuses = helper.ssh_connect(host,
-                                    user, password,
-                                    "docker ps -a --format '{{ .Names }} {{ .Status }}'")
+      cmd = "docker ps -a --format '{{ .Names }} {{ .Status }}'"
+      statuses = helper.\
+          exec_cmd_on_node(host, cmd,
+                           user=user,
+                           passwd=password)
       statuses = statuses.split("\n")
       log.info("  Statuses:")
 
@@ -613,63 +621,64 @@ def wait_for_docker_startup(host, user, password, container_names):
       raise Exception("Docker startup failed")
 
 
+def _invoke_service(host, user, password, instruction, services):
+    for svc in services:
+        log.info("{0} {1}".format(instruction, svc))
+        cmd = "docker {0} {1}".format(instruction, svc)
+        helper.exec_cmd_on_node(host, cmd,
+                                blockchain_id=None,
+                                user=user, passwd=password)
+
+
 def pause_services(host, user, password, services):
-  '''
-  services: A list of the docker containers to pause.
-  '''
-  for svc in services:
-    log.info("Pausing {}".format(svc))
-    cmd = "docker pause {}".format(svc)
-    helper.ssh_connect(host, user, password, cmd)
+    '''
+    services: A list of the docker containers to pause.
+    '''
+    instruction = "pause"
+    _invoke_service(host, user, password, instruction, services)
 
 
 def unpause_services(host, user, password, services):
-  '''
-  services: A list of the docker containers to unpause.
-  '''
-  for svc in services:
-    log.info("Unpausing {}".format(svc))
-    cmd = "docker unpause {}".format(svc)
-    helper.ssh_connect(host, user, password, cmd)
+    '''
+    services: A list of the docker containers to unpause.
+    '''
+    instruction = "unpause"
+    _invoke_service(host, user, password, instruction, services)
 
 
 def stop_services(host, user, password, services):
-  '''
-  services: A list of the docker containers to stop.
-  '''
-  for svc in services:
-    log.info("Stopping {} on {}".format(svc, host))
-    cmd = "docker stop {}".format(svc)
-    helper.durable_ssh_connect(host, user, password, cmd)
+    '''
+    services: A list of the docker containers to stop.
+    '''
+    instruction = "stop"
+    _invoke_service(host, user, password, instruction, services)
 
 
 def start_services(host, user, password, services):
-  '''
-  services: A list of the docker containers to start.
-  '''
-  for svc in services:
-    log.info("Starting {} on {}".format(svc, host))
-    cmd = "docker start  {}".format(svc)
-    helper.durable_ssh_connect(host, user, password, cmd)
+    '''
+    services: A list of the docker containers to start.
+    '''
+    instruction = "start"
+    _invoke_service(host, user, password, instruction, services)
 
 
 def shutdown(host, timeout=10):
-  '''
-  Gets a VM handle before shutting down the VM, and returns the handle.
-  The handle is needed to power it back on.
-  '''
-  vm = infra.findVMByInternalIP(host)
-  vm["entity"].PowerOffVM_Task()
-  time.sleep(timeout)
-  return vm
+    '''
+    Gets a VM handle before shutting down the VM, and returns the handle.
+    The handle is needed to power it back on.
+    '''
+    vm = infra.findVMByInternalIP(host)
+    vm["entity"].PowerOffVM_Task()
+    time.sleep(timeout)
+    return vm
 
 
 def powerup(vm, timeout=20):
-  '''
-  The vm parameter is a vim handle returned by, for example, shutdown().
-  '''
-  vm["entity"].PowerOnVM_Task()
-  time.sleep(timeout)
+    '''
+    The vm parameter is a vim handle returned by, for example, shutdown().
+    '''
+    vm["entity"].PowerOnVM_Task()
+    time.sleep(timeout)
 
 
 def reboot(host, timeout=20):
@@ -710,10 +719,9 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   unexpected_interrupted_committers = []
   for ip in all_committers_other_than_interrupted:
     log.info("  {}...".format(ip))
-    username, password = helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
-    if not helper.check_docker_health(ip, username, password,
+    if not helper.check_docker_health(ip,
                                       helper.TYPE_DAML_COMMITTER,
-                                      max_timeout=5, verbose=False):
+                                      fxBlockchain.blockchainId):
       log.warning("  ** Unexpected crash")
       unexpected_interrupted_committers.append(ip)
 
@@ -726,10 +734,9 @@ def get_all_crashed_nodes(fxBlockchain, results_dir, interrupted_node_type=None,
   unexpected_crashed_participants = []
   for ip in uninterrupted_participants:
     log.info("  {}...".format(ip))
-    username, password = helper.getNodeCredentials(fxBlockchain.blockchainId, ip)
-    if not helper.check_docker_health(ip, username, password,
+    if not helper.check_docker_health(ip,
                                       helper.TYPE_DAML_PARTICIPANT,
-                                      max_timeout=5, verbose=False):
+                                      fxBlockchain.blockchainId):
       log.warning("  ** Unexpected crash")
       unexpected_crashed_participants.append(ip)
 

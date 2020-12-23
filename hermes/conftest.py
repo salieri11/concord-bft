@@ -282,7 +282,7 @@ def set_hermes_info(request, hermes_info):
     hermes_info["hermesModuleLogDir"] = resultsDir
 
     # Set some helpers - update for each module
-    short_name = _get_suite_short_name(request.module.__name__)
+
     helper.map_run_id_to_this_run(cmdLineArguments.runID,
                                   cmdLineArguments.resultsDir,
                                   resultsDir)

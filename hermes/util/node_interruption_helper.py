@@ -16,11 +16,13 @@ if 'hermes_util' in sys.modules.keys():
    import hermes_util.daml.daml_helper as daml_helper
    import hermes_util.hermes_logging as hermes_logging_util
    import hermes.util.helper as helper
+   import hermes.util.rocksdb_helper as rocksdb_helper
    import hermes.util.blockchain_ops as blockchain_ops
 else:
    import util.daml.daml_helper as daml_helper
    import util.hermes_logging as hermes_logging_util
    import util.helper as helper
+   import util.rocksdb_helper as rocksdb_helper
    import util.blockchain_ops as blockchain_ops
 
 log = hermes_logging_util.getMainLogger()
@@ -661,13 +663,15 @@ def start_container(blockchain_id, ip, container_name, start_wait_time=30):
    Returns:
       None
    '''
-   username, password = helper.getNodeCredentials(blockchain_id, ip)
    cmd_to_start_primary = "docker start {}".format(container_name)
-   helper.ssh_connect(ip, username, password, cmd_to_start_primary)
+   helper.exec_cmd_on_node(ip, cmd_to_start_primary, blockchain_id=blockchain_id)
+
    time.sleep(start_wait_time)
+
    cmd_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
-   status = helper.ssh_connect(
-      ip, username, password, cmd_to_get_status)
+   status = helper.exec_cmd_on_node(ip, cmd_to_get_status,
+                                    blockchain_id=blockchain_id)
+
    if "running" in status:
       log.info("{} container restarted for {}".format(container_name, ip))
       return True
@@ -688,12 +692,14 @@ def stop_container(blockchain_id, ip, container_name, stop_wait_time=60):
    Returns:
       None
    '''
-   username, password = helper.getNodeCredentials(blockchain_id, ip)
    cmd_to_stop_primary = "docker stop {}".format(container_name)
-   helper.ssh_connect(ip, username, password, cmd_to_stop_primary)
+   helper.exec_cmd_on_node(ip, cmd_to_stop_primary, blockchain_id=blockchain_id)
+
    time.sleep(stop_wait_time)
+
    cmd_to_get_status = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
-   status = helper.ssh_connect(ip, username, password, cmd_to_get_status)
+   status = helper.exec_cmd_on_node(ip, cmd_to_get_status, blockchain_id=blockchain_id)
+
    if "exited" in status:
       log.info("{} container stopped for {}".format(container_name, ip))
       return True
@@ -718,10 +724,11 @@ def continuous_stop_start_container(blockchain_id, ip, container_name, duration=
       status = True
       start_time = datetime.now()
       end_time = start_time + timedelta(seconds=duration)
-      username, password = helper.getNodeCredentials(blockchain_id, ip)
+
       while status and start_time <= end_time:
          cmd = "docker inspect --format '{}' {}".format('{{.State.Status}}', container_name)
-         concord_status = helper.ssh_connect(ip, username, password, cmd)
+         concord_status = helper.exec_cmd_on_node(ip, cmd,
+                                                  blockchain_id=blockchain_id)
 
          if "running" in concord_status:
             status = stop_container(blockchain_id, ip, container_name)
@@ -761,8 +768,8 @@ def sleep_and_check(blockchain_id, init_sleep_time, step, max_sleep_time, start_
                start_block, end_block))
 
             for ip in replica_ips:                  
-               block_data.append(helper.get_raw_block_range(blockchain_id, ip, start_block, end_block))
-            
+               block_data.append(rocksdb_helper.get_raw_block_range(blockchain_id, ip, start_block, end_block))
+
             if all(i == block_data[0] for i in block_data):
                log.info("Block data is same")
                res = True
