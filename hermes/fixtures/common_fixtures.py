@@ -6,6 +6,8 @@ import json
 import logging
 import os
 import pprint
+from tempfile import NamedTemporaryFile
+
 import pytest
 import socket
 import struct
@@ -743,17 +745,23 @@ def non_castor_deployment(hermes_data):
       log.warning("Some test suites do not work with remote deployments yet.")
       blockchainId, conId, replicas, clientNodes = deployToSddc(logDir, hermes_data,
                                                    hermes_data["hermesCmdlineArgs"].blockchainLocation)
-   elif not hermes_data["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
-      # Hermes was not told to deloy a new blockchain, and there is one.  That means
-      # we are using the default built in test blockchain.
-      # TODO: Create a hermes consortium and add the Hermes org to it, here,
-      #       so that all test cases are run as a non-admin.
-      blockchain = devAdminRequest.getBlockchains()[0]
-      blockchainId = blockchain["id"]
-      conId = blockchain["consortium_id"]
-   elif hermes_data["hermesCmdlineArgs"].replicasConfig:
+   elif hermes_data["hermesCmdlineArgs"].replicasConfig or hermes_data["hermesCmdlineArgs"].replicas:
       # Hermes was told to use a passed in blockchain
-      replicas = helper.parseReplicasConfig(hermes_data["hermesCmdlineArgs"].replicasConfig)
+      if hermes_data["hermesCmdlineArgs"].replicasConfig:
+         replicas = helper.parseReplicasConfig(hermes_data["hermesCmdlineArgs"].replicasConfig)
+      else:
+         replicas_config_data = {}
+         for item in hermes_data["hermesCmdlineArgs"].replicas:
+            blockchain_type, ips = item[0].split(':')
+            replicas_details = []
+            for ip in ips.split(','):
+               replicas_details.append({"ip": ip})
+            replicas_config_data[blockchain_type] = replicas_details
+
+         replicas_config = NamedTemporaryFile(delete=False).name
+         with open(replicas_config, "w") as tmp:
+            json.dump(replicas_config_data, tmp, indent=True)
+         replicas = helper.parseReplicasConfig(replicas_config)
       # hermesCmdlineArgs is types.SimpleNamespace
       if hasattr(hermes_data["hermesCmdlineArgs"],'vm_handles'):
          log.info("VM handles is already available")
@@ -779,6 +787,14 @@ def non_castor_deployment(hermes_data):
          # The product was started with no blockchains.
          blockchainId = None
          conId = None
+   elif not hermes_data["hermesCmdlineArgs"].replicasConfig and len(devAdminRequest.getBlockchains()) > 0:
+      # Hermes was not told to deloy a new blockchain, and there is one.  That means
+      # we are using the default built in test blockchain.
+      # TODO: Create a hermes consortium and add the Hermes org to it, here,
+      #       so that all test cases are run as a non-admin.
+      blockchain = devAdminRequest.getBlockchains()[0]
+      blockchainId = blockchain["id"]
+      conId = blockchain["consortium_id"]
    
    return blockchainId, conId, replicas, clientNodes, None, None
 
