@@ -789,7 +789,7 @@ def get_docker_timestamp(host, username, password, service):
     '''
     Retrieves the most recent timestamp from `docker logs` for the given service.
     '''
-    output = helper.durable_ssh_connect(host, username, password,
+    output = helper.ssh_connect(host, username, password,
                                         "docker logs --tail 1 {}".format(service))
     return output.split("|")[0]
 

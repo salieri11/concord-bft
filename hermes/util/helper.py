@@ -426,8 +426,10 @@ def work_around_bc_5021(output):
 
    return output
 
-# TODO: use retry with backoff instead of backoff using sleep
-def durable_ssh_connect(host, username, password, command, log_mode=None, verbose=True, attempts=5):
+# TODO: This function should be removed. Use ssh_connect instead.
+#       ssh_connect is durable enough. If requried number of tries
+#       may be increased in ssh_connect.
+def durable_ssh_connect(host, username, password, command, log_mode=None, verbose=True, attempts=1):
    '''
    Run ssh_connect with exponential backoff retries.
    attempts: Number of times to try.
@@ -449,7 +451,7 @@ def durable_ssh_connect(host, username, password, command, log_mode=None, verbos
 
 
 @lru_cache(maxsize=50)
-@retry((paramiko.AuthenticationException, paramiko.SSHException, Exception), tries=3, delay=30)
+@retry((paramiko.AuthenticationException, paramiko.SSHException, Exception), tries=10, delay=10)
 def _get_ssh_connection(host, username, password, log_mode=None, verbose=True):
    '''
    Cache an ssh connection for use through out the session.
@@ -479,7 +481,7 @@ def _get_ssh_connection(host, username, password, log_mode=None, verbose=True):
    return ssh
 
 
-@retry((EOFError, Exception), tries=3, delay=10)
+@retry((EOFError, Exception), tries=10, delay=2, backoff=2)
 def ssh_connect(host, username, password, command, log_mode=None, verbose=True, log_response=True):
    '''
    Helper method to execute a command on a host via SSH
@@ -499,6 +501,7 @@ def ssh_connect(host, username, password, command, log_mode=None, verbose=True, 
    resp = None
    ssh = None
    try:
+      log.info("SSH command: {}".format(command))
       ssh = _get_ssh_connection(host, username, password)
       ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command,
                                                             get_pty=True)
