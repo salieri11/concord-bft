@@ -169,7 +169,7 @@ def get_primary_ip(fxBlockchain, committers):
     e = None
     output = None
 
-    output = util.helper.durable_ssh_connect(arbitrary_committer_ip,
+    output = util.helper.ssh_connect(arbitrary_committer_ip,
                                              username, password,
                                              "cat /config/concord/config-local/deployment.config",
                                              verbose=False)
