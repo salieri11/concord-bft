@@ -48,9 +48,10 @@ class PerformanceManager {
   }
 
   template <SlowdownPhase T>
-  SlowDownResult Delay(char *msg, ulong&& msgId, size_t &&size, std::function<void(char *, size_t &)> &&f) {
+  SlowDownResult Delay(char *msg, ulong &&msgId, size_t &&size, std::function<void(char *, size_t &)> &&f) {
     if (slowdownManager_)
-      return slowdownManager_->Delay<T>(msg, std::forward<ulong>(msgId), size, std::forward<std::function<void(char *, size_t &)>>(f));
+      return slowdownManager_->Delay<T>(
+          msg, std::forward<ulong>(msgId), size, std::forward<std::function<void(char *, size_t &)>>(f));
     return SlowDownResult{};
   }
 
