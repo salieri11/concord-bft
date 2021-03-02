@@ -1018,6 +1018,7 @@ template <>
 void ReplicaImp::onMessage<FullCommitProofMsg>(FullCommitProofMsg *msg) {
   pm_->Delay<concord::performance::SlowdownPhase::ConsensusFullCommitMsgProcess>(
       (char *)msg,
+      msg->seqNumber(),
       msg->sizeNeededForObjAndMsgInLocalBuffer(),
       std::bind(&IncomingMsgsStorage::pushExternalMsgRaw, &getIncomingMsgsStorage(), _1, _2));
 

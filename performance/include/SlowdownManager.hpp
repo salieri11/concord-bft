@@ -44,6 +44,7 @@ enum class SlowdownPhase : uint16_t {
 enum class SlowdownPolicyType { BusyWait, AddKeys, Sleep, MessageDelay };
 
 struct SlowDownResult {
+  bool slowed_down = false;
   SlowdownPhase phase = SlowdownPhase::None;
   uint totalKeyCount = 0;
   uint totalValueSize = 0;
@@ -151,6 +152,7 @@ class BasePolicy {
   virtual void Slowdown(SlowDownResult &outRes) {}
   virtual void Slowdown(concord::kvbc::SetOfKeyValuePairs &set, SlowDownResult &outRes) {}
   virtual void Slowdown(char *msg,
+                        ulong&& msgId,
                         size_t &size,
                         std::function<void(char *, size_t &)> &&cback,
                         SlowDownResult &outRes) {}
@@ -264,15 +266,17 @@ class MessageDelayPolicy : public BasePolicy {
  private:
   struct DelayInfo {
     char *msg = nullptr;
+    ulong messageId;
     size_t msgSize = 0;
     std::chrono::steady_clock::time_point absReturnTime;  // absolute time in future to "end" the delay
     std::function<void(char *, size_t &)> callback = nullptr;
 
     DelayInfo(char *msgData,
+              const ulong&& msgId,
               size_t &size,
               std::chrono::steady_clock::time_point &&absTime,
               std::function<void(char *, size_t &)> &cb)
-        : msgSize{size}, absReturnTime{absTime}, callback{cb} {
+        : messageId{msgId}, msgSize{size}, absReturnTime{absTime}, callback{cb} {
       // must copy data since it is deleted by the end of the Replica handling
       msg = new char[size];
       memcpy((void *)msg, (const void *)msgData, size);
@@ -290,9 +294,11 @@ class MessageDelayPolicy : public BasePolicy {
         msgSize = other.msgSize;
         absReturnTime = other.absReturnTime;
         callback = other.callback;
+        messageId = other.messageId;
         other.msg = nullptr;
         other.callback = nullptr;
         other.msgSize = 0;
+        other.messageId = 0;
       }
       return *this;
     }
@@ -329,6 +335,7 @@ class MessageDelayPolicy : public BasePolicy {
           delayedMsg.callback(delayedMsg.msg, delayedMsg.msgSize);
         }
         delayQueue_.pop();
+        delayedMessages.erase(delayedMsg.messageId);
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(poll_time_ms_));
     }
@@ -346,15 +353,21 @@ class MessageDelayPolicy : public BasePolicy {
   MessageDelayPolicy &operator=(MessageDelayPolicy &other) = delete;
 
   void Slowdown(char *msg,
+                ulong&& messageId,
                 size_t &size,
                 std::function<void(char *, size_t &)> &&cback,
                 SlowDownResult &outRes) override {
     using namespace std::chrono;
+    bool res = false;
     if (delay_dur_ms_) {
       std::unique_lock<std::mutex> lg(lock_);
-      delayQueue_.emplace(msg, size, steady_clock::now() + milliseconds(delay_dur_ms_), cback);
+      if(delayedMessages.count(messageId)) return;
+      delayQueue_.emplace(msg, std::move(messageId), size, steady_clock::now() + milliseconds(delay_dur_ms_), cback);
+      delayedMessages.emplace(std::move(messageId));
+      res = true;
       cv_.notify_all();
     }
+    outRes.slowed_down = res;
     outRes.totalMessageDelayDuration += delay_dur_ms_;
   }
 
@@ -381,6 +394,7 @@ class MessageDelayPolicy : public BasePolicy {
   std::priority_queue<DelayInfo, std::vector<DelayInfo>, Compare> delayQueue_;
   std::shared_ptr<std::thread> pollingThread_;
   bool done_ = false;
+  std::set<ulong> delayedMessages;
 };
 
 class SlowdownManager {
@@ -396,10 +410,10 @@ class SlowdownManager {
   }
 
   void DelayInternal(
-      SlowdownPhase phase, char *msg, size_t size, std::function<void(char *, size_t &)> &&f, SlowDownResult &res) {
+      SlowdownPhase phase, char *msg, ulong&& msgId, size_t size, std::function<void(char *, size_t &)> &&f, SlowDownResult &res) {
     auto policies = GetPolicies(phase, res);
     for (auto &policy : policies)
-      policy->Slowdown(msg, size, std::forward<std::function<void(char *, size_t &)>>(f), res);
+      policy->Slowdown(msg, std::forward<ulong>(msgId), size, std::forward<std::function<void(char *, size_t &)>>(f), res);
   }
 
   void DelayInternal(SlowdownPhase phase, SlowDownResult &res) {
@@ -430,11 +444,13 @@ class SlowdownManager {
 
   void DelayImp(cons_process_fullcommit_msg,
                 char *msg,
+                ulong && msgId,
                 size_t size,
                 std::function<void(char *, size_t &)> &&f,
                 SlowDownResult &res) {
     DelayInternal(SlowdownPhase::ConsensusFullCommitMsgProcess,
                   msg,
+                  std::forward<ulong>(msgId),
                   size,
                   std::forward<std::function<void(char *, size_t &)>>(f),
                   res);
@@ -521,10 +537,10 @@ class SlowdownManager {
   }
 
   template <SlowdownPhase T>
-  SlowDownResult Delay(char *msg, size_t size, std::function<void(char *, size_t &)> &&f) {
+  SlowDownResult Delay(char *msg, ulong&& msgId, size_t size, std::function<void(char *, size_t &)> &&f) {
     SlowDownResult res;
     auto t = phase_tag<T>();
-    DelayImp(t, msg, size, std::forward<std::function<void(char *, size_t &)>>(f), res);
+    DelayImp(t, msg, std::forward<ulong>(msgId), size,std::forward<std::function<void(char *, size_t &)>>(f), res);
     return res;
   }
 
@@ -558,7 +574,7 @@ class SlowdownManager {
   }
 
   template <SlowdownPhase T>
-  SlowDownResult Delay(char *msg, size_t size, std::function<void(char *, size_t &)> &&f) {
+  SlowDownResult Delay(char *msg, ulong&& msgId, size_t size, std::function<void(char *, size_t &)> &&f) {
     return SlowDownResult();
   }
 
