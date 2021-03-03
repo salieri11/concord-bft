@@ -158,14 +158,18 @@ TEST(slowdown_test, hybrid_configuration) {
     cv.notify_all();
   };
   auto now = std::chrono::steady_clock::now();
-  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, size_t{10}, std::move(t));
+  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, 1, size_t{10}, std::move(t));
+  EXPECT_TRUE(res.slowed_down);
+  EXPECT_EQ(res.totalMessageDelayDuration, mp.GetMessageDelayDuration());
+  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, 1, size_t{10}, std::move(t));
+  EXPECT_FALSE(res.slowed_down);
+  EXPECT_EQ(res.totalMessageDelayDuration, 0);
   {
     std::unique_lock<std::mutex> ul(m);
     if (!called) cv.wait(ul, [&]() { return called; });
   }
   EXPECT_GE(std::chrono::steady_clock::now() - now, std::chrono::milliseconds{mp.GetMessageDelayDuration()});
   EXPECT_TRUE(called);
-  EXPECT_EQ(res.totalMessageDelayDuration, mp.GetMessageDelayDuration());
   t1(data, 10, 'd');
 }
 

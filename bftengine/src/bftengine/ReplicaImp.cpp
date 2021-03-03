@@ -1016,11 +1016,20 @@ void ReplicaImp::onMessage<PartialCommitProofMsg>(PartialCommitProofMsg *msg) {
 
 template <>
 void ReplicaImp::onMessage<FullCommitProofMsg>(FullCommitProofMsg *msg) {
-  pm_->Delay<concord::performance::SlowdownPhase::ConsensusFullCommitMsgProcess>(
+  /// if the message was delayed, we don't continue, we clean the message as it happens at the end of this function
+  /// and return.
+  auto sdr = pm_->Delay<concord::performance::SlowdownPhase::ConsensusFullCommitMsgProcess>(
       (char *)msg,
       msg->seqNumber(),
       msg->sizeNeededForObjAndMsgInLocalBuffer(),
       std::bind(&IncomingMsgsStorage::pushExternalMsgRaw, &getIncomingMsgsStorage(), _1, _2));
+  if (sdr.slowed_down) {
+    LOG_INFO(CNSUS,
+             "FullCommitProofMsg message was delayed, seqNum:" << KVLOG(msg->seqNumber()) << " for "
+                                                               << KVLOG(sdr.totalMessageDelayDuration));
+    delete msg;
+    return;
+  }
 
   metric_received_full_commit_proofs_.Get().Inc();
   auto span = concordUtils::startChildSpanFromContext(msg->spanContext<std::remove_pointer<decltype(msg)>::type>(),
