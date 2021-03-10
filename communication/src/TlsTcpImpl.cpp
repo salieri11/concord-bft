@@ -59,8 +59,11 @@ int TlsTCPCommunication::TlsTcpImpl::Stop() {
     io_thread_.reset(nullptr);
   }
 
+  return 0;
   acceptor_.close();
-  accepting_socket_.close();
+  // accepting_socket_.close();
+
+  /*
   for (auto& [_, sock] : connecting_) {
     (void)_;  // unused variable hack
     sock.close();
@@ -85,6 +88,7 @@ int TlsTCPCommunication::TlsTcpImpl::Stop() {
     write_queue.clear();
   }
 
+*/
   return 0;
 }
 
@@ -180,7 +184,7 @@ int TlsTCPCommunication::TlsTcpImpl::sendAsyncMessage(const NodeNum destination,
   }
 }
 
-void setSocketOptions(boost::asio::ip::tcp::socket& socket) { socket.set_option(boost::asio::ip::tcp::no_delay(true)); }
+void setSocketOptions(SSL_SOCKET& socket) { socket.lowest_layer().set_option(boost::asio::ip::tcp::no_delay(true)); }
 
 void TlsTCPCommunication::TlsTcpImpl::closeConnection(NodeNum id) {
   LOG_INFO(logger_, "Closing connection from: " << config_.selfId << ", to: " << id);
@@ -201,6 +205,7 @@ void TlsTCPCommunication::TlsTcpImpl::closeConnection(NodeNum id) {
 
 void TlsTCPCommunication::TlsTcpImpl::closeConnection(std::shared_ptr<AsyncTlsConnection> conn) {
   // We don't want AsyncTlsConnection to close the socket, since we are doing that here.
+  return;
   static constexpr bool close_connection = false;
   conn->dispose(close_connection);
   conn->getSocket().lowest_layer().cancel();
@@ -270,9 +275,8 @@ void TlsTCPCommunication::TlsTcpImpl::onClientHandshakeComplete(const boost::sys
   onConnectionAuthenticated(std::move(conn));
 }
 
-void TlsTCPCommunication::TlsTcpImpl::startServerSSLHandshake(boost::asio::ip::tcp::socket&& socket) {
+void TlsTCPCommunication::TlsTcpImpl::startServerSSLHandshake(std::shared_ptr<AsyncTlsConnection>& conn) {
   auto connection_id = total_accepted_connections_;
-  auto conn = AsyncTlsConnection::create(io_service_, std::move(socket), receiver_, *this, config_.bufferLength);
   accepted_waiting_for_handshake_.insert({connection_id, conn});
   status_->num_accepted_waiting_for_handshake = accepted_waiting_for_handshake_.size();
   conn->getSocket().async_handshake(
@@ -280,11 +284,9 @@ void TlsTCPCommunication::TlsTcpImpl::startServerSSLHandshake(boost::asio::ip::t
       [this, connection_id](const boost::system::error_code& ec) { onServerHandshakeComplete(ec, connection_id); });
 }
 
-void TlsTCPCommunication::TlsTcpImpl::startClientSSLHandshake(boost::asio::ip::tcp::socket&& socket,
+void TlsTCPCommunication::TlsTcpImpl::startClientSSLHandshake(std::shared_ptr<AsyncTlsConnection>& conn,
                                                               NodeNum destination) {
-  auto conn =
-      AsyncTlsConnection::create(io_service_, std::move(socket), receiver_, *this, config_.bufferLength, destination);
-  connected_waiting_for_handshake_.insert({destination, conn});
+  connected_waiting_for_handshake_[destination] = conn;
   status_->num_connected_waiting_for_handshake = connected_waiting_for_handshake_.size();
   conn->getSocket().async_handshake(
       boost::asio::ssl::stream_base::client,
@@ -292,7 +294,8 @@ void TlsTCPCommunication::TlsTcpImpl::startClientSSLHandshake(boost::asio::ip::t
 }
 
 void TlsTCPCommunication::TlsTcpImpl::accept() {
-  acceptor_.async_accept(accepting_socket_, [this](boost::system::error_code ec) {
+  auto conn = AsyncTlsConnection::create(io_service_, receiver_, *this, config_.bufferLength);
+  acceptor_.async_accept(conn->getSocket().lowest_layer(), [=](boost::system::error_code ec) {
     if (ec) {
       LOG_WARN(logger_, "async_accept failed: " << ec.message());
       // When io_service is stopped, the handlers are destroyed and when the
@@ -302,9 +305,9 @@ void TlsTCPCommunication::TlsTcpImpl::accept() {
     }
     total_accepted_connections_++;
     status_->total_accepted_connections = total_accepted_connections_;
-    setSocketOptions(accepting_socket_);
+    setSocketOptions(conn->getSocket());
     LOG_INFO(logger_, "Accepted connection " << total_accepted_connections_);
-    startServerSSLHandshake(std::move(accepting_socket_));
+    startServerSSLHandshake(const_cast<std::shared_ptr<AsyncTlsConnection>&>(conn));
     accept();
   });
 }
@@ -332,22 +335,20 @@ void TlsTCPCommunication::TlsTcpImpl::resolve(NodeNum i) {
 }
 
 void TlsTCPCommunication::TlsTcpImpl::connect(NodeNum i, const boost::asio::ip::tcp::endpoint& endpoint) {
-  auto [it, inserted] = connecting_.emplace(i, boost::asio::ip::tcp::socket(io_service_));
-  ConcordAssert(inserted);
+  auto conn = AsyncTlsConnection::create(io_service_, receiver_, *this, config_.bufferLength, i);
+  connecting_[i] = conn;
   status_->num_connecting = connecting_.size();
-  it->second.async_connect(endpoint, [this, i, endpoint](const auto& error_code) {
+  conn->getSocket().lowest_layer().async_connect(endpoint, [this, i, endpoint, conn](const auto& error_code) {
     if (error_code) {
       LOG_WARN(logger_, "Failed to connect to node " << i << ": " << endpoint);
-      connecting_.at(i).close();
       connecting_.erase(i);
       status_->num_connecting = connecting_.size();
       return;
     }
     LOG_INFO(logger_, "Connected to node " << i << ": " << endpoint);
-    auto connected_socket = std::move(connecting_.at(i));
-    connecting_.erase(i);
     status_->num_connecting = connecting_.size();
-    startClientSSLHandshake(std::move(connected_socket), i);
+    startClientSSLHandshake(const_cast<std::shared_ptr<AsyncTlsConnection>&>(conn), i);
+    connecting_.erase(i);
   });
 }
 

@@ -41,25 +41,23 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   // In this case, shared_from_this() is required for registering verification callbacks in the SSL context
   // initialization functions.
   static std::shared_ptr<AsyncTlsConnection> create(boost::asio::io_service& io_service,
-                                                    boost::asio::ip::tcp::socket&& socket,
                                                     IReceiver* receiver,
                                                     TlsTCPCommunication::TlsTcpImpl& impl,
                                                     size_t max_buffer_size) {
     auto conn = std::make_shared<AsyncTlsConnection>(io_service, receiver, impl, max_buffer_size);
     conn->initServerSSLContext();
-    conn->createSSLSocket(std::move(socket));
+    conn->createSSLSocket();
     return conn;
   }
 
   static std::shared_ptr<AsyncTlsConnection> create(boost::asio::io_service& io_service,
-                                                    boost::asio::ip::tcp::socket&& socket,
                                                     IReceiver* receiver,
                                                     TlsTCPCommunication::TlsTcpImpl& impl,
                                                     size_t max_buffer_size,
                                                     NodeNum destination) {
     auto conn = std::make_shared<AsyncTlsConnection>(io_service, receiver, impl, max_buffer_size, destination);
     conn->initClientSSLContext(destination);
-    conn->createSSLSocket(std::move(socket));
+    conn->createSSLSocket();
     return conn;
   }
 
@@ -127,7 +125,7 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   void startReadTimer();
   void startWriteTimer();
 
-  void createSSLSocket(boost::asio::ip::tcp::socket&&);
+  void createSSLSocket();
   void initClientSSLContext(NodeNum destination);
   void initServerSSLContext();
 

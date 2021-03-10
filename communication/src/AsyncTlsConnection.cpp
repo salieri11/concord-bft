@@ -245,9 +245,9 @@ void AsyncTlsConnection::write() {
   startWriteTimer();
 }
 
-void AsyncTlsConnection::createSSLSocket(boost::asio::ip::tcp::socket&& socket) {
+void AsyncTlsConnection::createSSLSocket() {
   socket_ = std::make_unique<SSL_SOCKET>(io_service_, ssl_context_);
-  socket_->lowest_layer() = std::move(socket);
+  // socket_->lowest_layer() = std::move(socket);
 }
 
 void AsyncTlsConnection::initClientSSLContext(NodeNum destination) {

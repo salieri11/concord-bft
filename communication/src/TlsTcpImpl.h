@@ -116,7 +116,7 @@ class TlsTCPCommunication::TlsTcpImpl {
         config_(config),
         acceptor_(io_service_),
         resolver_(io_service_),
-        accepting_socket_(io_service_),
+        // accepting_socket_(io_service_),
         connect_timer_(io_service_),
         status_(std::make_shared<TlsStatus>()),
         histograms_(Recorders(std::to_string(config.selfId), config.bufferLength, MAX_QUEUE_SIZE_IN_BYTES)) {
@@ -174,8 +174,8 @@ class TlsTCPCommunication::TlsTcpImpl {
   void startConnectTimer();
 
   // Trigger the asio async_hanshake calls.
-  void startServerSSLHandshake(boost::asio::ip::tcp::socket &&);
-  void startClientSSLHandshake(boost::asio::ip::tcp::socket &&socket, NodeNum destination);
+  void startServerSSLHandshake(std::shared_ptr<AsyncTlsConnection> &conn);
+  void startClientSSLHandshake(std::shared_ptr<AsyncTlsConnection> &conn, NodeNum destination);
 
   // Callbacks triggered when asio async_hanshake completes for an incoming or outgoing connection.
   void onServerHandshakeComplete(const boost::system::error_code &ec, size_t accepted_connection_id);
@@ -220,7 +220,7 @@ class TlsTCPCommunication::TlsTcpImpl {
   // Every async_accept call for asio requires us to pass it an existing socket to write into. Later versions do not
   // require this. This socket will be filled in by an accepted connection. We'll then move it into an
   // AsyncTlsConnection when the async_accept handler returns.
-  boost::asio::ip::tcp::socket accepting_socket_;
+  // boost::asio::ip::tcp::socket accepting_socket_;
 
   // For each accepted connection, we bump this value. We use it as a key into a map to find any in
   // progress connections when cert validation completes
@@ -235,7 +235,7 @@ class TlsTCPCommunication::TlsTcpImpl {
   // Sockets that are in progress of connecting.
   // When these connections complete, an AsyncTlsConnection will be created and moved into
   // `connected_waiting_for_handshake_`.
-  std::unordered_map<NodeNum, boost::asio::ip::tcp::socket> connecting_;
+  std::unordered_map<NodeNum, std::shared_ptr<AsyncTlsConnection>> connecting_;
 
   // Connections that are in progress of waiting for a handshake to complete.
   // When the handshake completes these will be moved into `connections_`.
