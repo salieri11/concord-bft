@@ -32,7 +32,7 @@ namespace bftEngine {
   CONFIG_PARAM_RO(param, type, default_val, description);   \
   void set##param(const type& val) { param = val; } /* NOLINT(bugprone-macro-parentheses) */
 
-enum BatchingPolicy { BATCH_SELF_ADJUSTED, BATCH_BY_REQ_SIZE, BATCH_BY_REQ_NUM };
+enum BatchingPolicy { BATCH_SELF_ADJUSTED, BATCH_BY_REQ_SIZE, BATCH_BY_REQ_NUM, BATCH_BY_FILL_RATE };
 
 class ReplicaConfig : public concord::serialize::SerializableFactory<ReplicaConfig> {
  public:
@@ -83,8 +83,8 @@ class ReplicaConfig : public concord::serialize::SerializableFactory<ReplicaConf
                "client requests. If equals to 0, a default of "
                "min(thread::hardware_concurrency(), numOfClients) is used ");
 
-  CONFIG_PARAM(batchingPolicy, uint32_t, BATCH_SELF_ADJUSTED, "BFT consensus batching policy for requests");
-  CONFIG_PARAM(batchFlushPeriod, uint32_t, 1000, "BFT consensus batching flush period");
+  CONFIG_PARAM(batchingPolicy, uint32_t, BATCH_BY_FILL_RATE, "BFT consensus batching policy for requests");
+  CONFIG_PARAM(batchFlushPeriod, uint32_t, 100, "BFT consensus batching flush period");
   CONFIG_PARAM(maxNumOfRequestsInBatch, uint32_t, 100, "Maximum number of requests in BFT consensus batch");
   CONFIG_PARAM(maxBatchSizeInBytes, uint32_t, 33554432, "Maximum size of all requests in BFT consensus batch");
   CONFIG_PARAM(maxInitialBatchSize,

@@ -30,23 +30,42 @@ RequestsBatchingLogic::RequestsBatchingLogic(InternalReplicaApi &replica,
       maxNumOfRequestsInBatch_(config.maxNumOfRequestsInBatch),
       maxBatchSizeInBytes_(config.maxBatchSizeInBytes),
       timers_(timers) {
-  if (batchingPolicy_ == BATCH_BY_REQ_SIZE || batchingPolicy_ == BATCH_BY_REQ_NUM)
-    batchFlushTimer_ = timers_.add(milliseconds(batchFlushPeriodMs_),
-                                   Timers::Timer::RECURRING,
-                                   [this](Timers::Handle h) { onBatchFlushTimer(h); });
+  intervalTime_ = batchFlushPeriodMs_ / sleepFactorPercentage;
+  auto flushTime = batchingPolicy_ == BATCH_BY_FILL_RATE ? intervalTime_ : batchFlushPeriodMs_;
+  if (batchingPolicy_ == BATCH_BY_REQ_SIZE || batchingPolicy_ == BATCH_BY_REQ_NUM ||
+      batchingPolicy_ == BATCH_BY_FILL_RATE)
+    batchFlushTimer_ = timers_.add(
+        milliseconds(flushTime), Timers::Timer::RECURRING, [this](Timers::Handle h) { onBatchFlushTimer(h); });
 }
 
 RequestsBatchingLogic::~RequestsBatchingLogic() {
-  if (batchingPolicy_ == BATCH_BY_REQ_SIZE || batchingPolicy_ == BATCH_BY_REQ_NUM) timers_.cancel(batchFlushTimer_);
+  if (batchingPolicy_ == BATCH_BY_REQ_SIZE || batchingPolicy_ == BATCH_BY_REQ_NUM ||
+      batchingPolicy_ == BATCH_BY_FILL_RATE)
+    timers_.cancel(batchFlushTimer_);
 }
 
 void RequestsBatchingLogic::onBatchFlushTimer(Timers::Handle) {
-  if (replica_.isCurrentPrimary()) {
-    lock_guard<mutex> lock(batchProcessingLock_);
-    if (replica_.tryToSendPrePrepareMsg(false)) {
-      LOG_INFO(GL, "Batching flush period expired" << KVLOG(batchFlushPeriodMs_));
-      timers_.reset(batchFlushTimer_, milliseconds(batchFlushPeriodMs_));
+  lock_guard<mutex> lock(batchProcessingLock_);
+  if (replica_.isCurrentPrimary() && batchingPolicy_ == BATCH_BY_FILL_RATE) {
+    bool send = true;
+    if (std::chrono::steady_clock::now() - intervalStart_ < std::chrono::milliseconds(batchFlushPeriodMs_)) {
+      if (currentIntervalCount_ >= lastIntervalCount_ ||
+          lastIntervalCount_ - currentIntervalCount_ <=
+              (double)lastIntervalCount_ / 100 * lastIntervalThreholdPercentage) {
+        send = false;
+      }
+    } else {
+      intervalStart_ = std::chrono::steady_clock::now();
     }
+    lastIntervalCount_ = currentIntervalCount_;
+    currentIntervalCount_ = 0;
+
+    if (send) replica_.tryToSendPrePrepareMsg(false);
+    timers_.reset(batchFlushTimer_, milliseconds(intervalTime_));
+    return;
+  } else if (replica_.isCurrentPrimary()) {
+    LOG_DEBUG(GL, "Batching flush period expired" << KVLOG(batchFlushPeriodMs_));
+    if (replica_.tryToSendPrePrepareMsg(false)) timers_.reset(batchFlushTimer_, milliseconds(batchFlushPeriodMs_));
   }
 }
 
@@ -101,6 +120,11 @@ PrePrepareMsg *RequestsBatchingLogic::batchRequests() {
       if (replica_.tryToSendPrePrepareMsgBatchByOverallSize(maxBatchSizeInBytes_))
         timers_.reset(batchFlushTimer_, milliseconds(batchFlushPeriodMs_));
     } break;
+    case BATCH_BY_FILL_RATE: {
+      lock_guard<mutex> lock(batchProcessingLock_);
+      ++currentIntervalCount_;
+      break;
+    }
   }
   return prePrepareMsg;
 }

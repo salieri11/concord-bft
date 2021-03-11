@@ -50,6 +50,14 @@ class RequestsBatchingLogic {
   const uint32_t batchFlushPeriodMs_;
   const uint32_t maxNumOfRequestsInBatch_;
   const uint32_t maxBatchSizeInBytes_;
+
+  std::chrono::steady_clock::time_point intervalStart_;
+  uint32_t lastIntervalCount_ = 0;
+  uint32_t currentIntervalCount_ = 0;
+  uint32_t intervalTime_ = 0;
+  const uint32_t sleepFactorPercentage = 10;
+  const uint32_t lastIntervalThreholdPercentage = 10;
+
   concordUtil::Timers &timers_;
   concordUtil::Timers::Handle batchFlushTimer_;
   std::mutex batchProcessingLock_;
