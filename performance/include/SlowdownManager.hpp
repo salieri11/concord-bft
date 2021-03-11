@@ -273,11 +273,13 @@ class MessageDelayPolicy : public BasePolicy {
               size_t &size,
               std::chrono::steady_clock::time_point &&absTime,
               std::function<void(char *, size_t &)> &cb)
-        : messageId{msgId}, msgSize{size}, absReturnTime{absTime}, callback{cb} {
-      // must copy data since it is deleted by the end of the Replica handling
-      msg = new char[size];
-      memcpy((void *)msg, (const void *)msgData, size);
-    };
+        : msg{msgData},
+          messageId{msgId},
+          msgSize{size},
+          absReturnTime{absTime},
+          callback{cb} {
+              // msg is already copied, just copy the pointer
+          };
 
     virtual ~DelayInfo() { delete[] msg; }
 
@@ -324,15 +326,23 @@ class MessageDelayPolicy : public BasePolicy {
         if (std::chrono::steady_clock::now() < delayedMsg.absReturnTime) {
           // since we move the top message for checking delay, the one in the Q is NULLed.
           // if this message is not ready to be re-delivered, return it to the Q and remove the invalid one from the top
+          LOG_DEBUG(logger_,
+                    "MessageDelayPolicy slowdown, msgId: " << delayedMsg.messageId
+                                                           << " still waiting, size:: " << delayedMsg.msgSize);
           delayQueue_.pop();
           delayQueue_.push(std::move(delayedMsg));
           break;
         }
         if (delayedMsg.callback) {
+          LOG_DEBUG(logger_,
+                    "MessageDelayPolicy slowdown, returning msgId: " << delayedMsg.messageId
+                                                                     << ", size: " << delayedMsg.msgSize);
           delayedMsg.callback(delayedMsg.msg, delayedMsg.msgSize);
+          LOG_DEBUG(logger_, "MessageDelayPolicy slowdown, message returned, msgId: " << delayedMsg.messageId);
         }
         delayQueue_.pop();
-        delayedMessages.erase(delayedMsg.messageId);
+        // don't clean message ids that were delayed
+        // delayedMessages.erase(delayedMsg.messageId);
       }
       std::this_thread::sleep_for(std::chrono::milliseconds(poll_time_ms_));
     }
@@ -356,12 +366,23 @@ class MessageDelayPolicy : public BasePolicy {
                 SlowDownResult &outRes) override {
     using namespace std::chrono;
     bool res = false;
+    LOG_DEBUG(
+        logger_,
+        "MessageDelayPolicy slowdown, count: " << delay_dur_ms_ << ", msgId: " << messageId << ", msgSize: " << size);
     if (delay_dur_ms_) {
       std::unique_lock<std::mutex> lg(lock_);
-      if (delayedMessages.count(messageId)) return;
+      LOG_DEBUG(logger_,
+                "MessageDelayPolicy slowdown, count: " << delay_dur_ms_ << ", msgId: " << messageId
+                                                       << ", qsize: " << delayQueue_.size());
+      if (delayedMessages.count(messageId)) {
+        LOG_DEBUG(logger_, "MessageDelayPolicy slowdown, message ignored, msgId: " << messageId);
+        return;
+      }
       delayQueue_.emplace(msg, std::move(messageId), size, steady_clock::now() + milliseconds(delay_dur_ms_), cback);
       delayedMessages.emplace(std::move(messageId));
       res = true;
+      LOG_DEBUG(logger_,
+                "MessageDelayPolicy slowdown, message added, msgId: " << messageId << ", dur: " << delay_dur_ms_);
       cv_.notify_all();
     }
     outRes.slowed_down = res;
@@ -410,12 +431,20 @@ class SlowdownManager {
                      char *msg,
                      ulong &&msgId,
                      size_t size,
-                     std::function<void(char *, size_t &)> &&f,
+                     std::function<size_t(char *, char *)> &&serializeFunction,
+                     std::function<void(char *, size_t &)> &&returnFunction,
                      SlowDownResult &res) {
     auto policies = GetPolicies(phase, res);
-    for (auto &policy : policies)
-      policy->Slowdown(
-          msg, std::forward<ulong>(msgId), size, std::forward<std::function<void(char *, size_t &)>>(f), res);
+    if (!policies.empty()) {
+      char *msgData = new char[size * 2];
+      auto actualSize = serializeFunction(msgData, msg);
+      for (auto &policy : policies)
+        policy->Slowdown(msgData,
+                         std::forward<ulong>(msgId),
+                         actualSize,
+                         std::forward<std::function<void(char *, size_t &)>>(returnFunction),
+                         res);
+    }
   }
 
   void DelayInternal(SlowdownPhase phase, SlowDownResult &res) {
@@ -448,13 +477,15 @@ class SlowdownManager {
                 char *msg,
                 ulong &&msgId,
                 size_t size,
-                std::function<void(char *, size_t &)> &&f,
+                std::function<size_t(char *, char *)> &&serializeFunction,
+                std::function<void(char *, size_t &)> &&returnMsgFunction,
                 SlowDownResult &res) {
     DelayInternal(SlowdownPhase::ConsensusFullCommitMsgProcess,
                   msg,
                   std::forward<ulong>(msgId),
                   size,
-                  std::forward<std::function<void(char *, size_t &)>>(f),
+                  std::forward<std::function<size_t(char *, char *)>>(serializeFunction),
+                  std::forward<std::function<void(char *, size_t &)>>(returnMsgFunction),
                   res);
   }
 
@@ -539,10 +570,20 @@ class SlowdownManager {
   }
 
   template <SlowdownPhase T>
-  SlowDownResult Delay(char *msg, ulong &&msgId, size_t size, std::function<void(char *, size_t &)> &&f) {
+  SlowDownResult Delay(char *msg,
+                       ulong &&msgId,
+                       size_t size,
+                       std::function<size_t(char *, char *)> &&serializeFunction,
+                       std::function<void(char *, size_t &)> &&returnFunction) {
     SlowDownResult res;
     auto t = phase_tag<T>();
-    DelayImp(t, msg, std::forward<ulong>(msgId), size, std::forward<std::function<void(char *, size_t &)>>(f), res);
+    DelayImp(t,
+             msg,
+             std::forward<ulong>(msgId),
+             size,
+             std::forward<std::function<size_t(char *, char *)>>(serializeFunction),
+             std::forward<std::function<void(char *, size_t &)>>(returnFunction),
+             res);
     return res;
   }
 

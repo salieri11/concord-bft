@@ -1021,7 +1021,8 @@ void ReplicaImp::onMessage<FullCommitProofMsg>(FullCommitProofMsg *msg) {
   auto sdr = pm_->Delay<concord::performance::SlowdownPhase::ConsensusFullCommitMsgProcess>(
       (char *)msg,
       msg->seqNumber(),
-      msg->sizeNeededForObjAndMsgInLocalBuffer(),
+      msg->sizeNeededForObjAndMsgInLocalBuffer() * 2,
+      std::bind(&MessageBase::serializeMsgRaw, _1, _2),
       std::bind(&IncomingMsgsStorage::pushExternalMsgRaw, &getIncomingMsgsStorage(), _1, _2));
   if (sdr.slowed_down) {
     LOG_INFO(CNSUS,

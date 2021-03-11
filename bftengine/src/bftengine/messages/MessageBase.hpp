@@ -54,7 +54,7 @@ class MessageBase {
 
   static size_t serializeMsg(char *&buf, const MessageBase *msg);
 
-  static size_t serializeMsg(char *&buf, char *msg);
+  static size_t serializeMsgRaw(char *buf, char *msg);
 
   static MessageBase *deserializeMsg(char *&buf, size_t bufLen, size_t &actualSize);
 

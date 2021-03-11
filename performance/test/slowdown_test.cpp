@@ -150,6 +150,7 @@ TEST(slowdown_test, hybrid_configuration) {
       EXPECT_EQ(d[i], exp);
     }
   };
+  size_t size = 10;
   auto t = [&](char* d, size_t& size) {
     std::lock_guard<std::mutex> lg(m);
     called = true;
@@ -157,11 +158,15 @@ TEST(slowdown_test, hybrid_configuration) {
     t1(d, size, 'd');
     cv.notify_all();
   };
+  auto serialize = [&](char* buf, char* msg) -> size_t {
+    memcpy(buf, msg, size);
+    return size;
+  };
   auto now = std::chrono::steady_clock::now();
-  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, 1, size_t{10}, std::move(t));
+  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, 1, 10, serialize, t);
   EXPECT_TRUE(res.slowed_down);
   EXPECT_EQ(res.totalMessageDelayDuration, mp.GetMessageDelayDuration());
-  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, 1, size_t{10}, std::move(t));
+  res = pm.Delay<SlowdownPhase::ConsensusFullCommitMsgProcess>(data, 1, 10, serialize, t);
   EXPECT_FALSE(res.slowed_down);
   EXPECT_EQ(res.totalMessageDelayDuration, 0);
   {
@@ -170,7 +175,7 @@ TEST(slowdown_test, hybrid_configuration) {
   }
   EXPECT_GE(std::chrono::steady_clock::now() - now, std::chrono::milliseconds{mp.GetMessageDelayDuration()});
   EXPECT_TRUE(called);
-  t1(data, 10, 'd');
+  t1(data, size, 'd');
 }
 
 // TODO: Provide an implementation for categorization.

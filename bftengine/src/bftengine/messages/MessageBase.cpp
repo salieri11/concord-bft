@@ -209,7 +209,7 @@ bool MessageBase::equals(const MessageBase &other) const {
   return (memcmp(other.msgBody_, msgBody_, msgSize_) == 0);
 }
 
-size_t MessageBase::serializeMsg(char *&buf, char *msg) {
+size_t MessageBase::serializeMsgRaw(char *buf, char *msg) {
   return serializeMsg(buf, reinterpret_cast<const MessageBase *>(msg));
 }
 
