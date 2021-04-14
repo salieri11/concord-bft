@@ -80,7 +80,7 @@ class WriteQueue {
   bool connected() const { return connected_; }
 
   // Only add onto the queue if there is an active connection. Return the size of the queue after
-  // the push completes or std::nullopt if there is no connection, or the queue is full.
+  // the push completes oself->r std::nullopt if there is no connection, or the queue is full.
   std::optional<size_t> push(const std::shared_ptr<OutgoingMsg>& msg) {
     if (!connected_) {
       return std::nullopt;
@@ -92,10 +92,11 @@ class WriteQueue {
       return std::nullopt;
     }
     queued_size_in_bytes_ += msg->msg.size();
-    msgs_.push_back(msg);
+    msgs_.push_back(msg->msg);
     return msgs_.size();
   }
 
+  /*
   std::shared_ptr<OutgoingMsg> pop() {
     std::lock_guard<std::mutex> guard(lock_);
     recorders_.write_queue_len->record(msgs_.size());
@@ -108,11 +109,18 @@ class WriteQueue {
     queued_size_in_bytes_ -= msg->msg.size();
     return msg;
   }
+   */
 
   void clear() {
     std::lock_guard<std::mutex> guard(lock_);
     msgs_.clear();
     queued_size_in_bytes_ = 0;
+  }
+
+  void clear_prev() {
+    std::lock_guard<std::mutex> guard(lock_);
+    ConcordAssert(!msgs_swapped_.empty());
+    msgs_swapped_.clear();
   }
 
   size_t size() const {
@@ -130,13 +138,25 @@ class WriteQueue {
     return conn_;
   }
 
+  std::vector<std::vector<uint8_t>>& get_messages() {
+    std::lock_guard<std::mutex> guard(lock_);
+    ConcordAssert(msgs_swapped_.empty());
+    ConcordAssert(!msgs_.empty());
+    std::swap(msgs_, msgs_swapped_);
+    msgs_.clear();
+    recorders_.write_queue_len->record(msgs_swapped_.size());
+    return msgs_swapped_;
+  }
+
   WriteQueue(const WriteQueue&) = delete;
   WriteQueue& operator=(const WriteQueue&) = delete;
 
  private:
   // Protects `msgs_`, `queued_size_in_bytes_`, and `conn_`
   mutable std::mutex lock_;
-  std::deque<std::shared_ptr<OutgoingMsg>> msgs_;
+  // std::deque<std::shared_ptr<OutgoingMsg>> msgs_;
+  std::vector<std::vector<uint8_t>> msgs_;
+  std::vector<std::vector<uint8_t>> msgs_swapped_;
   size_t queued_size_in_bytes_ = 0;
   std::shared_ptr<AsyncTlsConnection> conn_;
 

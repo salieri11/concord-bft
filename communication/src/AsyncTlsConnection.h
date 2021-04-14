@@ -115,6 +115,8 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   // Clean up the connection
   void dispose(bool close_connection = true);
 
+  inline boost::asio::io_service& get_io_service() { return io_service_; }
+
  private:
   // We know the size of the message and that a message should be forthcoming. We start a timer and
   // ensure we read all remaining bytes within a given timeout. If we read the full message we
@@ -181,7 +183,9 @@ class AsyncTlsConnection : public std::enable_shared_from_this<AsyncTlsConnectio
   std::vector<char> read_msg_;
 
   // Message being currently written.
-  std::shared_ptr<OutgoingMsg> write_msg_;
+  // std::shared_ptr<OutgoingMsg> write_msg_;
+  bool is_writing_ = false;
+  std::mutex write_lock_;
 
   WriteQueue* write_queue_ = nullptr;
 };

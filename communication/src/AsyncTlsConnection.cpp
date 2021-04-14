@@ -108,7 +108,7 @@ void AsyncTlsConnection::readMsg() {
                // https://github.com/chriskohlhoff/asio/commit/57b2ef19b013dd1fd8660af28398d3d332d1ea97
                if (bytes_transferred == 0) {
                  LOG_ERROR(logger_, "Short read (0 bytes) of message occurred" << KVLOG(peer_id_.value(), msg_size));
-                 return dispose();
+                 // return dispose();
                }
 
                // This would be a much more severe bug that is undocumented, and also that we have
@@ -201,44 +201,72 @@ void AsyncTlsConnection::dispose(bool close_connection) {
 }
 
 void AsyncTlsConnection::write() {
-  if (disposed_ || write_msg_) return;
+  // if (disposed_ || write_msg_) return;
+  if (disposed_ || is_writing_) return;
+  // write_msg_ = write_queue_->pop();
+  // if (!write_msg_) return;
+  if (!write_queue_->size()) return;
 
-  write_msg_ = write_queue_->pop();
-  if (!write_msg_) return;
+  // std::lock_guard lg(write_lock_);
+  auto out = write_queue_->get_messages();
+  auto outSize = out.size();
+  std::vector<boost::asio::const_buffer> buf;
+  LOG_INFO(logger_, "Writing" << KVLOG(outSize));
+  buf.reserve(outSize);
+  uint total = 0;
+  for (auto& msg : out) {
+    buf.push_back(boost::asio::buffer(msg));
+    total += msg.size();
+  }
 
-  LOG_DEBUG(logger_, "Writing" << KVLOG(write_msg_->msg.size()));
+  boost::system::error_code ec;
+  auto sent = boost::asio::write(*socket_, buf, ec);
+  ConcordAssert(sent == total);
+  if (ec) {
+    if (ec == boost::asio::error::operation_aborted) {
+      // The socket has already been cleaned up and any references are invalid. Just return.
+      LOG_DEBUG(logger_, "Operation aborted: " << KVLOG(peer_id_.value(), disposed_));
+      return;
+    }
+    LOG_WARN(logger_, "Write failed to node " << peer_id_.value() << "with error: " << ec.message());
+    return dispose();
+  }
+  write_queue_->clear_prev();
 
   // We don't want to include tcp transmission time.
-  auto diff = std::chrono::steady_clock::now() - write_msg_->send_time;
-  tlsTcpImpl_.histograms_.send_time_in_queue->record(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count());
-
-  auto self = shared_from_this();
-  boost::asio::async_write(*socket_,
-                           boost::asio::buffer(write_msg_->msg),
-                           [this, self](const boost::system::error_code& ec, auto bytes_written) {
-                             if (disposed_) return;
-                             if (ec) {
-                               if (ec == boost::asio::error::operation_aborted) {
-                                 // The socket has already been cleaned up and any references are invalid. Just return.
-                                 LOG_DEBUG(logger_, "Operation aborted: " << KVLOG(peer_id_.value(), disposed_));
-                                 return;
-                               }
-                               LOG_WARN(logger_,
-                                        "Write failed to node " << peer_id_.value() << " for message with size "
-                                                                << write_msg_->msg.size() << ": " << ec.message());
-                               return dispose();
-                             }
-
-                             // The write succeeded.
-                             boost::system::error_code _ec;
-                             write_timer_.cancel(_ec);
-
-                             tlsTcpImpl_.histograms_.sent_msg_size->record(write_msg_->msg.size());
-                             write_msg_ = nullptr;
-                             write();
-                           });
-  startWriteTimer();
+  // auto diff = std::chrono::steady_clock::now() - buf.front()->send_time;
+  // tlsTcpImpl_.histograms_.send_time_in_queue->record(
+  //    std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count());
+  //  is_writing_ = true;
+  //  auto self = shared_from_this();
+  //  boost::asio::async_write(*socket_,
+  //                           buf,
+  //                           [self](const boost::system::error_code& ec, auto bytes_written) {
+  //                             if (self->disposed_) return;
+  //                             if (ec) {
+  //                               if (ec == boost::asio::error::operation_aborted) {
+  //                                 // The socket has already been cleaned up and any references are invalid. Just
+  //                                 return. LOG_DEBUG(self->logger_, "Operation aborted: " <<
+  //                                 KVLOG(self->peer_id_.value(), self->disposed_)); return;
+  //                               }
+  //                               LOG_WARN(self->logger_,
+  //                                        "Write failed to node " << self->peer_id_.value() << "with error: " <<
+  //                                        ec.message());
+  //                               return self->dispose();
+  //                             }
+  //
+  //                             // The write succeeded.
+  //                             boost::system::error_code _ec;
+  //                             self->write_timer_.cancel(_ec);
+  //
+  //                             // tlsTcpImpl_.histograms_.sent_msg_size->record(write_msg_->msg.size());
+  //                             // write_msg_ = nullptr;
+  //                             self->is_writing_ = false;
+  //                             self->write_queue_->clear_prev();
+  //                             self->buf.clear();
+  //                             self->write();
+  //                           });
+  //  startWriteTimer();
 }
 
 void AsyncTlsConnection::createSSLSocket(boost::asio::ip::tcp::socket&& socket) {

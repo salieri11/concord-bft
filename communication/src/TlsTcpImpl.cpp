@@ -19,33 +19,55 @@ namespace bft::communication {
 
 int TlsTCPCommunication::TlsTcpImpl::Start() {
   std::lock_guard<std::mutex> l(io_thread_guard_);
-  if (io_thread_) return 0;
-
-  // Start the io_thread_;
-  io_thread_.reset(new std::thread([this]() {
-    LOG_INFO(logger_, "io thread starting: isReplica() = " << isReplica());
-    if (isReplica()) {
-      listen();
-      accept();
+  // if (io_thread_) return 0;
+  if (service_pool_->is_running()) return 0;
+  LOG_INFO(logger_, "io_service pool starting: isReplica() = " << isReplica());
+  if (isReplica()) {
+    listen();
+    accept();
+  }
+  for (auto i = 0; i <= config_.maxServerId; i++) {
+    if (config_.statusCallback) {
+      auto node = config_.nodes.at(i);
+      PeerConnectivityStatus pcs{};
+      pcs.peerId = i;
+      pcs.peerHost = node.host;
+      pcs.peerPort = node.port;
+      pcs.statusType = StatusType::Started;
+      config_.statusCallback(pcs);
     }
-    for (auto i = 0; i <= config_.maxServerId; i++) {
-      if (config_.statusCallback) {
-        auto node = config_.nodes.at(i);
-        PeerConnectivityStatus pcs{};
-        pcs.peerId = i;
-        pcs.peerHost = node.host;
-        pcs.peerPort = node.port;
-        pcs.statusType = StatusType::Started;
-        config_.statusCallback(pcs);
-      }
-    }
-    connect();
-    startConnectTimer();
+  }
+  connect();
+  startConnectTimer();
+  service_pool_->start();
 
-    // We must start connecting and accepting before we start the io_service, so that it has some
-    // work to do. This is what prevents the io_service event loop from exiting immediately.
-    io_service_.run();
-  }));
+  //  // Start the io_thread_;
+  //  io_thread_.reset(new std::thread([this]() {
+  //    LOG_INFO(logger_, "io thread starting: isReplica() = " << isReplica());
+  //    if (isReplica()) {
+  //      listen();
+  //      accept();
+  //    }
+  //    for (auto i = 0; i <= config_.maxServerId; i++) {
+  //      if (config_.statusCallback) {
+  //        auto node = config_.nodes.at(i);
+  //        PeerConnectivityStatus pcs{};
+  //        pcs.peerId = i;
+  //        pcs.peerHost = node.host;
+  //        pcs.peerPort = node.port;
+  //        pcs.statusType = StatusType::Started;
+  //        config_.statusCallback(pcs);
+  //      }
+  //    }
+  //    connect();
+  //    startConnectTimer();
+  //
+  //    // We must start connecting and accepting before we start the io_service, so that it has some
+  //    // work to do. This is what prevents the io_service event loop from exiting immediately.
+  //    //io_service_.run();
+  //
+  //  }));
+
   return 0;
 }
 
@@ -53,16 +75,17 @@ int TlsTCPCommunication::TlsTcpImpl::Stop() {
   LOG_INFO(logger_, "io thread stopping: isReplica() = " << isReplica());
   status_->reset();
   std::lock_guard<std::mutex> l(io_thread_guard_);
-  if (!io_thread_) return 0;
-  io_service_.stop();
-  if (io_thread_->joinable()) {
-    io_thread_->join();
-    io_thread_.reset(nullptr);
-  }
+  // if (!io_thread_) return 0;
+  service_pool_->stop();
+
+  // if (io_thread_->joinable()) {
+  //  io_thread_->join();
+  //  io_thread_.reset(nullptr);
+  // }
   LOG_INFO(logger_, "io thread stopped: isReplica() = " << isReplica());
 
-  acceptor_.close();
-  accepting_socket_.close();
+  acceptor_->close();
+  accepting_socket_->close();
   LOG_INFO(logger_, "acceptor closed: isReplica() = " << isReplica());
   for (auto& [_, sock] : connecting_) {
     (void)_;  // unused variable hack
@@ -92,8 +115,8 @@ int TlsTCPCommunication::TlsTcpImpl::Stop() {
 }
 
 void TlsTCPCommunication::TlsTcpImpl::startConnectTimer() {
-  connect_timer_.expires_from_now(CONNECT_TICK);
-  connect_timer_.async_wait([this](const boost::system::error_code& ec) {
+  connect_timer_->expires_from_now(CONNECT_TICK);
+  connect_timer_->async_wait([this](const boost::system::error_code& ec) {
     if (ec) {
       if (ec == boost::asio::error::operation_aborted) {
         // We are shutting down the system. Just return.
@@ -110,10 +133,10 @@ void TlsTCPCommunication::TlsTcpImpl::startConnectTimer() {
 void TlsTCPCommunication::TlsTcpImpl::listen() {
   try {
     auto endpoint = syncResolve();
-    acceptor_.open(endpoint.protocol());
-    acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
-    acceptor_.bind(endpoint);
-    acceptor_.listen(LISTEN_BACKLOG);
+    acceptor_->open(endpoint.protocol());
+    acceptor_->set_option(boost::asio::socket_base::reuse_address(true));
+    acceptor_->bind(endpoint);
+    acceptor_->listen(LISTEN_BACKLOG);
     LOG_INFO(logger_, "TLS server listening at " << endpoint);
   } catch (const boost::system::system_error& e) {
     LOG_FATAL(logger_,
@@ -160,7 +183,7 @@ int TlsTCPCommunication::TlsTcpImpl::sendAsyncMessage(const NodeNum destination,
   // Therefore, we may call post every time a message is sent if the queue never grows beyond 1.
   if (queue_size_after_push.value() == 1) {
     if (conn) {
-      io_service_.post([conn]() { conn->write(); });
+      conn->get_io_service().post([conn]() { conn->write(); });
     }
   }
 
@@ -199,7 +222,7 @@ void TlsTCPCommunication::TlsTcpImpl::closeConnection(NodeNum id) {
     pcs.statusType = StatusType::Broken;
     config_.statusCallback(pcs);
   }
-  closeConnection(std::move(conn));
+  // closeConnection(std::move(conn));
 }
 
 void TlsTCPCommunication::TlsTcpImpl::closeConnection(std::shared_ptr<AsyncTlsConnection> conn) {
@@ -278,7 +301,8 @@ void TlsTCPCommunication::TlsTcpImpl::onClientHandshakeComplete(const boost::sys
 
 void TlsTCPCommunication::TlsTcpImpl::startServerSSLHandshake(boost::asio::ip::tcp::socket&& socket) {
   auto connection_id = total_accepted_connections_;
-  auto conn = AsyncTlsConnection::create(io_service_, std::move(socket), receiver_, *this, config_.bufferLength);
+  auto conn =
+      AsyncTlsConnection::create(socket.get_io_service(), std::move(socket), receiver_, *this, config_.bufferLength);
   accepted_waiting_for_handshake_.insert({connection_id, conn});
   status_->num_accepted_waiting_for_handshake = accepted_waiting_for_handshake_.size();
   conn->getSocket().async_handshake(
@@ -288,8 +312,8 @@ void TlsTCPCommunication::TlsTcpImpl::startServerSSLHandshake(boost::asio::ip::t
 
 void TlsTCPCommunication::TlsTcpImpl::startClientSSLHandshake(boost::asio::ip::tcp::socket&& socket,
                                                               NodeNum destination) {
-  auto conn =
-      AsyncTlsConnection::create(io_service_, std::move(socket), receiver_, *this, config_.bufferLength, destination);
+  auto conn = AsyncTlsConnection::create(
+      socket.get_io_service(), std::move(socket), receiver_, *this, config_.bufferLength, destination);
   connected_waiting_for_handshake_.insert({destination, conn});
   status_->num_connected_waiting_for_handshake = connected_waiting_for_handshake_.size();
   conn->getSocket().async_handshake(
@@ -298,7 +322,7 @@ void TlsTCPCommunication::TlsTcpImpl::startClientSSLHandshake(boost::asio::ip::t
 }
 
 void TlsTCPCommunication::TlsTcpImpl::accept() {
-  acceptor_.async_accept(accepting_socket_, [this](boost::system::error_code ec) {
+  acceptor_->async_accept(*accepting_socket_, [this](boost::system::error_code ec) {
     if (ec) {
       LOG_WARN(logger_, "async_accept failed: " << ec.message());
       // When io_service is stopped, the handlers are destroyed and when the
@@ -308,9 +332,10 @@ void TlsTCPCommunication::TlsTcpImpl::accept() {
     }
     total_accepted_connections_++;
     status_->total_accepted_connections = total_accepted_connections_;
-    setSocketOptions(accepting_socket_);
+    setSocketOptions(*accepting_socket_);
     LOG_INFO(logger_, "Accepted connection " << total_accepted_connections_);
-    startServerSSLHandshake(std::move(accepting_socket_));
+    startServerSSLHandshake(std::move(*accepting_socket_));
+    accepting_socket_.reset(new boost::asio::ip::tcp::socket(service_pool_->get_io_service()));
     accept();
   });
 }
@@ -320,7 +345,7 @@ void TlsTCPCommunication::TlsTcpImpl::resolve(NodeNum i) {
   status_->num_resolving = resolving_.size();
   auto node = config_.nodes.at(i);
   boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v4(), node.host, std::to_string(node.port));
-  resolver_.async_resolve(query, [this, node, i, query](const auto& error_code, auto results) {
+  resolver_->async_resolve(query, [this, node, i, query](const auto& error_code, auto results) {
     if (error_code) {
       LOG_WARN(
           logger_,
@@ -338,13 +363,15 @@ void TlsTCPCommunication::TlsTcpImpl::resolve(NodeNum i) {
 }
 
 void TlsTCPCommunication::TlsTcpImpl::connect(NodeNum i, const boost::asio::ip::tcp::endpoint& endpoint) {
-  auto [it, inserted] = connecting_.emplace(i, boost::asio::ip::tcp::socket(io_service_));
+  std::lock_guard<std::mutex> lock(connections_guard_);
+  auto [it, inserted] = connecting_.emplace(i, boost::asio::ip::tcp::socket(service_pool_->get_io_service()));
   ConcordAssert(inserted);
   status_->num_connecting = connecting_.size();
   it->second.async_connect(endpoint, [this, i, endpoint](const auto& error_code) {
+    std::lock_guard<std::mutex> lock(connections_guard_);
     if (error_code) {
       LOG_WARN(logger_, "Failed to connect to node " << i << ": " << endpoint << " : " << error_code.message());
-      connecting_.at(i).close();
+      // connecting_.at(i).close();
       connecting_.erase(i);
       status_->num_connecting = connecting_.size();
       return;
@@ -375,7 +402,7 @@ boost::asio::ip::tcp::endpoint TlsTCPCommunication::TlsTcpImpl::syncResolve() {
   // overload is not yet available in boost 1.64, which we're using today.
   boost::asio::ip::tcp::resolver::query query(
       boost::asio::ip::tcp::v4(), config_.listenHost, std::to_string(config_.listenPort));
-  boost::asio::ip::tcp::resolver::iterator results = resolver_.resolve(query);
+  boost::asio::ip::tcp::resolver::iterator results = resolver_->resolve(query);
   boost::asio::ip::tcp::endpoint endpoint = *results;
   LOG_INFO(logger_, "Resolved " << config_.listenHost << ":" << config_.listenPort << " to " << endpoint);
   return endpoint;

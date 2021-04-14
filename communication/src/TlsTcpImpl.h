@@ -19,6 +19,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/bind.hpp>
 
 #include "communication/CommDefs.hpp"
 #include "Logger.hpp"
@@ -102,6 +103,75 @@ typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> SSL_SOCKET;
  * issues during both testing and production.
  *
  *****************************************************************************/
+
+class io_service_pool {
+ public:
+  io_service_pool() : io_service_pool(8) {}
+
+  io_service_pool(size_t pool_size) : pool_size_{pool_size}, next_io_service_(0) {
+    if (pool_size == 0) throw std::runtime_error("io_service_pool size is 0");
+
+    // Give all the io_services work to do so that their run() functions will not
+    // exit until they are explicitly stopped.
+    for (std::size_t i = 0; i < pool_size + 1; ++i) {
+      io_service_ptr io_service(new boost::asio::io_service);
+      work_ptr work(new boost::asio::io_service::work(*io_service));
+      io_services_.push_back(io_service);
+      work_.push_back(work);
+    }
+  }
+
+  bool is_running() const { return _is_running; }
+
+  void start() {
+    for (std::size_t i = 0; i < io_services_.size(); ++i) {
+      thread_ptr thread(new std::thread(boost::bind(&boost::asio::io_service::run, io_services_[i])));
+      threads_.push_back(thread);
+    }
+    _is_running = true;
+  }
+
+  void stop() {
+    _is_running = false;
+    for (std::size_t i = 0; i < io_services_.size(); ++i) io_services_[i]->stop();
+    for (std::size_t i = 0; i < threads_.size(); ++i) threads_[i]->join();
+  }
+
+  boost::asio::io_service &get_io_service() {
+    // Use a round-robin scheme to choose the next io_service to use.
+    boost::asio::io_service &io_service = *io_services_[next_io_service_];
+    ++next_io_service_;
+    if (next_io_service_ == pool_size_) next_io_service_ = 0;
+    return io_service;
+  }
+
+  boost::asio::io_service &get_connect_io_service() {
+    // Use a round-robin scheme to choose the next io_service to use.
+    boost::asio::io_service &io_service = *io_services_[pool_size_];
+    return io_service;
+  }
+
+ private:
+  typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
+  typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
+  typedef boost::shared_ptr<std::thread> thread_ptr;
+
+  /// The pool of io_services.
+  std::vector<io_service_ptr> io_services_;
+
+  size_t pool_size_;
+
+  /// The work that keeps the io_services running.
+  std::vector<work_ptr> work_;
+
+  /// The next io_service to use for a connection.
+  std::size_t next_io_service_;
+
+  std::vector<thread_ptr> threads_;
+
+  std::atomic<bool> _is_running = false;
+};
+
 class TlsTCPCommunication::TlsTcpImpl {
   static constexpr size_t LISTEN_BACKLOG = 5;
   static constexpr std::chrono::seconds CONNECT_TICK = std::chrono::seconds(1);
@@ -114,10 +184,11 @@ class TlsTCPCommunication::TlsTcpImpl {
   TlsTcpImpl(const TlsTcpConfig &config)
       : logger_(logging::getLogger("concord-bft.tls")),
         config_(config),
-        acceptor_(io_service_),
-        resolver_(io_service_),
-        accepting_socket_(io_service_),
-        connect_timer_(io_service_),
+        service_pool_(std::make_unique<io_service_pool>()),
+        acceptor_(std::make_unique<boost::asio::ip::tcp::acceptor>(service_pool_->get_connect_io_service())),
+        resolver_(std::make_unique<boost::asio::ip::tcp::resolver>(service_pool_->get_connect_io_service())),
+        accepting_socket_(std::make_unique<boost::asio::ip::tcp::socket>(service_pool_->get_io_service())),
+        connect_timer_(std::make_unique<boost::asio::steady_timer>(service_pool_->get_connect_io_service())),
         status_(std::make_shared<TlsStatus>()),
         histograms_(Recorders(std::to_string(config.selfId), config.bufferLength, MAX_QUEUE_SIZE_IN_BYTES)) {
     auto &registrar = concord::diagnostics::RegistrarSingleton::getInstance();
@@ -209,25 +280,27 @@ class TlsTCPCommunication::TlsTcpImpl {
   // io_thread_ lifecycle management
   mutable std::mutex io_thread_guard_;
 
+  std::unique_ptr<io_service_pool> service_pool_;
+
   // Use io_context when we upgrade boost, as io_service is deprecated
   // https://stackoverflow.com/questions/59753391/boost-asio-io-service-vs-io-context
-  boost::asio::io_service io_service_;
-  boost::asio::ip::tcp::acceptor acceptor_;
+  // boost::asio::io_service io_service_;
+  std::unique_ptr<boost::asio::ip::tcp::acceptor> acceptor_;
 
   // We store a single resolver so that it doesn't go out of scope during async_resolve calls.
-  boost::asio::ip::tcp::resolver resolver_;
+  std::unique_ptr<boost::asio::ip::tcp::resolver> resolver_;
 
   // Every async_accept call for asio requires us to pass it an existing socket to write into. Later versions do not
   // require this. This socket will be filled in by an accepted connection. We'll then move it into an
   // AsyncTlsConnection when the async_accept handler returns.
-  boost::asio::ip::tcp::socket accepting_socket_;
+  std::unique_ptr<boost::asio::ip::tcp::socket> accepting_socket_;
 
   // For each accepted connection, we bump this value. We use it as a key into a map to find any in
   // progress connections when cert validation completes
   size_t total_accepted_connections_ = 0;
 
   // This timer is called periodically to trigger connections as needed.
-  boost::asio::steady_timer connect_timer_;
+  std::unique_ptr<boost::asio::steady_timer> connect_timer_;
 
   // This tracks outstanding attempts at DNS resolution for outgoing connections.
   std::set<NodeNum> resolving_;
